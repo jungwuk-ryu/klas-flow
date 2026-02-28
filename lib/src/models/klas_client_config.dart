@@ -13,9 +13,13 @@ final class KlasClientConfig {
   /// 엔드포인트 경로 설정입니다.
   final ApiPaths apiPaths;
 
+  /// 세션 만료 시 자동 재시도할 최대 횟수입니다.
+  final int maxSessionRenewRetries;
+
   KlasClientConfig({
     Uri? baseUri,
     this.timeout = const Duration(seconds: 15),
     this.apiPaths = const ApiPaths(),
+    this.maxSessionRenewRetries = 1,
   }) : baseUri = baseUri ?? Uri(scheme: 'https', host: 'klas.kw.ac.kr');
 }

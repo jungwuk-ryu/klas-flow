@@ -97,7 +97,75 @@ void main() {
         httpClient: mock,
       );
 
-      expect(client.getSessionInfo(), throwsA(isA<SessionExpiredException>()));
+      await expectLater(
+        client.getSessionInfo(),
+        throwsA(isA<SessionExpiredException>()),
+      );
+    });
+
+    test('updateSession은 UpdateSession API를 호출한다', () async {
+      var called = false;
+      final mock = MockClient((request) async {
+        if (request.url.path == '/usr/cmn/login/UpdateSession.do') {
+          called = true;
+          return _jsonResponse({'success': true});
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+
+      final result = await client.updateSession();
+      expect(result['success'], isTrue);
+      expect(called, isTrue);
+    });
+
+    test('startSessionHeartbeat는 0 이하 interval에서 ArgumentError를 던진다', () {
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+      );
+      addTearDown(client.close);
+
+      expect(
+        () => client.startSessionHeartbeat(interval: Duration.zero),
+        throwsArgumentError,
+      );
+    });
+
+    test('세션 하트비트 오류는 onError 콜백으로 전달된다', () async {
+      var heartbeatCalls = 0;
+      final capturedErrors = <Object>[];
+
+      final mock = MockClient((request) async {
+        if (request.url.path == '/usr/cmn/login/UpdateSession.do') {
+          heartbeatCalls++;
+          return http.Response('server error', 500);
+        }
+        return http.Response('Not Found', 404);
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+
+      client.startSessionHeartbeat(
+        interval: const Duration(milliseconds: 30),
+        onError: (error, _) => capturedErrors.add(error),
+      );
+      addTearDown(client.close);
+
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+
+      expect(client.isSessionHeartbeatRunning, isTrue);
+      expect(heartbeatCalls, greaterThanOrEqualTo(1));
+      expect(capturedErrors, isNotEmpty);
+
+      client.stopSessionHeartbeat();
+      expect(client.isSessionHeartbeatRunning, isFalse);
     });
 
     test('postJsonWithContext는 과목 컨텍스트를 자동 주입한다', () async {
@@ -221,6 +289,76 @@ void main() {
       );
     });
 
+    test('maxSessionRenewRetries가 0이면 자동 재로그인을 수행하지 않는다', () async {
+      var loginSecurityCalls = 0;
+      var protectedCalls = 0;
+
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            loginSecurityCalls++;
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-$loginSecurityCalls',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/api/v1/session/info':
+            return _jsonResponse({
+              'authenticated': true,
+              'userId': 'test-user',
+            });
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'N',
+                  'isDefault': true,
+                },
+              ],
+            });
+          case '/context-required':
+            protectedCalls++;
+            return _utf8TextResponse('세션이 만료되었습니다.', 401);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(
+          baseUri: Uri.parse('https://example.com'),
+          maxSessionRenewRetries: 0,
+        ),
+        httpClient: mock,
+      );
+
+      await client.login('test-user', 'test-password');
+      await expectLater(
+        client.postJsonWithContext(
+          '/context-required',
+          form: {'custom': 'value'},
+        ),
+        throwsA(isA<SessionExpiredException>()),
+      );
+
+      expect(protectedCalls, equals(1));
+      expect(loginSecurityCalls, equals(1));
+    });
+
     test('initializeFrame은 HTML을 파싱해 제목을 제공한다', () async {
       final mock = MockClient((request) async {
         if (request.url.path == '/std/cmn/frame/KlasStop.do') {
@@ -294,7 +432,7 @@ void main() {
         httpClient: mock,
       );
 
-      expect(
+      await expectLater(
         client.login('wrong', 'wrong'),
         throwsA(isA<InvalidCredentialsException>()),
       );
@@ -325,7 +463,10 @@ void main() {
         httpClient: mock,
       );
 
-      expect(client.login('id', 'pw'), throwsA(isA<OtpRequiredException>()));
+      await expectLater(
+        client.login('id', 'pw'),
+        throwsA(isA<OtpRequiredException>()),
+      );
     });
 
     test('Captcha 요구 응답은 CaptchaRequiredException으로 변환된다', () async {
@@ -353,7 +494,7 @@ void main() {
         httpClient: mock,
       );
 
-      expect(
+      await expectLater(
         client.login('id', 'pw'),
         throwsA(isA<CaptchaRequiredException>()),
       );

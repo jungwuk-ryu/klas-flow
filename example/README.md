@@ -14,6 +14,8 @@ Available demos:
 - `file_download_demo.dart`: Download binary and save to temp folder
 - `auto_session_renewal_demo.dart`: Demonstrate session polling with auto-renew support
 - `api_catalog_demo.dart`: Browse 65 endpoint IDs and call catalog-based APIs
+  - includes both `client.api` and `client.endpoints` usage
+- `heartbeat_demo.dart`: Keep session alive with heartbeat timer and error callback
 
 Safety note:
 

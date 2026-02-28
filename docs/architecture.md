@@ -15,6 +15,8 @@
 
 - 파일: `lib/src/auth/auth_flow.dart`
 - 역할: 로그인 다단계 흐름 오케스트레이션
+- 파일: `lib/src/auth/session_coordinator.dart`
+- 역할: 세션 자동 연장 정책, 로그인/컨텍스트 초기화 조정
 
 ### Context Layer
 
@@ -25,6 +27,14 @@
 
 - 파일: `lib/src/api/*`
 - 역할: 인증/세션/프레임/컨텍스트 엔드포인트 캡슐화
+- 파일: `lib/src/api/readonly_api.dart`
+- 역할: 명세 기반 65개 엔드포인트 카탈로그 + 타입 검증
+- 파일: `lib/src/api/typed_endpoints.dart`
+- 역할: IDE 자동완성 친화적인 그룹형 API 래퍼(생성 파일)
+- 파일: `lib/src/api/request_executor.dart`
+- 역할: payload 변환/컨텍스트 병합/요청 실행 위임
+- 파일: `tool/generate_typed_endpoints.dart`
+- 역할: 카탈로그(`KlasEndpointCatalog`) 기준 typed wrapper 자동 생성
 
 ### Transport Layer
 

@@ -38,6 +38,7 @@ Future<void> main() async {
 - 과목 컨텍스트(`selectYearhakgi`, `selectSubj`, `selectChangeYn`) 자동 주입
 - JSON/HTML/파일 응답 타입 분리
 - 명세 기반 65개 읽기 전용 엔드포인트 카탈로그(`client.api`) 제공
+- IDE 자동완성 친화적인 그룹형 엔드포인트 API(`client.endpoints`) 제공
 - 명확한 예외 타입 제공
 
 ## 공개 API
@@ -53,6 +54,16 @@ Future<void> main() async {
 - `KlasClient.api.callArray(...)`
 - `KlasClient.api.callText(...)`
 - `KlasClient.api.callBinary(...)`
+- `KlasClient.endpoints.learning.*`
+- `KlasClient.endpoints.academic.*`
+- `KlasClient.endpoints.file.*`
+- `KlasClient.startSessionHeartbeat(...)`
+- `KlasClient.stopSessionHeartbeat()`
+- `KlasClient.isSessionHeartbeatRunning`
+
+설정 옵션:
+
+- `KlasClientConfig.maxSessionRenewRetries` (기본 `1`)
 
 ## 데모 예제
 
@@ -63,6 +74,7 @@ Future<void> main() async {
 - `example/file_download_demo.dart`: 파일 다운로드 후 임시 경로 저장
 - `example/auto_session_renewal_demo.dart`: 세션 만료 자동 연장 동작 흐름
 - `example/api_catalog_demo.dart`: 카탈로그 기반 전체 API 호출 패턴
+- `example/heartbeat_demo.dart`: 장시간 실행 앱에서 세션 heartbeat 사용 패턴
 
 실행 예시:
 
@@ -77,6 +89,20 @@ final result = await client.api.callArray(
   'learning.taskStdList',
   payload: {'currentPage': 0},
 );
+```
+
+그룹형 호출 예시:
+
+```dart
+final result = await client.endpoints.learning.taskStdList(
+  payload: {'currentPage': 0},
+);
+```
+
+카탈로그 변경 후 자동완성 래퍼를 다시 생성하려면:
+
+```bash
+dart run tool/generate_typed_endpoints.dart
 ```
 
 ## 예외 타입
@@ -103,6 +129,8 @@ final result = await client.api.callArray(
 
 - [로그인 흐름](docs/login_flow.md)
 - [설계 문서](docs/architecture.md)
+- [Flutter 연동 가이드](docs/flutter_integration.md)
+- [공개 배포 체크리스트](docs/release_checklist.md)
 
 ## 테스트
 
@@ -114,3 +142,24 @@ dart run coverage:format_coverage --package=. --in=coverage --lcov --report-on=l
 ```
 
 현재 라인 커버리지는 81%다.
+
+## 배포 전 안전 점검
+
+아래 점검 스크립트는 공개되면 안 되는 명세 파일과 차단 문자열(민감정보)이
+현재 파일/이력에 남아있는지 확인한다.
+
+```bash
+dart run tool/prepublish_check.dart
+```
+
+차단 문자열을 같이 검사하려면:
+
+```bash
+$env:KLASFLOW_BLOCKED_LITERALS="your_student_id,your_password"
+dart run tool/prepublish_check.dart
+```
+
+점검 항목:
+
+- `klas-api-spec.md`, `klasflow_LLM_RFP_with_API_Spec.md`가 추적/이력에 존재하는지
+- 차단 문자열이 tracked file, git history, working tree에 존재하는지

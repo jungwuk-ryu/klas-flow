@@ -9,6 +9,7 @@ final class SessionCoordinator {
   final AuthFlow _authFlow;
   final ContextApi _contextApi;
   final ContextManager _contextManager;
+  final int _maxSessionRenewRetries;
 
   Future<void>? _renewalInProgress;
   String? _cachedId;
@@ -18,9 +19,11 @@ final class SessionCoordinator {
     required AuthFlow authFlow,
     required ContextApi contextApi,
     required ContextManager contextManager,
+    required int maxSessionRenewRetries,
   }) : _authFlow = authFlow,
        _contextApi = contextApi,
-       _contextManager = contextManager;
+       _contextManager = contextManager,
+       _maxSessionRenewRetries = maxSessionRenewRetries;
 
   /// 로그인 후 컨텍스트까지 초기화합니다.
   Future<void> login(String id, String password) async {
@@ -38,13 +41,19 @@ final class SessionCoordinator {
     });
   }
 
-  /// 세션 만료 시 자동 재로그인 후 1회 재시도합니다.
+  /// 세션 만료 시 자동 재로그인 후 지정된 횟수만큼 재시도합니다.
   Future<T> withAutoRenewal<T>(Future<T> Function() request) async {
-    try {
-      return await request();
-    } on SessionExpiredException {
-      await _renewSessionIfPossible();
-      return request();
+    var retryCount = 0;
+    while (true) {
+      try {
+        return await request();
+      } on SessionExpiredException {
+        if (retryCount >= _maxSessionRenewRetries) {
+          rethrow;
+        }
+        retryCount++;
+        await _renewSessionIfPossible();
+      }
     }
   }
 

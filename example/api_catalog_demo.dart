@@ -36,6 +36,11 @@ Future<void> main() async {
       includeContext: false,
     );
     stdout.writeln('Subject context count: ${subjects.length}');
+
+    final tasks = await client.endpoints.learning.taskStdList(
+      payload: {'currentPage': 0},
+    );
+    stdout.writeln('Task list count: ${tasks.length}');
   } on KlasException catch (error) {
     stdout.writeln('KLAS request failed: $error');
     rethrow;

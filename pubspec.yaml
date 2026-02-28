@@ -1,7 +1,14 @@
 name: klasflow
 description: Flutter에서 KLAS를 사용하기 위한 고수준 Dart SDK
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+homepage: https://github.com/your-org/klasflow
+repository: https://github.com/your-org/klasflow
+issue_tracker: https://github.com/your-org/klasflow/issues
+topics:
+  - flutter
+  - dart
+  - sdk
+  - klas
 
 environment:
   sdk: ^3.10.8

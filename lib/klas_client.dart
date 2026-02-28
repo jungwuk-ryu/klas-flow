@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:http/http.dart' as http;
 
 import 'src/api/auth_api.dart';
@@ -6,6 +8,7 @@ import 'src/api/frame_api.dart';
 import 'src/api/readonly_api.dart';
 import 'src/api/request_executor.dart';
 import 'src/api/session_api.dart';
+import 'src/api/typed_endpoints.dart';
 import 'src/auth/auth_flow.dart';
 import 'src/auth/credentials_encryptor.dart';
 import 'src/auth/session_coordinator.dart';
@@ -31,9 +34,16 @@ final class KlasClient {
   late final FrameApi _frameApi;
   late final SessionCoordinator _sessionCoordinator;
   late final RequestExecutor _requestExecutor;
+  Timer? _sessionHeartbeatTimer;
+  bool _sessionHeartbeatInFlight = false;
+  void Function(Object error, StackTrace stackTrace)?
+  _sessionHeartbeatErrorHandler;
 
   /// 명세 기반 읽기 전용 API 진입점입니다.
   late final KlasReadOnlyApi api;
+
+  /// 그룹별 자동완성 API 진입점입니다.
+  late final KlasTypedEndpoints endpoints;
 
   /// 클라이언트를 생성합니다.
   KlasClient({KlasClientConfig? config, http.Client? httpClient})
@@ -62,6 +72,7 @@ final class KlasClient {
       authFlow: authFlow,
       contextApi: _contextApi,
       contextManager: _contextManager,
+      maxSessionRenewRetries: _config.maxSessionRenewRetries,
     );
 
     _requestExecutor = RequestExecutor(
@@ -79,6 +90,8 @@ final class KlasClient {
       getText: _requestExecutor.getText,
       getBinary: _requestExecutor.getBinary,
     );
+
+    endpoints = KlasTypedEndpoints(api);
   }
 
   /// 현재 선택된 과목 컨텍스트입니다.
@@ -87,6 +100,9 @@ final class KlasClient {
   /// 저장된 컨텍스트 목록입니다.
   List<CourseContext> get availableContexts =>
       _contextManager.availableContexts;
+
+  /// 세션 하트비트 타이머가 동작 중인지 여부입니다.
+  bool get isSessionHeartbeatRunning => _sessionHeartbeatTimer != null;
 
   /// 로그인 오케스트레이션을 실행합니다.
   Future<void> login(String id, String password) {
@@ -100,7 +116,41 @@ final class KlasClient {
     );
   }
 
-  /// 학기/과목 컨텍스트 목록을 다시 옵니다.
+  /// 서버 세션을 연장하기 위해 UpdateSession API를 호출합니다.
+  Future<Map<String, dynamic>> updateSession() {
+    return api.callObject('loginSession.updateSession', includeContext: false);
+  }
+
+  /// 주기적으로 UpdateSession API를 호출해 세션을 유지합니다.
+  void startSessionHeartbeat({
+    Duration interval = const Duration(minutes: 5),
+    bool immediate = true,
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
+    stopSessionHeartbeat();
+
+    if (interval <= Duration.zero) {
+      throw ArgumentError('Heartbeat interval must be greater than zero.');
+    }
+
+    _sessionHeartbeatErrorHandler = onError;
+    _sessionHeartbeatTimer = Timer.periodic(interval, (_) {
+      unawaited(_runHeartbeatTick());
+    });
+
+    if (immediate) {
+      unawaited(_runHeartbeatTick());
+    }
+  }
+
+  /// 세션 유지 타이머를 중지합니다.
+  void stopSessionHeartbeat() {
+    _sessionHeartbeatTimer?.cancel();
+    _sessionHeartbeatTimer = null;
+    _sessionHeartbeatErrorHandler = null;
+  }
+
+  /// 학기/과목 컨텍스트 목록을 다시 불러옵니다.
   Future<List<CourseContext>> refreshContexts() {
     return _sessionCoordinator.refreshContexts();
   }
@@ -166,6 +216,21 @@ final class KlasClient {
 
   /// 내부 리소스를 정리합니다.
   void close() {
+    stopSessionHeartbeat();
     _transport.close();
+  }
+
+  Future<void> _runHeartbeatTick() async {
+    if (_sessionHeartbeatInFlight) {
+      return;
+    }
+    _sessionHeartbeatInFlight = true;
+    try {
+      await updateSession();
+    } catch (error, stackTrace) {
+      _sessionHeartbeatErrorHandler?.call(error, stackTrace);
+    } finally {
+      _sessionHeartbeatInFlight = false;
+    }
   }
 }

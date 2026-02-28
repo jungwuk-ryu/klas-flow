@@ -1,0 +1,70 @@
+# Flutter Integration Guide
+
+`klasflow`는 순수 Dart 패키지이므로 Flutter에서 바로 주입해서 사용할 수 있습니다.
+
+## 1) Riverpod 예시
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:klasflow/klasflow.dart';
+
+final klasClientProvider = Provider<KlasClient>((ref) {
+  final client = KlasClient(
+    config: KlasClientConfig(
+      // 세션 만료 시 최대 2회 자동 연장
+      maxSessionRenewRetries: 2,
+    ),
+  );
+
+  ref.onDispose(client.close);
+  return client;
+});
+
+final sessionProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final client = ref.watch(klasClientProvider);
+  return client.api.callObject('session.info');
+});
+```
+
+## 2) BLoC/Controller 예시
+
+```dart
+import 'package:klasflow/klasflow.dart';
+
+final class KlasRepository {
+  final KlasClient _client;
+
+  KlasRepository(this._client);
+
+  Future<void> login(String id, String password) {
+    return _client.login(id, password);
+  }
+
+  Future<List<dynamic>> loadTasks() {
+    return _client.endpoints.learning.taskStdList(
+      payload: {'currentPage': 0},
+    );
+  }
+
+  void startHeartbeat() {
+    _client.startSessionHeartbeat(
+      interval: const Duration(minutes: 5),
+      onError: (error, _) {
+        // 운영 환경에서는 logger/crashlytics로 전송
+        print('heartbeat error: $error');
+      },
+    );
+  }
+
+  void stopHeartbeat() {
+    _client.stopSessionHeartbeat();
+  }
+}
+```
+
+## 3) 운영 팁
+
+- 앱 시작 시에는 로그인 성공 후 `refreshContexts()`로 기본 컨텍스트를 확정해 두는 것을 권장합니다.
+- 백그라운드 전환 시 `stopSessionHeartbeat()`, 포그라운드 복귀 시 `startSessionHeartbeat()`를 권장합니다.
+- 실계정 테스트에서는 반드시 읽기 전용 엔드포인트만 사용하세요.
+- 로그/크래시 리포트에 학번, 토큰, 쿠키가 남지 않도록 마스킹 정책을 두세요.
