@@ -2,6 +2,7 @@
 
 ## 1) 코드/테스트
 
+- 통합 점검: `dart run tool/check_all.dart`
 - `dart pub get`
 - `dart analyze`
 - `dart test`

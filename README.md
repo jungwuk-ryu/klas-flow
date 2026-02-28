@@ -143,6 +143,12 @@ dart run coverage:format_coverage --package=. --in=coverage --lcov --report-on=l
 
 라인 커버리지는 변경 시점에 따라 달라질 수 있으므로, 위 커맨드로 최신 수치를 확인하세요.
 
+한 번에 전체 품질 검증을 실행하려면:
+
+```bash
+dart run tool/check_all.dart
+```
+
 ## 배포 전 안전 점검
 
 아래 점검 스크립트는 공개되면 안 되는 명세 파일과 차단 문자열(민감정보)이
