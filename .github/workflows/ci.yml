@@ -16,19 +16,5 @@ jobs:
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
 
-      - name: Install dependencies
-        run: dart pub get
-
-      - name: Analyze
-        run: dart analyze
-
-      - name: Test
-        run: dart test
-
-      - name: Verify generated endpoints
-        run: |
-          dart run tool/generate_typed_endpoints.dart
-          git diff --exit-code -- lib/src/api/typed_endpoints.dart
-
-      - name: Prepublish safety check
-        run: dart run tool/prepublish_check.dart
+      - name: Run all checks
+        run: dart run tool/check_all.dart
