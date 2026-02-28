@@ -131,6 +131,94 @@ void main() {
       expect(echo['selectChangeYn'], equals('Y'));
     });
 
+    test('세션 만료 시 자동 재로그인 후 요청을 재시도한다', () async {
+      final requestOrder = <String>[];
+      var loginSecurityCalls = 0;
+      var protectedApiCalls = 0;
+
+      final mock = MockClient((request) async {
+        requestOrder.add(request.url.path);
+
+        switch (request.url.path) {
+          case '/LoginSecurity.do':
+            loginSecurityCalls++;
+            return _jsonResponse(
+              {
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-$loginSecurityCalls',
+                },
+              },
+              headers: {
+                'set-cookie':
+                    'JSESSIONID=session$loginSecurityCalls; Path=/; HttpOnly',
+              },
+            );
+          case '/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/FrameInit.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/api/v1/session/info':
+            return _jsonResponse({
+              'authenticated': true,
+              'userId': 'test-user',
+            });
+          case '/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'N',
+                  'isDefault': true,
+                },
+              ],
+            });
+          case '/context-required':
+            protectedApiCalls++;
+            if (protectedApiCalls == 1) {
+              return _utf8TextResponse('세션이 만료되었습니다.', 401);
+            }
+
+            final body = request.bodyFields;
+            expect(body['custom'], equals('value'));
+            expect(body['selectYearhakgi'], equals('20261'));
+            expect(body['selectSubj'], equals('CSE101'));
+            expect(body['selectChangeYn'], equals('N'));
+            return _jsonResponse({'ok': true, 'attempt': protectedApiCalls});
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+
+      await client.login('test-user', 'test-password');
+      final result = await client.postJsonWithContext(
+        '/context-required',
+        form: {'custom': 'value'},
+      );
+
+      expect(result['ok'], isTrue);
+      expect(result['attempt'], equals(2));
+      expect(protectedApiCalls, equals(2));
+      expect(loginSecurityCalls, equals(2));
+      expect(
+        requestOrder.where((path) => path == '/LoginSecurity.do').length,
+        equals(2),
+      );
+    });
+
     test('initializeFrame은 HTML을 파싱해 제목을 제공한다', () async {
       final mock = MockClient((request) async {
         if (request.url.path == '/FrameInit.do') {

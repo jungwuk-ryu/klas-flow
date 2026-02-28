@@ -34,7 +34,7 @@ Future<void> main() async {
 ## 핵심 기능
 
 - 다단계 로그인 오케스트레이션(`login`) 자동 처리
-- 세션 쿠키 자동 유지 및 만료 감지
+- 세션 쿠키 자동 유지, 만료 감지, 자동 세션 연장(재로그인 1회 재시도)
 - 과목 컨텍스트(`selectYearhakgi`, `selectSubj`, `selectChangeYn`) 자동 주입
 - JSON/HTML/파일 응답 타입 분리
 - 명확한 예외 타입 제공
