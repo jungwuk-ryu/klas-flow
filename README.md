@@ -48,6 +48,21 @@ Future<void> main() async {
 - `KlasClient.initializeFrame()`
 - `KlasClient.downloadFile(...)`
 
+## 데모 예제
+
+- [Example Guide](example/README.md)
+- `example/basic_login_demo.dart`: 기본 로그인 + 세션/컨텍스트 출력
+- `example/error_handling_demo.dart`: 타입별 예외 처리 패턴
+- `example/context_workflow_demo.dart`: 컨텍스트 로드/전환 + 컨텍스트 주입 API 호출
+- `example/file_download_demo.dart`: 파일 다운로드 후 임시 경로 저장
+- `example/auto_session_renewal_demo.dart`: 세션 만료 자동 연장 동작 흐름
+
+실행 예시:
+
+```bash
+dart run example/basic_login_demo.dart -DKLAS_ID=<id> -DKLAS_PASSWORD=<password>
+```
+
 ## 예외 타입
 
 - `InvalidCredentialsException`
