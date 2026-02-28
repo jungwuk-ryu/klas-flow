@@ -88,6 +88,7 @@ Future<void> main() async {
 - [Security Guidelines](docs/security_guidelines.md)
 - [Login Flow](docs/login_flow.md)
 - [Architecture](docs/architecture.md)
+- [Architecture Critique](docs/architecture_critique.md)
 - [Flutter Integration](docs/flutter_integration.md)
 - [Release Checklist](docs/release_checklist.md)
 - [Example Guide](example/README.md)
