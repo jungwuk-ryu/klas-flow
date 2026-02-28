@@ -3,16 +3,19 @@
 `KlasClient.login(id, password)`는 아래 단계를 순차 실행한다.
 
 1. 보안키 조회
-- 로그인 암호화에 필요한 RSA 공개키와 로그인 토큰을 조회한다.
+- 로그인 암호화에 필요한 RSA 공개키를 조회한다.
+- 서버 버전에 따라 `publicKey` 단일 필드 또는 `modulus/exponent/loginToken` 조합을 지원한다.
 
 2. 로그인 토큰 암호화
-- `id`, `password`, `loginToken`을 조합해 RSA(PKCS#1)로 암호화한다.
+- 신규 플로우: `{"loginId","loginPwd","storeIdYn"}` JSON 문자열을 RSA(PKCS#1)로 암호화한다.
+- 구형 플로우: `id|password|loginToken` 문자열을 RSA(PKCS#1)로 암호화한다.
 
 3. 캡차 단계 호출
-- 서버의 로그인 검증 상태를 초기화한다.
+- 신규 플로우: `loginToken`과 `captcha`를 JSON으로 전달한다.
+- 구형 플로우: 캡차 초기화 API를 폼 요청으로 호출한다.
 
 4. 로그인 확인
-- 암호화 토큰을 전달해 로그인 여부를 확정한다.
+- 암호화 토큰을 전달해 로그인 여부를 확정한다(신규 JSON/구형 form 모두 지원).
 - OTP/캡차 추가 인증 여부를 판정한다.
 
 5. 프레임 초기화

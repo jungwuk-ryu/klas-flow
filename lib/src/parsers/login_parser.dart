@@ -7,6 +7,15 @@ final class LoginParser {
   /// LoginSecurity 응답을 파싱합니다.
   LoginSecurity parseSecurity(Map<String, dynamic> json) {
     final normalized = _normalize(json);
+    final publicKey = _optionalString(normalized, const [
+      'publicKey',
+      'rsaPublicKey',
+      'publicKeyPem',
+    ]);
+
+    if (publicKey != null) {
+      return LoginSecurity(publicKey: publicKey, raw: json);
+    }
 
     try {
       return LoginSecurity(
@@ -41,28 +50,53 @@ final class LoginParser {
   /// LoginConfirm 응답을 파싱합니다.
   LoginResult parseLoginResult(Map<String, dynamic> json) {
     final normalized = _normalize(json);
+    final responsePayload =
+        _firstMap(json, const ['response', 'result']) ??
+        const <String, dynamic>{};
 
-    final message = _optionalString(normalized, const [
-      'message',
-      'msg',
-      'errorMessage',
-      'resultMsg',
-    ]);
+    final merged = <String, dynamic>{...normalized, ...responsePayload};
+    final message =
+        _optionalString(merged, const [
+          'message',
+          'msg',
+          'errorMessage',
+          'resultMsg',
+          'errorMsg',
+        ]) ??
+        _optionalString(json, const [
+          'message',
+          'msg',
+          'errorMessage',
+          'resultMsg',
+          'errorMsg',
+        ]);
 
-    final success = _boolFromAny(
-      _firstValue(normalized, const [
-            'success',
-            'isSuccess',
-            'authenticated',
-          ]) ??
-          _firstValue(normalized, const ['result', 'status', 'code']),
-      trueTokens: const {'ok', 'success', 's', '0', '200', 'y'},
-      falseTokens: const {'fail', 'failed', 'error', '401', 'n'},
+    final errorCount = _intFromAny(
+      _firstValue(json, const ['errorCount', 'errorCnt', 'error']),
     );
+
+    final successToken =
+        _firstValue(merged, const ['success', 'isSuccess', 'authenticated']) ??
+        _firstValue(merged, const ['result', 'status', 'code']) ??
+        _firstValue(json, const ['result', 'status', 'code']);
+
+    final success = errorCount != null
+        ? errorCount == 0
+        : _boolFromAny(
+            successToken,
+            trueTokens: const {'ok', 'success', 's', '0', '200', 'y', 'true'},
+            falseTokens: const {'fail', 'failed', 'error', '401', 'n', 'false'},
+          );
 
     final otpRequired =
         _boolFromAny(
-          _firstValue(normalized, const ['otpRequired', 'needOtp', 'otpYn']),
+          _firstValue(merged, const [
+            'otpRequired',
+            'needOtp',
+            'otpYn',
+            'twoFactorAt',
+            'twoFactorYn',
+          ]),
           trueTokens: const {'y', 'true', '1'},
           falseTokens: const {'n', 'false', '0'},
         ) ||
@@ -70,15 +104,17 @@ final class LoginParser {
 
     final captchaRequired =
         _boolFromAny(
-          _firstValue(normalized, const [
+          _firstValue(merged, const [
             'captchaRequired',
             'needCaptcha',
             'captchaYn',
+            'captchaNeedYn',
           ]),
           trueTokens: const {'y', 'true', '1'},
           falseTokens: const {'n', 'false', '0'},
         ) ||
-        (message?.contains('캡차') ?? false);
+        ((message?.contains('캡차') ?? false) ||
+            (message?.toLowerCase().contains('captcha') ?? false));
 
     return LoginResult(
       success: success,
@@ -123,6 +159,22 @@ final class LoginParser {
     return null;
   }
 
+  Map<String, dynamic>? _firstMap(
+    Map<String, dynamic> source,
+    List<String> keys,
+  ) {
+    for (final key in keys) {
+      final value = source[key];
+      if (value is Map<String, dynamic>) {
+        return value;
+      }
+      if (value is Map) {
+        return value.cast<String, dynamic>();
+      }
+    }
+    return null;
+  }
+
   bool _boolFromAny(
     Object? value, {
     required Set<String> trueTokens,
@@ -144,5 +196,21 @@ final class LoginParser {
       }
     }
     return false;
+  }
+
+  int? _intFromAny(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value.trim());
+    }
+    return null;
   }
 }

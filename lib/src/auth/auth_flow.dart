@@ -2,6 +2,7 @@ import '../api/auth_api.dart';
 import '../api/frame_api.dart';
 import '../api/session_api.dart';
 import '../exceptions/klas_exceptions.dart';
+import '../models/login_result.dart';
 import 'credentials_encryptor.dart';
 
 /// 다단계 로그인 오케스트레이션을 담당합니다.
@@ -30,12 +31,31 @@ final class AuthFlow {
       security: security,
     );
 
-    await _authApi.invokeLoginCaptcha();
+    LoginResult loginResult;
+    if (security.usesPemPublicKey) {
+      final captchaCount = await _authApi.invokeLoginCaptcha(
+        encryptedLoginToken: encryptedLoginToken,
+        captcha: '',
+      );
+      if (captchaCount != null && captchaCount > 2) {
+        throw const CaptchaRequiredException(
+          'Captcha input is required after multiple failed attempts.',
+        );
+      }
 
-    final loginResult = await _authApi.confirmLogin(
-      id: id,
-      encryptedLoginToken: encryptedLoginToken,
-    );
+      loginResult = await _authApi.confirmLogin(
+        encryptedLoginToken: encryptedLoginToken,
+        captcha: '',
+        redirectUrl: '',
+        redirectTabUrl: '',
+      );
+    } else {
+      await _authApi.invokeLoginCaptcha();
+      loginResult = await _authApi.confirmLogin(
+        id: id,
+        encryptedLoginToken: encryptedLoginToken,
+      );
+    }
 
     if (loginResult.otpRequired) {
       throw OtpRequiredException(

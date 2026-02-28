@@ -28,6 +28,8 @@ final class SessionInfo {
         'isAuthenticated',
         'isLogin',
         'sessionAlive',
+        'remainingTime',
+        'logoutCountDownSec',
       ]),
       userId: _readString(normalized, const ['userId', 'id', 'studentNo']),
       userName: _readString(normalized, const ['userName', 'name', 'nm']),
@@ -59,6 +61,10 @@ final class SessionInfo {
         }
         if (normalized == 'false' || normalized == 'n' || normalized == 'no') {
           return false;
+        }
+        final numeric = num.tryParse(normalized);
+        if (numeric != null) {
+          return numeric != 0;
         }
       }
     }

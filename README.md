@@ -75,11 +75,20 @@ Future<void> main() async {
 - `example/auto_session_renewal_demo.dart`: 세션 만료 자동 연장 동작 흐름
 - `example/api_catalog_demo.dart`: 카탈로그 기반 전체 API 호출 패턴
 - `example/heartbeat_demo.dart`: 장시간 실행 앱에서 세션 heartbeat 사용 패턴
+- `tool/live_account_scenarios.dart`: 실계정 기준 읽기 전용 10개 시나리오 검증 스크립트
 
 실행 예시:
 
 ```bash
 dart run example/basic_login_demo.dart -DKLAS_ID=<id> -DKLAS_PASSWORD=<password>
+```
+
+실계정 10개 시나리오 검증:
+
+```bash
+$env:KLAS_ID="<id>"
+$env:KLAS_PASSWORD="<password>"
+dart run tool/live_account_scenarios.dart
 ```
 
 카탈로그 호출 예시:

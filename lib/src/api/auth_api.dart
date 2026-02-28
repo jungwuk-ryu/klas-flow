@@ -21,15 +21,61 @@ final class AuthApi {
   }
 
   /// 캡차 단계 초기화를 요청합니다.
-  Future<void> invokeLoginCaptcha() async {
-    await _transport.postFormText(_paths.loginCaptcha);
+  Future<int?> invokeLoginCaptcha({
+    String? encryptedLoginToken,
+    String captcha = '',
+  }) async {
+    if (encryptedLoginToken == null) {
+      final response = await _transport.postFormText(_paths.loginCaptcha);
+      return _parseCaptchaCount(response.body);
+    }
+
+    final response = await _transport.postJsonDynamic(
+      _paths.loginCaptcha,
+      json: {'loginToken': encryptedLoginToken, 'captcha': captcha},
+    );
+    return _parseCaptchaCount(response.body);
   }
 
   /// 로그인 확인 요청을 수행합니다.
   Future<LoginResult> confirmLogin({
-    required String id,
+    String? id,
     required String encryptedLoginToken,
+    String captcha = '',
+    String redirectUrl = '',
+    String redirectTabUrl = '',
   }) async {
+    if (id == null) {
+      final response = await _transport.postJsonDynamic(
+        _paths.loginConfirm,
+        json: {
+          'loginToken': encryptedLoginToken,
+          'captcha': captcha,
+          'redirectUrl': redirectUrl,
+          'redirectTabUrl': redirectTabUrl,
+        },
+      );
+
+      if (response.body is Map<String, dynamic>) {
+        return _loginParser.parseLoginResult(
+          response.body as Map<String, dynamic>,
+        );
+      }
+      if (response.body is Map) {
+        return _loginParser.parseLoginResult(
+          (response.body as Map).cast<String, dynamic>(),
+        );
+      }
+
+      final scalar = response.body?.toString();
+      return LoginResult(
+        success: false,
+        message: scalar == null
+            ? 'Unexpected LoginConfirm response type.'
+            : 'Unexpected LoginConfirm response: $scalar',
+      );
+    }
+
     final response = await _transport.postFormText(
       _paths.loginConfirm,
       form: {'id': id, 'loginToken': encryptedLoginToken},
@@ -56,6 +102,51 @@ final class AuthApi {
       message: 'Login response was HTML; treated as success.',
       raw: const {},
     );
+  }
+
+  int? _parseCaptchaCount(Object? body) {
+    if (body == null) {
+      return null;
+    }
+
+    if (body is num) {
+      return body.toInt();
+    }
+
+    if (body is String) {
+      return int.tryParse(body.trim());
+    }
+
+    if (body is Map<String, dynamic>) {
+      return _parseCaptchaCountFromMap(body);
+    }
+    if (body is Map) {
+      return _parseCaptchaCountFromMap(body.cast<String, dynamic>());
+    }
+
+    return null;
+  }
+
+  int? _parseCaptchaCountFromMap(Map<String, dynamic> payload) {
+    final candidates = <Object?>[
+      payload['count'],
+      payload['errorCount'],
+      payload['captchaCount'],
+      payload['data'],
+    ];
+
+    for (final value in candidates) {
+      if (value is num) {
+        return value.toInt();
+      }
+      if (value is String) {
+        final parsed = int.tryParse(value.trim());
+        if (parsed != null) {
+          return parsed;
+        }
+      }
+    }
+    return null;
   }
 
   Map<String, dynamic>? _tryDecodeJson(String text) {

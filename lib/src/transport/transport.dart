@@ -234,13 +234,14 @@ final class KlasTransport {
       };
 
       _cookieJar.absorb(response);
-      _validateStatus(response);
 
       if (_looksLikeSessionExpired(response)) {
         throw const SessionExpiredException(
           'Session expired or authentication is no longer valid.',
         );
       }
+
+      _validateStatus(response);
 
       return response;
     } on KlasException {
@@ -283,6 +284,18 @@ final class KlasTransport {
   }
 
   void _validateStatus(http.Response response) {
+    if (response.statusCode == 302 ||
+        response.statusCode == 303 ||
+        response.statusCode == 307 ||
+        response.statusCode == 308) {
+      final location = response.headers['location']?.toLowerCase();
+      if (location != null && location.contains('/usr/cmn/login/')) {
+        throw const SessionExpiredException(
+          'Redirected to login page. Session may have expired.',
+        );
+      }
+    }
+
     if (response.statusCode == 401 ||
         response.statusCode == 419 ||
         response.statusCode == 440) {
@@ -303,10 +316,17 @@ final class KlasTransport {
   }
 
   bool _looksLikeSessionExpired(http.Response response) {
+    final location = response.headers['location']?.toLowerCase();
+    if (location != null && location.contains('/usr/cmn/login/')) {
+      return true;
+    }
+
     final lowerBody = _decodeText(response).toLowerCase();
     return lowerBody.contains('session expired') ||
         lowerBody.contains('세션이 만료') ||
-        lowerBody.contains('re-login');
+        lowerBody.contains('re-login') ||
+        lowerBody.contains("missing cookie 'session'") ||
+        lowerBody.contains('redirected to login');
   }
 
   String _decodeText(http.Response response) {
