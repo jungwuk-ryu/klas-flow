@@ -149,6 +149,12 @@ dart run coverage:format_coverage --package=. --in=coverage --lcov --report-on=l
 dart run tool/check_all.dart
 ```
 
+민감 문자열까지 함께 검사하려면:
+
+```bash
+dart run tool/check_all.dart --block="value1,value2"
+```
+
 ## 배포 전 안전 점검
 
 아래 점검 스크립트는 공개되면 안 되는 명세 파일과 차단 문자열(민감정보)이
