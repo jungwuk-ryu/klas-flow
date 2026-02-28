@@ -80,3 +80,20 @@
   - CI에서 생성 결과를 검증해 API 문서/코드 불일치를 조기 차단한다.
 
 결과적으로 외부 공개 API는 단순해지고, 내부 변경 시 테스트 단위가 명확해졌다.
+
+## 채택 관점 점검
+
+이 아키텍처가 실제 채택에 도움이 되려면 아래가 충족되어야 한다.
+- 처음 쓰는 개발자가 10분 안에 첫 API 호출 성공
+- 장애 시 진단 경로가 문서/코드에 명확
+- API 변경 시 파급 범위가 parser/API layer로 제한
+
+현재 보완 장치:
+- `loginAndBootstrap()`로 온보딩 단계 축소
+- `runHealthCheck()`와 `tool/live_account_scenarios.dart`로 진단 경로 제공
+- `typed_endpoints` 자동 생성 + CI 검증으로 drift 방지
+
+남은 과제:
+- endpoint별 응답 모델 강타입화 확대
+- API 변경 감지 시 사용자 액션 가이드 자동화
+- Flutter 위젯 레벨 레퍼런스 앱/샘플 추가

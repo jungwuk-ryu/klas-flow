@@ -25,6 +25,9 @@ void main() {
   stdout.writeln(
     '  dart run example/heartbeat_demo.dart -DKLAS_ID=<id> -DKLAS_PASSWORD=<password>',
   );
+  stdout.writeln(
+    '  dart run example/bootstrap_and_health_demo.dart -DKLAS_ID=<id> -DKLAS_PASSWORD=<password>',
+  );
   stdout.writeln('');
   stdout.writeln(
     'Use read-only endpoints only when running against a real account.',

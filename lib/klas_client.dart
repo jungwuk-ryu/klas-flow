@@ -17,7 +17,9 @@ import 'src/exceptions/klas_exceptions.dart';
 import 'src/models/course_context.dart';
 import 'src/models/file_payload.dart';
 import 'src/models/html_page.dart';
+import 'src/models/klas_bootstrap_result.dart';
 import 'src/models/klas_client_config.dart';
+import 'src/models/klas_health_report.dart';
 import 'src/models/session_info.dart';
 import 'src/parsers/html_parser.dart';
 import 'src/parsers/login_parser.dart';
@@ -107,6 +109,20 @@ final class KlasClient {
   /// 로그인 오케스트레이션을 실행합니다.
   Future<void> login(String id, String password) {
     return _sessionCoordinator.login(id, password);
+  }
+
+  /// 로그인 후 앱 초기화에 필요한 상태를 한 번에 반환합니다.
+  Future<KlasBootstrapResult> loginAndBootstrap(
+    String id,
+    String password,
+  ) async {
+    await login(id, password);
+    final session = await getSessionInfo();
+    return KlasBootstrapResult(
+      session: session,
+      contexts: availableContexts,
+      currentContext: currentContext,
+    );
   }
 
   /// 세션 정보를 조회합니다.
@@ -212,6 +228,68 @@ final class KlasClient {
     _transport.clearSession();
     _contextManager.clear();
     _sessionCoordinator.clearCachedCredentials();
+  }
+
+  /// 주요 API 호환성과 세션 상태를 점검합니다.
+  ///
+  /// 운영 환경에서는 앱 시작 또는 문제 신고 시 진단용으로 사용할 수 있습니다.
+  Future<KlasHealthReport> runHealthCheck({
+    bool includeCourseEndpoints = true,
+    int taskPage = 0,
+  }) async {
+    final items = <KlasHealthCheckItem>[];
+
+    Future<void> probe(String id, Future<String> Function() run) async {
+      final stopwatch = Stopwatch()..start();
+      try {
+        final detail = await run();
+        stopwatch.stop();
+        items.add(
+          KlasHealthCheckItem(
+            id: id,
+            success: true,
+            elapsed: stopwatch.elapsed,
+            detail: detail,
+          ),
+        );
+      } catch (error) {
+        stopwatch.stop();
+        items.add(
+          KlasHealthCheckItem(
+            id: id,
+            success: false,
+            elapsed: stopwatch.elapsed,
+            detail: '$error',
+          ),
+        );
+      }
+    }
+
+    await probe('session.info', () async {
+      final session = await getSessionInfo();
+      return 'authenticated=${session.authenticated}';
+    });
+
+    await probe('context.refresh', () async {
+      final contexts = await refreshContexts();
+      return 'count=${contexts.length}';
+    });
+
+    await probe('session.update', () async {
+      final result = await updateSession();
+      return 'keys=${result.keys.length}';
+    });
+
+    if (includeCourseEndpoints && currentContext != null) {
+      await probe('learning.taskStdList', () async {
+        final tasks = await endpoints.learning.taskStdList(
+          payload: {'currentPage': taskPage},
+        );
+        return 'items=${tasks.length}';
+      });
+    }
+
+    return KlasHealthReport(checkedAt: DateTime.now(), items: items);
   }
 
   /// 내부 리소스를 정리합니다.

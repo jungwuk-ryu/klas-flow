@@ -37,13 +37,22 @@ final class KlasRepository {
   KlasRepository(this._client);
 
   Future<void> login(String id, String password) {
-    return _client.login(id, password);
+    return _client.loginAndBootstrap(id, password).then((_) => null);
   }
 
   Future<List<dynamic>> loadTasks() {
     return _client.endpoints.learning.taskStdList(
       payload: {'currentPage': 0},
     );
+  }
+
+  Future<void> runDiagnostics() async {
+    final report = await _client.runHealthCheck();
+    if (!report.allPassed) {
+      for (final item in report.items.where((it) => !it.success)) {
+        print('health fail: ${item.id} -> ${item.detail}');
+      }
+    }
   }
 
   void startHeartbeat() {

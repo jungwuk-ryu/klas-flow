@@ -16,6 +16,7 @@ Available demos:
 - `api_catalog_demo.dart`: Browse 65 endpoint IDs and call catalog-based APIs
   - includes both `client.api` and `client.endpoints` usage
 - `heartbeat_demo.dart`: Keep session alive with heartbeat timer and error callback
+- `bootstrap_and_health_demo.dart`: One-shot login bootstrap + runtime health check
 
 Safety note:
 
