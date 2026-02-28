@@ -83,7 +83,7 @@ final class CourseContext {
     if (fallback != null) {
       return fallback;
     }
-    throw StateError('필수 문자열 키를 찾을 수 없다: ${keys.join(', ')}');
+    throw StateError('Missing required string field: ${keys.join(', ')}');
   }
 
   static String? _optionalString(

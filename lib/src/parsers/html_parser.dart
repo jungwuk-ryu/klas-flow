@@ -16,7 +16,7 @@ final class HtmlPageParser {
       );
     } catch (error, stackTrace) {
       throw ParsingException(
-        'HTML 파싱에 실패했다.',
+        'Failed to parse HTML response.',
         cause: error,
         stackTrace: stackTrace,
       );

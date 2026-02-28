@@ -40,7 +40,7 @@ final class CredentialsEncryptor {
       return base64Encode(encrypted);
     } catch (error, stackTrace) {
       throw ParsingException(
-        '로그인 토큰 암호화에 실패했다.',
+        'Failed to encrypt login token.',
         cause: error,
         stackTrace: stackTrace,
       );
@@ -50,7 +50,7 @@ final class CredentialsEncryptor {
   BigInt _parseBigInt(String value) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) {
-      throw const FormatException('빈 문자열은 BigInt로 변환할 수 없다.');
+      throw const FormatException('Cannot parse an empty string as BigInt.');
     }
 
     final isHex = RegExp(r'^[0-9a-fA-F]+$').hasMatch(trimmed);

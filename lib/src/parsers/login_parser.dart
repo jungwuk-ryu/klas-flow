@@ -102,7 +102,7 @@ final class LoginParser {
     if (value != null) {
       return value;
     }
-    throw StateError('필수 필드를 찾을 수 없다: ${keys.join(', ')}');
+    throw StateError('Missing required field: ${keys.join(', ')}');
   }
 
   String? _optionalString(Map<String, dynamic> source, List<String> keys) {

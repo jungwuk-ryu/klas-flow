@@ -35,6 +35,8 @@ final class ContextApi {
       }
     }
 
-    throw const ParsingException('학기/과목 목록 응답에서 리스트를 찾지 못했다.');
+    throw const ParsingException(
+      'Could not find a context list in the API response.',
+    );
   }
 }

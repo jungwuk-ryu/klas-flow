@@ -38,16 +38,20 @@ final class AuthFlow {
     );
 
     if (loginResult.otpRequired) {
-      throw OtpRequiredException(loginResult.message ?? 'OTP 인증이 필요하다.');
+      throw OtpRequiredException(
+        loginResult.message ?? 'OTP verification required.',
+      );
     }
 
     if (loginResult.captchaRequired) {
-      throw CaptchaRequiredException(loginResult.message ?? '캡차 인증이 필요하다.');
+      throw CaptchaRequiredException(
+        loginResult.message ?? 'Captcha verification required.',
+      );
     }
 
     if (!loginResult.success) {
       throw InvalidCredentialsException(
-        loginResult.message ?? '아이디 또는 비밀번호가 올바르지 않다.',
+        loginResult.message ?? 'Invalid ID or password.',
       );
     }
 
@@ -55,7 +59,9 @@ final class AuthFlow {
     final session = await _sessionApi.fetchSessionInfo();
 
     if (!session.authenticated) {
-      throw const SessionExpiredException('로그인 이후 세션 검증에 실패했다.');
+      throw const SessionExpiredException(
+        'Session verification failed after login.',
+      );
     }
   }
 }

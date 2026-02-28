@@ -48,12 +48,12 @@ final class AuthApi {
       return const LoginResult(success: false, captchaRequired: true);
     }
     if (html.contains('login') && html.contains('fail')) {
-      return const LoginResult(success: false, message: '로그인에 실패했다.');
+      return const LoginResult(success: false, message: 'Login failed.');
     }
 
     return LoginResult(
       success: true,
-      message: '로그인 응답이 HTML로 반환되어 성공으로 간주한다.',
+      message: 'Login response was HTML; treated as success.',
       raw: const {},
     );
   }

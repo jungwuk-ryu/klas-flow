@@ -183,14 +183,16 @@ final class KlasTransport {
                 body: form ?? const <String, String>{},
               )
               .timeout(_timeout),
-        _ => throw ArgumentError('지원하지 않는 HTTP 메서드다: $method'),
+        _ => throw ArgumentError('Unsupported HTTP method: $method'),
       };
 
       _cookieJar.absorb(response);
       _validateStatus(response);
 
       if (_looksLikeSessionExpired(response)) {
-        throw const SessionExpiredException('세션이 만료되었거나 인증이 해제되었다.');
+        throw const SessionExpiredException(
+          'Session expired or authentication is no longer valid.',
+        );
       }
 
       return response;
@@ -198,25 +200,25 @@ final class KlasTransport {
       rethrow;
     } on TimeoutException catch (error, stackTrace) {
       throw NetworkException(
-        '요청 시간이 초과되었다: $uri',
+        'Request timed out: $uri',
         cause: error,
         stackTrace: stackTrace,
       );
     } on SocketException catch (error, stackTrace) {
       throw NetworkException(
-        '네트워크 연결에 실패했다: $uri',
+        'Network connection failed: $uri',
         cause: error,
         stackTrace: stackTrace,
       );
     } on http.ClientException catch (error, stackTrace) {
       throw NetworkException(
-        'HTTP 클라이언트 예외가 발생했다: $uri',
+        'HTTP client exception occurred: $uri',
         cause: error,
         stackTrace: stackTrace,
       );
     } catch (error, stackTrace) {
       throw NetworkException(
-        '알 수 없는 네트워크 오류가 발생했다: $uri',
+        'Unknown network error occurred: $uri',
         cause: error,
         stackTrace: stackTrace,
       );
@@ -237,17 +239,19 @@ final class KlasTransport {
     if (response.statusCode == 401 ||
         response.statusCode == 419 ||
         response.statusCode == 440) {
-      throw const SessionExpiredException('인증이 필요하거나 세션이 만료되었다.');
+      throw const SessionExpiredException(
+        'Authentication required or session expired.',
+      );
     }
 
     if (response.statusCode >= 500) {
       throw ServiceUnavailableException(
-        '서버 응답이 비정상적이다: HTTP ${response.statusCode}',
+        'Service unavailable: HTTP ${response.statusCode}',
       );
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw NetworkException('요청이 실패했다: HTTP ${response.statusCode}');
+      throw NetworkException('Request failed: HTTP ${response.statusCode}');
     }
   }
 
@@ -272,12 +276,12 @@ final class KlasTransport {
       if (decoded is Map<String, dynamic>) {
         return decoded;
       }
-      throw const ParsingException('JSON 최상위 타입이 객체가 아니다.');
+      throw const ParsingException('Top-level JSON value must be an object.');
     } on KlasException {
       rethrow;
     } catch (error, stackTrace) {
       throw ParsingException(
-        'JSON 파싱에 실패했다.',
+        'Failed to parse JSON response.',
         cause: error,
         stackTrace: stackTrace,
       );
