@@ -17,7 +17,7 @@ const _ignoredDirs = <String>{
 
 Future<void> main(List<String> args) async {
   var hasFailure = false;
-  final blockedLiterals = _loadBlockedLiterals();
+  final blockedLiterals = _loadBlockedLiterals(args: args);
 
   stdout.writeln('[prepublish] Running release safety checks...');
 
@@ -57,7 +57,8 @@ Future<void> main(List<String> args) async {
 
   if (blockedLiterals.isEmpty) {
     stdout.writeln(
-      '[info] KLASFLOW_BLOCKED_LITERALS is empty. Literal checks are skipped.',
+      '[info] No blocked literals configured. '
+      'Use --block=value1,value2 or KLASFLOW_BLOCKED_LITERALS.',
     );
   }
 
@@ -77,17 +78,31 @@ Future<ProcessResult> _runGit(List<String> args) {
   return Process.run('git', args, runInShell: true);
 }
 
-List<String> _loadBlockedLiterals() {
-  final raw = Platform.environment['KLASFLOW_BLOCKED_LITERALS'];
-  if (raw == null || raw.trim().isEmpty) {
-    return const <String>[];
+List<String> _loadBlockedLiterals({required List<String> args}) {
+  final values = <String>{};
+
+  for (final arg in args) {
+    if (arg.startsWith('--block=')) {
+      final raw = arg.substring('--block='.length);
+      _appendLiteralValues(raw, values);
+    }
   }
 
-  return raw
-      .split(',')
-      .map((value) => value.trim())
-      .where((value) => value.isNotEmpty)
-      .toList(growable: false);
+  final raw = Platform.environment['KLASFLOW_BLOCKED_LITERALS'];
+  if (raw != null && raw.trim().isNotEmpty) {
+    _appendLiteralValues(raw, values);
+  }
+
+  return values.toList(growable: false);
+}
+
+void _appendLiteralValues(String raw, Set<String> target) {
+  for (final value in raw.split(',')) {
+    final literal = value.trim();
+    if (literal.isNotEmpty) {
+      target.add(literal);
+    }
+  }
 }
 
 Future<bool> _checkBlockedLiteral({required String literal}) async {

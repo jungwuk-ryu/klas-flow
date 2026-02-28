@@ -5,6 +5,8 @@
 - `dart pub get`
 - `dart analyze`
 - `dart test`
+- `dart run tool/generate_typed_endpoints.dart`
+- `git diff --exit-code -- lib/src/api/typed_endpoints.dart`
 
 ## 2) 보안/비공개 문서
 
@@ -13,8 +15,7 @@
   - `klasflow_LLM_RFP_with_API_Spec.md`
 - `dart run tool/prepublish_check.dart` 실행
 - 필요 시 차단 문자열 검사
-  - PowerShell: `$env:KLASFLOW_BLOCKED_LITERALS="value1,value2"`
-  - 그 다음 `dart run tool/prepublish_check.dart`
+  - `dart run tool/prepublish_check.dart --block="value1,value2"`
 
 ## 3) 문서/예제
 

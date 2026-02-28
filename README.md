@@ -141,7 +141,7 @@ dart test --coverage=coverage
 dart run coverage:format_coverage --package=. --in=coverage --lcov --report-on=lib --out=coverage/lcov.info
 ```
 
-현재 라인 커버리지는 81%다.
+라인 커버리지는 변경 시점에 따라 달라질 수 있으므로, 위 커맨드로 최신 수치를 확인하세요.
 
 ## 배포 전 안전 점검
 
@@ -155,8 +155,7 @@ dart run tool/prepublish_check.dart
 차단 문자열을 같이 검사하려면:
 
 ```bash
-$env:KLASFLOW_BLOCKED_LITERALS="your_student_id,your_password"
-dart run tool/prepublish_check.dart
+dart run tool/prepublish_check.dart --block="your_student_id,your_password"
 ```
 
 점검 항목:
