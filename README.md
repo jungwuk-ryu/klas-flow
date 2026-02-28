@@ -86,6 +86,7 @@ Future<void> main() async {
 - [Adoption Questions](docs/adoption_questions.md)
 - [Roadmap](docs/roadmap.md)
 - [Security Guidelines](docs/security_guidelines.md)
+- [API Change Playbook](docs/api_change_playbook.md)
 - [Login Flow](docs/login_flow.md)
 - [Architecture](docs/architecture.md)
 - [Architecture Critique](docs/architecture_critique.md)
