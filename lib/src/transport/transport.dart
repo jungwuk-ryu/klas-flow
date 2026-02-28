@@ -60,13 +60,58 @@ final class KlasTransport {
       method: 'POST',
       path: path,
       query: query,
-      form: form,
+      body: form ?? const <String, String>{},
+      contentType: 'application/x-www-form-urlencoded; charset=utf-8',
       headers: headers,
     );
     return TransportResponse<Map<String, dynamic>>(
       statusCode: response.statusCode,
       headers: response.headers,
       body: _decodeJson(response),
+    );
+  }
+
+  /// JSON 본문 POST 요청을 수행하고 동적 JSON을 반환한다.
+  Future<TransportResponse<Object?>> postJsonDynamic(
+    String path, {
+    Object? json,
+    Map<String, String>? query,
+    Map<String, String>? headers,
+  }) async {
+    final response = await _request(
+      method: 'POST',
+      path: path,
+      query: query,
+      body: jsonEncode(json ?? const <String, dynamic>{}),
+      contentType: 'application/json; charset=utf-8',
+      headers: headers,
+    );
+    return TransportResponse<Object?>(
+      statusCode: response.statusCode,
+      headers: response.headers,
+      body: _decodeJsonAny(response),
+    );
+  }
+
+  /// JSON 본문 POST 요청을 수행하고 문자열 응답을 반환한다.
+  Future<TransportResponse<String>> postJsonText(
+    String path, {
+    Object? json,
+    Map<String, String>? query,
+    Map<String, String>? headers,
+  }) async {
+    final response = await _request(
+      method: 'POST',
+      path: path,
+      query: query,
+      body: jsonEncode(json ?? const <String, dynamic>{}),
+      contentType: 'application/json; charset=utf-8',
+      headers: headers,
+    );
+    return TransportResponse<String>(
+      statusCode: response.statusCode,
+      headers: response.headers,
+      body: _decodeText(response),
     );
   }
 
@@ -100,7 +145,8 @@ final class KlasTransport {
       method: 'POST',
       path: path,
       query: query,
-      form: form,
+      body: form ?? const <String, String>{},
+      contentType: 'application/x-www-form-urlencoded; charset=utf-8',
       headers: headers,
     );
     return TransportResponse<String>(
@@ -149,7 +195,8 @@ final class KlasTransport {
     required String method,
     required String path,
     Map<String, String>? query,
-    Map<String, String>? form,
+    Object? body,
+    String? contentType,
     Map<String, String>? headers,
   }) async {
     final uri = _buildUri(path, query);
@@ -167,7 +214,7 @@ final class KlasTransport {
     if (method == 'POST') {
       mergedHeaders.putIfAbsent(
         'Content-Type',
-        () => 'application/x-www-form-urlencoded; charset=utf-8',
+        () => contentType ?? 'application/x-www-form-urlencoded; charset=utf-8',
       );
     }
 
@@ -180,7 +227,7 @@ final class KlasTransport {
               .post(
                 uri,
                 headers: mergedHeaders,
-                body: form ?? const <String, String>{},
+                body: body ?? const <String, String>{},
               )
               .timeout(_timeout),
         _ => throw ArgumentError('Unsupported HTTP method: $method'),
@@ -271,12 +318,17 @@ final class KlasTransport {
   }
 
   Map<String, dynamic> _decodeJson(http.Response response) {
+    final decoded = _decodeJsonAny(response);
+    if (decoded is Map<String, dynamic>) {
+      return decoded;
+    }
+    throw const ParsingException('Top-level JSON value must be an object.');
+  }
+
+  Object? _decodeJsonAny(http.Response response) {
     try {
       final decoded = jsonDecode(_decodeText(response));
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-      throw const ParsingException('Top-level JSON value must be an object.');
+      return decoded;
     } on KlasException {
       rethrow;
     } catch (error, stackTrace) {

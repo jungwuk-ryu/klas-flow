@@ -16,7 +16,7 @@ final class AuthApi {
 
   /// 공개키/로그인 토큰을 조회한다.
   Future<LoginSecurity> fetchLoginSecurity() async {
-    final response = await _transport.getJson(_paths.loginSecurity);
+    final response = await _transport.postFormJson(_paths.loginSecurity);
     return _loginParser.parseSecurity(response.body);
   }
 

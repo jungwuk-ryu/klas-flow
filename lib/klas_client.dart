@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 
 import 'src/api/auth_api.dart';
 import 'src/api/context_api.dart';
 import 'src/api/frame_api.dart';
+import 'src/api/readonly_api.dart';
 import 'src/api/session_api.dart';
 import 'src/auth/auth_flow.dart';
 import 'src/auth/credentials_encryptor.dart';
@@ -27,6 +30,7 @@ final class KlasClient {
   late final ContextApi _contextApi;
   late final FrameApi _frameApi;
   late final AuthFlow _authFlow;
+  late final KlasReadOnlyApi api;
   Future<void>? _sessionRefreshInProgress;
   String? _lastLoginId;
   String? _lastLoginPassword;
@@ -52,6 +56,16 @@ final class KlasClient {
       frameApi: _frameApi,
       sessionApi: _sessionApi,
       encryptor: CredentialsEncryptor(),
+    );
+
+    api = KlasReadOnlyApi(
+      postJsonDynamic: _postJsonDynamic,
+      postJsonText: _postJsonText,
+      postFormDynamic: _postFormDynamic,
+      postFormText: _postFormText,
+      getJsonObject: _getJsonObject,
+      getText: _getText,
+      getBinary: _getBinary,
     );
   }
 
@@ -220,5 +234,116 @@ final class KlasClient {
       password: password,
       preferredContext: preferredContext,
     );
+  }
+
+  Future<Object?> _postJsonDynamic(
+    String path, {
+    Map<String, dynamic>? payload,
+    required bool includeContext,
+  }) {
+    return _withAutoSessionRenewal(() async {
+      final merged = _mergePayload(payload, includeContext: includeContext);
+      final response = await _transport.postJsonDynamic(path, json: merged);
+      return response.body;
+    });
+  }
+
+  Future<String> _postJsonText(
+    String path, {
+    Map<String, dynamic>? payload,
+    required bool includeContext,
+  }) {
+    return _withAutoSessionRenewal(() async {
+      final merged = _mergePayload(payload, includeContext: includeContext);
+      final response = await _transport.postJsonText(path, json: merged);
+      return response.body;
+    });
+  }
+
+  Future<Object?> _postFormDynamic(
+    String path, {
+    Map<String, dynamic>? payload,
+    required bool includeContext,
+  }) {
+    return _withAutoSessionRenewal(() async {
+      final merged = _mergePayload(payload, includeContext: includeContext);
+      final response = await _transport.postFormText(
+        path,
+        form: _toFormData(merged),
+      );
+      return _decodeJsonString(response.body);
+    });
+  }
+
+  Future<String> _postFormText(
+    String path, {
+    Map<String, dynamic>? payload,
+    required bool includeContext,
+  }) {
+    return _withAutoSessionRenewal(() async {
+      final merged = _mergePayload(payload, includeContext: includeContext);
+      final response = await _transport.postFormText(
+        path,
+        form: _toFormData(merged),
+      );
+      return response.body;
+    });
+  }
+
+  Future<Map<String, dynamic>> _getJsonObject(
+    String path, {
+    Map<String, String>? query,
+  }) {
+    return _withAutoSessionRenewal(() async {
+      final response = await _transport.getJson(path, query: query);
+      return response.body;
+    });
+  }
+
+  Future<String> _getText(String path, {Map<String, String>? query}) {
+    return _withAutoSessionRenewal(() async {
+      final response = await _transport.getText(path, query: query);
+      return response.body;
+    });
+  }
+
+  Future<FilePayload> _getBinary(String path, {Map<String, String>? query}) {
+    return _withAutoSessionRenewal(() async {
+      final response = await _transport.download(path, query: query);
+      return response.body;
+    });
+  }
+
+  Map<String, dynamic> _mergePayload(
+    Map<String, dynamic>? payload, {
+    required bool includeContext,
+  }) {
+    if (!includeContext) {
+      return <String, dynamic>{if (payload != null) ...payload};
+    }
+    return _contextManager.mergeJson(payload);
+  }
+
+  Map<String, String> _toFormData(Map<String, dynamic> payload) {
+    final form = <String, String>{};
+    payload.forEach((key, value) {
+      if (value == null) {
+        return;
+      }
+      form[key] = value.toString();
+    });
+    return form;
+  }
+
+  Object? _decodeJsonString(String source) {
+    try {
+      return jsonDecode(source);
+    } catch (error, stackTrace) {
+      throw ParsingException(
+        'Failed to parse JSON response from form request.',
+        cause: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }

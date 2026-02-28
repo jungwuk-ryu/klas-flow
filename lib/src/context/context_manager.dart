@@ -64,6 +64,20 @@ final class ContextManager {
     return merged;
   }
 
+  /// JSON payload에 컨텍스트를 자동 병합한다.
+  Map<String, dynamic> mergeJson(Map<String, dynamic>? input) {
+    final merged = <String, dynamic>{if (input != null) ...input};
+    final current = _currentContext;
+    if (current == null) {
+      return merged;
+    }
+
+    merged.putIfAbsent('selectYearhakgi', () => current.selectYearhakgi);
+    merged.putIfAbsent('selectSubj', () => current.selectSubj);
+    merged.putIfAbsent('selectChangeYn', () => current.selectChangeYn);
+    return merged;
+  }
+
   /// 저장된 컨텍스트를 초기화한다.
   void clear() {
     _availableContexts.clear();

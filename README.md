@@ -37,6 +37,7 @@ Future<void> main() async {
 - 세션 쿠키 자동 유지, 만료 감지, 자동 세션 연장(재로그인 1회 재시도)
 - 과목 컨텍스트(`selectYearhakgi`, `selectSubj`, `selectChangeYn`) 자동 주입
 - JSON/HTML/파일 응답 타입 분리
+- 명세 기반 65개 읽기 전용 엔드포인트 카탈로그(`client.api`) 제공
 - 명확한 예외 타입 제공
 
 ## 공개 API
@@ -47,6 +48,11 @@ Future<void> main() async {
 - `KlasClient.setContext(...)`
 - `KlasClient.initializeFrame()`
 - `KlasClient.downloadFile(...)`
+- `KlasClient.api.call(...)`
+- `KlasClient.api.callObject(...)`
+- `KlasClient.api.callArray(...)`
+- `KlasClient.api.callText(...)`
+- `KlasClient.api.callBinary(...)`
 
 ## 데모 예제
 
@@ -56,11 +62,21 @@ Future<void> main() async {
 - `example/context_workflow_demo.dart`: 컨텍스트 로드/전환 + 컨텍스트 주입 API 호출
 - `example/file_download_demo.dart`: 파일 다운로드 후 임시 경로 저장
 - `example/auto_session_renewal_demo.dart`: 세션 만료 자동 연장 동작 흐름
+- `example/api_catalog_demo.dart`: 카탈로그 기반 전체 API 호출 패턴
 
 실행 예시:
 
 ```bash
 dart run example/basic_login_demo.dart -DKLAS_ID=<id> -DKLAS_PASSWORD=<password>
+```
+
+카탈로그 호출 예시:
+
+```dart
+final result = await client.api.callArray(
+  'learning.taskStdList',
+  payload: {'currentPage': 0},
+);
 ```
 
 ## 예외 타입

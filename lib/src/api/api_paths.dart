@@ -19,11 +19,11 @@ final class ApiPaths {
   final String yearhakgiSubjectList;
 
   const ApiPaths({
-    this.loginSecurity = '/LoginSecurity.do',
-    this.loginCaptcha = '/LoginCaptcha.do',
-    this.loginConfirm = '/LoginConfirm.do',
-    this.frameInitialize = '/FrameInit.do',
+    this.loginSecurity = '/usr/cmn/login/LoginSecurity.do',
+    this.loginCaptcha = '/usr/cmn/login/LoginCaptcha.do',
+    this.loginConfirm = '/usr/cmn/login/LoginConfirm.do',
+    this.frameInitialize = '/std/cmn/frame/KlasStop.do',
     this.sessionInfo = '/api/v1/session/info',
-    this.yearhakgiSubjectList = '/YearhakgiAtnlcSbjectList.do',
+    this.yearhakgiSubjectList = '/std/cmn/frame/YearhakgiAtnlcSbjectList.do',
   });
 }

@@ -13,6 +13,7 @@ Available demos:
 - `context_workflow_demo.dart`: Refresh/switch context and call context-aware endpoint
 - `file_download_demo.dart`: Download binary and save to temp folder
 - `auto_session_renewal_demo.dart`: Demonstrate session polling with auto-renew support
+- `api_catalog_demo.dart`: Browse 65 endpoint IDs and call catalog-based APIs
 
 Safety note:
 

@@ -13,7 +13,7 @@ final class FrameApi {
 
   /// 로그인 이후 프레임 초기화를 수행한다.
   Future<HtmlPage> initializeFrame() async {
-    final response = await _transport.getText(_paths.frameInitialize);
+    final response = await _transport.postFormText(_paths.frameInitialize);
     return _htmlParser.parse(response.body);
   }
 }

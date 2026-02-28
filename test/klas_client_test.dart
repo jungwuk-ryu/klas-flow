@@ -14,7 +14,7 @@ void main() {
         requestOrder.add(request.url.path);
 
         switch (request.url.path) {
-          case '/LoginSecurity.do':
+          case '/usr/cmn/login/LoginSecurity.do':
             return _jsonResponse(
               {
                 'data': {
@@ -25,14 +25,14 @@ void main() {
               },
               headers: {'set-cookie': 'JSESSIONID=abc123; Path=/; HttpOnly'},
             );
-          case '/LoginCaptcha.do':
+          case '/usr/cmn/login/LoginCaptcha.do':
             return http.Response('OK', 200);
-          case '/LoginConfirm.do':
+          case '/usr/cmn/login/LoginConfirm.do':
             final body = request.bodyFields;
             expect(body['id'], equals('test-user'));
             expect(body['loginToken'], isNotEmpty);
             return _jsonResponse({'success': true});
-          case '/FrameInit.do':
+          case '/std/cmn/frame/KlasStop.do':
             return http.Response(
               '<html><head><title>KLAS</title></head></html>',
               200,
@@ -45,7 +45,7 @@ void main() {
               'userId': 'test-user',
               'userName': '테스터',
             });
-          case '/YearhakgiAtnlcSbjectList.do':
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
             return _jsonResponse({
               'data': [
                 {
@@ -74,12 +74,12 @@ void main() {
       expect(
         requestOrder,
         equals([
-          '/LoginSecurity.do',
-          '/LoginCaptcha.do',
-          '/LoginConfirm.do',
-          '/FrameInit.do',
+          '/usr/cmn/login/LoginSecurity.do',
+          '/usr/cmn/login/LoginCaptcha.do',
+          '/usr/cmn/login/LoginConfirm.do',
+          '/std/cmn/frame/KlasStop.do',
           '/api/v1/session/info',
-          '/YearhakgiAtnlcSbjectList.do',
+          '/std/cmn/frame/YearhakgiAtnlcSbjectList.do',
         ]),
       );
     });
@@ -140,7 +140,7 @@ void main() {
         requestOrder.add(request.url.path);
 
         switch (request.url.path) {
-          case '/LoginSecurity.do':
+          case '/usr/cmn/login/LoginSecurity.do':
             loginSecurityCalls++;
             return _jsonResponse(
               {
@@ -155,11 +155,11 @@ void main() {
                     'JSESSIONID=session$loginSecurityCalls; Path=/; HttpOnly',
               },
             );
-          case '/LoginCaptcha.do':
+          case '/usr/cmn/login/LoginCaptcha.do':
             return http.Response('OK', 200);
-          case '/LoginConfirm.do':
+          case '/usr/cmn/login/LoginConfirm.do':
             return _jsonResponse({'success': true});
-          case '/FrameInit.do':
+          case '/std/cmn/frame/KlasStop.do':
             return _utf8TextResponse(
               '<html><head><title>KLAS</title></head></html>',
               200,
@@ -170,7 +170,7 @@ void main() {
               'authenticated': true,
               'userId': 'test-user',
             });
-          case '/YearhakgiAtnlcSbjectList.do':
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
             return _jsonResponse({
               'data': [
                 {
@@ -214,14 +214,16 @@ void main() {
       expect(protectedApiCalls, equals(2));
       expect(loginSecurityCalls, equals(2));
       expect(
-        requestOrder.where((path) => path == '/LoginSecurity.do').length,
+        requestOrder
+            .where((path) => path == '/usr/cmn/login/LoginSecurity.do')
+            .length,
         equals(2),
       );
     });
 
     test('initializeFrame은 HTML을 파싱해 제목을 제공한다', () async {
       final mock = MockClient((request) async {
-        if (request.url.path == '/FrameInit.do') {
+        if (request.url.path == '/std/cmn/frame/KlasStop.do') {
           return _utf8TextResponse(
             '<html><head><title>포털 메인</title></head><body>ok</body></html>',
             200,
@@ -270,7 +272,7 @@ void main() {
     test('로그인 실패는 InvalidCredentialsException으로 변환된다', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
-          case '/LoginSecurity.do':
+          case '/usr/cmn/login/LoginSecurity.do':
             return _jsonResponse({
               'data': {
                 'publicKeyModulus': _modulus,
@@ -278,9 +280,9 @@ void main() {
                 'loginToken': 'nonce-1',
               },
             });
-          case '/LoginCaptcha.do':
+          case '/usr/cmn/login/LoginCaptcha.do':
             return http.Response('OK', 200);
-          case '/LoginConfirm.do':
+          case '/usr/cmn/login/LoginConfirm.do':
             return _jsonResponse({'success': false, 'message': '인증 실패'});
           default:
             return http.Response('Not Found', 404);
@@ -301,7 +303,7 @@ void main() {
     test('OTP 요구 응답은 OtpRequiredException으로 변환된다', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
-          case '/LoginSecurity.do':
+          case '/usr/cmn/login/LoginSecurity.do':
             return _jsonResponse({
               'data': {
                 'publicKeyModulus': _modulus,
@@ -309,9 +311,9 @@ void main() {
                 'loginToken': 'nonce-1',
               },
             });
-          case '/LoginCaptcha.do':
+          case '/usr/cmn/login/LoginCaptcha.do':
             return http.Response('OK', 200);
-          case '/LoginConfirm.do':
+          case '/usr/cmn/login/LoginConfirm.do':
             return _jsonResponse({'otpRequired': true, 'message': 'OTP 필요'});
           default:
             return http.Response('Not Found', 404);
@@ -329,7 +331,7 @@ void main() {
     test('Captcha 요구 응답은 CaptchaRequiredException으로 변환된다', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
-          case '/LoginSecurity.do':
+          case '/usr/cmn/login/LoginSecurity.do':
             return _jsonResponse({
               'data': {
                 'publicKeyModulus': _modulus,
@@ -337,9 +339,9 @@ void main() {
                 'loginToken': 'nonce-1',
               },
             });
-          case '/LoginCaptcha.do':
+          case '/usr/cmn/login/LoginCaptcha.do':
             return http.Response('OK', 200);
-          case '/LoginConfirm.do':
+          case '/usr/cmn/login/LoginConfirm.do':
             return _jsonResponse({'captchaRequired': true, 'message': '캡차 필요'});
           default:
             return http.Response('Not Found', 404);

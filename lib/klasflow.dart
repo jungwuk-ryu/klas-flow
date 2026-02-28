@@ -3,6 +3,7 @@ library;
 
 export 'klas_client.dart';
 export 'src/api/api_paths.dart';
+export 'src/api/readonly_api.dart';
 export 'src/exceptions/klas_exceptions.dart';
 export 'src/models/course_context.dart';
 export 'src/models/file_payload.dart';
