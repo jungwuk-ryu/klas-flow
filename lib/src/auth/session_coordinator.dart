@@ -10,6 +10,7 @@ final class SessionCoordinator {
   final ContextApi _contextApi;
   final ContextManager _contextManager;
   final int _maxSessionRenewRetries;
+  final bool _cacheCredentialsForAutoRenewal;
 
   Future<void>? _renewalInProgress;
   String? _cachedId;
@@ -20,16 +21,23 @@ final class SessionCoordinator {
     required ContextApi contextApi,
     required ContextManager contextManager,
     required int maxSessionRenewRetries,
+    required bool cacheCredentialsForAutoRenewal,
   }) : _authFlow = authFlow,
        _contextApi = contextApi,
        _contextManager = contextManager,
-       _maxSessionRenewRetries = maxSessionRenewRetries;
+       _maxSessionRenewRetries = maxSessionRenewRetries,
+       _cacheCredentialsForAutoRenewal = cacheCredentialsForAutoRenewal;
 
   /// 로그인 후 컨텍스트까지 초기화합니다.
   Future<void> login(String id, String password) async {
     await _loginAndInitialize(id: id, password: password);
-    _cachedId = id;
-    _cachedPassword = password;
+    if (_cacheCredentialsForAutoRenewal) {
+      _cachedId = id;
+      _cachedPassword = password;
+    } else {
+      _cachedId = null;
+      _cachedPassword = null;
+    }
   }
 
   /// 컨텍스트 목록을 갱신합니다.

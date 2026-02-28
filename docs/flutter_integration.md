@@ -13,6 +13,8 @@ final klasClientProvider = Provider<KlasClient>((ref) {
     config: KlasClientConfig(
       // 세션 만료 시 최대 2회 자동 연장
       maxSessionRenewRetries: 2,
+      // 보안 우선 앱이라면 false로 두고 수동 재로그인 UX를 제공
+      cacheCredentialsForAutoRenewal: true,
     ),
   );
 

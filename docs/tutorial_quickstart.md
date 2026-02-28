@@ -9,6 +9,7 @@ final client = KlasClient(
   config: KlasClientConfig(
     maxSessionRenewRetries: 1,
     timeout: const Duration(seconds: 20),
+    cacheCredentialsForAutoRenewal: true,
   ),
 );
 ```

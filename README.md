@@ -75,6 +75,10 @@ Future<void> main() async {
 - `KlasClient.api.*`
 - `KlasClient.endpoints.*`
 
+주요 설정:
+- `KlasClientConfig.maxSessionRenewRetries`
+- `KlasClientConfig.cacheCredentialsForAutoRenewal` (보안 민감 앱에서 `false` 권장)
+
 ## Tutorial & Docs
 
 - [Quick Tutorial](docs/tutorial_quickstart.md)

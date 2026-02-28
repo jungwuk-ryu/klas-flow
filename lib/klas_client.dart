@@ -75,6 +75,7 @@ final class KlasClient {
       contextApi: _contextApi,
       contextManager: _contextManager,
       maxSessionRenewRetries: _config.maxSessionRenewRetries,
+      cacheCredentialsForAutoRenewal: _config.cacheCredentialsForAutoRenewal,
     );
 
     _requestExecutor = RequestExecutor(

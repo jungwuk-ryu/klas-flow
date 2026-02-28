@@ -2,6 +2,7 @@
 
 - `KlasClient.loginAndBootstrap()` 추가(로그인 + 초기 상태 반환)
 - `KlasClient.runHealthCheck()` 추가(세션/컨텍스트/핵심 endpoint 진단)
+- `KlasClientConfig.cacheCredentialsForAutoRenewal` 추가(자격증명 메모리 캐시 제어)
 - KLAS 신규 로그인 프로토콜(`publicKey` 기반 JSON 플로우) 대응
 - `YearhakgiAtnlcSbjectList` 응답 구조(`year/subjList`) 파싱 보강
 - 실계정 10개 읽기 전용 시나리오 러너 추가

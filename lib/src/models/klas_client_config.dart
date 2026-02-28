@@ -16,10 +16,14 @@ final class KlasClientConfig {
   /// 세션 만료 시 자동 재시도할 최대 횟수입니다.
   final int maxSessionRenewRetries;
 
+  /// 자동 세션 연장을 위해 로그인 자격증명을 메모리에 캐시할지 여부입니다.
+  final bool cacheCredentialsForAutoRenewal;
+
   KlasClientConfig({
     Uri? baseUri,
     this.timeout = const Duration(seconds: 15),
     this.apiPaths = const ApiPaths(),
     this.maxSessionRenewRetries = 1,
+    this.cacheCredentialsForAutoRenewal = true,
   }) : baseUri = baseUri ?? Uri(scheme: 'https', host: 'klas.kw.ac.kr');
 }
