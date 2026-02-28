@@ -365,6 +365,12 @@ void main() {
             );
           case '/usr/cmn/login/UpdateSession.do':
             return _jsonResponse({});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
           case '/std/lis/evltn/TaskStdList.do':
             return http.Response('server error', 500);
           default:
@@ -382,6 +388,7 @@ void main() {
       expect(report.items.any((item) => item.id == 'session.info'), isTrue);
       expect(report.items.any((item) => item.id == 'context.refresh'), isTrue);
       expect(report.items.any((item) => item.id == 'session.update'), isTrue);
+      expect(report.items.any((item) => item.id == 'frame.initialize'), isTrue);
       expect(
         report.items.any(
           (item) => item.id == 'learning.taskStdList' && !item.success,

@@ -236,6 +236,7 @@ final class KlasClient {
   /// 운영 환경에서는 앱 시작 또는 문제 신고 시 진단용으로 사용할 수 있습니다.
   Future<KlasHealthReport> runHealthCheck({
     bool includeCourseEndpoints = true,
+    bool includeFrameEndpoint = true,
     int taskPage = 0,
   }) async {
     final items = <KlasHealthCheckItem>[];
@@ -280,6 +281,13 @@ final class KlasClient {
       final result = await updateSession();
       return 'keys=${result.keys.length}';
     });
+
+    if (includeFrameEndpoint) {
+      await probe('frame.initialize', () async {
+        final page = await initializeFrame();
+        return 'sourceLength=${page.source.length}';
+      });
+    }
 
     if (includeCourseEndpoints && currentContext != null) {
       await probe('learning.taskStdList', () async {
