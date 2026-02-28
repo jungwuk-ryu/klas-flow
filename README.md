@@ -79,6 +79,7 @@ Future<void> main() async {
 
 - [Quick Tutorial](docs/tutorial_quickstart.md)
 - [FAQ](docs/faq.md)
+- [Adoption Questions](docs/adoption_questions.md)
 - [Login Flow](docs/login_flow.md)
 - [Architecture](docs/architecture.md)
 - [Flutter Integration](docs/flutter_integration.md)
