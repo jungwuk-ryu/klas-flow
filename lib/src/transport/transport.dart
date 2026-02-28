@@ -10,7 +10,7 @@ import '../models/file_payload.dart';
 import 'cookie_jar.dart';
 import 'transport_response.dart';
 
-/// 쿠키 세션을 유지하며 JSON/HTML/파일 응답을 분리 처리한다.
+/// 쿠키 세션을 유지하며 JSON/HTML/파일 응답을 분리 처리합니다.
 final class KlasTransport {
   final Uri _baseUri;
   final Duration _timeout;
@@ -30,7 +30,7 @@ final class KlasTransport {
        _ownsHttpClient = ownsHttpClient,
        _cookieJar = cookieJar ?? CookieJar();
 
-  /// JSON GET 요청을 수행한다.
+  /// JSON GET 요청을 수행합니다.
   Future<TransportResponse<Map<String, dynamic>>> getJson(
     String path, {
     Map<String, String>? query,
@@ -49,7 +49,7 @@ final class KlasTransport {
     );
   }
 
-  /// JSON 폼 POST 요청을 수행한다.
+  /// JSON 폼 POST 요청을 수행합니다.
   Future<TransportResponse<Map<String, dynamic>>> postFormJson(
     String path, {
     Map<String, String>? form,
@@ -71,7 +71,7 @@ final class KlasTransport {
     );
   }
 
-  /// JSON 본문 POST 요청을 수행하고 동적 JSON을 반환한다.
+  /// JSON 본문 POST 요청을 수행하고 동적 JSON을 반환합니다.
   Future<TransportResponse<Object?>> postJsonDynamic(
     String path, {
     Object? json,
@@ -93,7 +93,7 @@ final class KlasTransport {
     );
   }
 
-  /// JSON 본문 POST 요청을 수행하고 문자열 응답을 반환한다.
+  /// JSON 본문 POST 요청을 수행하고 문자열 응답을 반환합니다.
   Future<TransportResponse<String>> postJsonText(
     String path, {
     Object? json,
@@ -115,7 +115,7 @@ final class KlasTransport {
     );
   }
 
-  /// 문자열 응답 GET 요청을 수행한다.
+  /// 문자열 응답 GET 요청을 수행합니다.
   Future<TransportResponse<String>> getText(
     String path, {
     Map<String, String>? query,
@@ -134,7 +134,7 @@ final class KlasTransport {
     );
   }
 
-  /// 문자열 응답 폼 POST 요청을 수행한다.
+  /// 문자열 응답 폼 POST 요청을 수행합니다.
   Future<TransportResponse<String>> postFormText(
     String path, {
     Map<String, String>? form,
@@ -156,7 +156,7 @@ final class KlasTransport {
     );
   }
 
-  /// 바이너리 파일을 다운로드한다.
+  /// 바이너리 파일을 다운로드합니다.
   Future<TransportResponse<FilePayload>> download(
     String path, {
     Map<String, String>? query,
@@ -181,10 +181,10 @@ final class KlasTransport {
     );
   }
 
-  /// 세션 쿠키를 제거한다.
+  /// 세션 쿠키를 제거합니다.
   void clearSession() => _cookieJar.clear();
 
-  /// 내부 HTTP 클라이언트를 정리한다.
+  /// 내부 HTTP 클라이언트를 정리합니다.
   void close() {
     if (_ownsHttpClient) {
       _httpClient.close();

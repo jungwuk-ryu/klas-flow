@@ -20,7 +20,7 @@ import 'src/parsers/html_parser.dart';
 import 'src/parsers/login_parser.dart';
 import 'src/transport/transport.dart';
 
-/// KLAS를 위한 고수준 Dart 클라이언트다.
+/// KLAS를 위한 고수준 Dart 클라이언트입니다.
 final class KlasClient {
   final KlasClientConfig _config;
   final ContextManager _contextManager = ContextManager();
@@ -32,10 +32,10 @@ final class KlasClient {
   late final SessionCoordinator _sessionCoordinator;
   late final RequestExecutor _requestExecutor;
 
-  /// 명세 기반 읽기 전용 API 진입점이다.
+  /// 명세 기반 읽기 전용 API 진입점입니다.
   late final KlasReadOnlyApi api;
 
-  /// 클라이언트를 생성한다.
+  /// 클라이언트를 생성합니다.
   KlasClient({KlasClientConfig? config, http.Client? httpClient})
     : _config = config ?? KlasClientConfig() {
     final sharedHttpClient = httpClient ?? http.Client();
@@ -81,31 +81,31 @@ final class KlasClient {
     );
   }
 
-  /// 현재 선택된 과목 컨텍스트다.
+  /// 현재 선택된 과목 컨텍스트입니다.
   CourseContext? get currentContext => _contextManager.currentContext;
 
-  /// 저장된 컨텍스트 목록이다.
+  /// 저장된 컨텍스트 목록입니다.
   List<CourseContext> get availableContexts =>
       _contextManager.availableContexts;
 
-  /// 로그인 오케스트레이션을 실행한다.
+  /// 로그인 오케스트레이션을 실행합니다.
   Future<void> login(String id, String password) {
     return _sessionCoordinator.login(id, password);
   }
 
-  /// 세션 정보를 조회한다.
+  /// 세션 정보를 조회합니다.
   Future<SessionInfo> getSessionInfo() {
     return _sessionCoordinator.withAutoRenewal(
       () => _sessionApi.fetchSessionInfo(),
     );
   }
 
-  /// 학기/과목 컨텍스트 목록을 다시 불러온다.
+  /// 학기/과목 컨텍스트 목록을 다시 옵니다.
   Future<List<CourseContext>> refreshContexts() {
     return _sessionCoordinator.refreshContexts();
   }
 
-  /// 현재 과목 컨텍스트를 수동 지정한다.
+  /// 현재 과목 컨텍스트를 수동 지정합니다.
   void setContext({
     required String selectYearhakgi,
     required String selectSubj,
@@ -118,19 +118,19 @@ final class KlasClient {
     );
   }
 
-  /// 프레임 초기화 페이지를 조회한다.
+  /// 프레임 초기화 페이지를 조회합니다.
   Future<HtmlPage> initializeFrame() {
     return _sessionCoordinator.withAutoRenewal(
       () => _frameApi.initializeFrame(),
     );
   }
 
-  /// 파일을 다운로드한다.
+  /// 파일을 다운로드합니다.
   Future<FilePayload> downloadFile(String path, {Map<String, String>? query}) {
     return _requestExecutor.getBinary(path, query: query);
   }
 
-  /// 컨텍스트가 필요한 JSON API를 호출한다.
+  /// 컨텍스트가 필요한 JSON API를 호출합니다.
   Future<Map<String, dynamic>> postJsonWithContext(
     String path, {
     Map<String, String>? form,
@@ -157,14 +157,14 @@ final class KlasClient {
     );
   }
 
-  /// 로컬 세션/컨텍스트를 초기화한다.
+  /// 로컬 세션/컨텍스트를 초기화합니다.
   void clearLocalState() {
     _transport.clearSession();
     _contextManager.clear();
     _sessionCoordinator.clearCachedCredentials();
   }
 
-  /// 내부 리소스를 정리한다.
+  /// 내부 리소스를 정리합니다.
   void close() {
     _transport.close();
   }

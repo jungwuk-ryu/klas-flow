@@ -4,7 +4,7 @@ import '../context/context_manager.dart';
 import '../exceptions/klas_exceptions.dart';
 import '../models/course_context.dart';
 
-/// 로그인, 컨텍스트 초기화, 세션 자동 연장 정책을 관리한다.
+/// 로그인, 컨텍스트 초기화, 세션 자동 연장 정책을 관리합니다.
 final class SessionCoordinator {
   final AuthFlow _authFlow;
   final ContextApi _contextApi;
@@ -22,14 +22,14 @@ final class SessionCoordinator {
        _contextApi = contextApi,
        _contextManager = contextManager;
 
-  /// 로그인 후 컨텍스트까지 초기화한다.
+  /// 로그인 후 컨텍스트까지 초기화합니다.
   Future<void> login(String id, String password) async {
     await _loginAndInitialize(id: id, password: password);
     _cachedId = id;
     _cachedPassword = password;
   }
 
-  /// 컨텍스트 목록을 갱신한다.
+  /// 컨텍스트 목록을 갱신합니다.
   Future<List<CourseContext>> refreshContexts() {
     return withAutoRenewal(() async {
       final contexts = await _contextApi.fetchCourseContexts();
@@ -38,7 +38,7 @@ final class SessionCoordinator {
     });
   }
 
-  /// 세션 만료 시 자동 재로그인 후 1회 재시도한다.
+  /// 세션 만료 시 자동 재로그인 후 1회 재시도합니다.
   Future<T> withAutoRenewal<T>(Future<T> Function() request) async {
     try {
       return await request();
@@ -48,7 +48,7 @@ final class SessionCoordinator {
     }
   }
 
-  /// 캐시된 로그인 정보를 삭제한다.
+  /// 캐시된 로그인 정보를 삭제합니다.
   void clearCachedCredentials() {
     _cachedId = null;
     _cachedPassword = null;

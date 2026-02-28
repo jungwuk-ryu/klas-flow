@@ -6,7 +6,7 @@ import '../models/file_payload.dart';
 import '../auth/session_coordinator.dart';
 import '../transport/transport.dart';
 
-/// Transport 호출과 payload/context 병합을 담당한다.
+/// Transport 호출과 payload/context 병합을 담당합니다.
 final class RequestExecutor {
   final KlasTransport _transport;
   final ContextManager _contextManager;

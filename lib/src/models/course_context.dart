@@ -1,21 +1,21 @@
-/// API 호출에 필요한 학기/과목 컨텍스트다.
+/// API 호출에 필요한 학기/과목 컨텍스트입니다.
 final class CourseContext {
-  /// API에서 요구하는 학기 코드다.
+  /// API에서 요구하는 학기 코드입니다.
   final String selectYearhakgi;
 
-  /// API에서 요구하는 과목 코드다.
+  /// API에서 요구하는 과목 코드입니다.
   final String selectSubj;
 
-  /// API에서 요구하는 변경 플래그다.
+  /// API에서 요구하는 변경 플래그입니다.
   final String selectChangeYn;
 
-  /// 사용자에게 보여줄 과목명이다.
+  /// 사용자에게 보여줄 과목명입니다.
   final String? subjectName;
 
-  /// 기본 선택 과목 여부다.
+  /// 기본 선택 과목 여부입니다.
   final bool isDefault;
 
-  /// 원본 응답 데이터다.
+  /// 원본 응답 데이터입니다.
   final Map<String, dynamic> raw;
 
   const CourseContext({
@@ -27,7 +27,7 @@ final class CourseContext {
     this.raw = const {},
   });
 
-  /// JSON 객체로부터 CourseContext를 생성한다.
+  /// JSON 객체로부터 CourseContext를 생성합니다.
   factory CourseContext.fromJson(Map<String, dynamic> json) {
     final selectYearhakgi = _stringValue(json, const [
       'selectYearhakgi',
@@ -57,7 +57,7 @@ final class CourseContext {
     );
   }
 
-  /// 요청 폼 데이터로 변환한다.
+  /// 요청 폼 데이터로 변환합니다.
   Map<String, String> toFormData() {
     return {
       'selectYearhakgi': selectYearhakgi,

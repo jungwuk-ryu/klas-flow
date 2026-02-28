@@ -13,9 +13,9 @@ import 'package:pointycastle/random/fortuna_random.dart';
 import '../exceptions/klas_exceptions.dart';
 import '../models/login_security.dart';
 
-/// 로그인 토큰을 RSA로 암호화한다.
+/// 로그인 토큰을 RSA로 암호화합니다.
 final class CredentialsEncryptor {
-  /// 계정 정보를 암호화한 토큰을 반환한다.
+  /// 계정 정보를 암호화한 토큰을 반환합니다.
   String encryptLoginToken({
     required String id,
     required String password,

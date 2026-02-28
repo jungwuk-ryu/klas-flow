@@ -1,4 +1,4 @@
-/// klasflow 패키지 공개 진입점이다.
+/// klasflow 패키지 공개 진입점입니다.
 library;
 
 export 'klas_client.dart';

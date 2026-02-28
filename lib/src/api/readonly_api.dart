@@ -1,10 +1,10 @@
 import '../exceptions/klas_exceptions.dart';
 import '../models/file_payload.dart';
 
-/// 엔드포인트 HTTP 메서드다.
+/// 엔드포인트 HTTP 메서드입니다.
 enum KlasEndpointMethod { get, post }
 
-/// 엔드포인트 응답 타입이다.
+/// 엔드포인트 응답 타입입니다.
 enum KlasEndpointResponseType {
   jsonObject,
   jsonArray,
@@ -13,10 +13,10 @@ enum KlasEndpointResponseType {
   binary,
 }
 
-/// POST 요청 본문 인코딩 타입이다.
+/// POST 요청 본문 인코딩 타입입니다.
 enum KlasEndpointRequestEncoding { none, json, form }
 
-/// 단일 엔드포인트 메타데이터다.
+/// 단일 엔드포인트 메타데이터입니다.
 final class KlasEndpointSpec {
   final String id;
   final KlasEndpointMethod method;
@@ -35,7 +35,7 @@ final class KlasEndpointSpec {
   });
 }
 
-/// 검증된 읽기 전용 엔드포인트 카탈로그다.
+/// 검증된 읽기 전용 엔드포인트 카탈로그입니다.
 final class KlasEndpointCatalog {
   static const Map<String, KlasEndpointSpec> byId = <String, KlasEndpointSpec>{
     'learning.anytmQuizStdList': KlasEndpointSpec(
@@ -602,7 +602,7 @@ typedef KlasGetText =
 typedef KlasGetBinary =
     Future<FilePayload> Function(String path, {Map<String, String>? query});
 
-/// 카탈로그 기반 읽기 전용 API 호출기다.
+/// 카탈로그 기반 읽기 전용 API 호출기입니다.
 final class KlasReadOnlyApi {
   final KlasPostJsonDynamic _postJsonDynamic;
   final KlasPostJsonText _postJsonText;
@@ -628,14 +628,14 @@ final class KlasReadOnlyApi {
        _getText = getText,
        _getBinary = getBinary;
 
-  /// 사용 가능한 엔드포인트 ID 목록이다.
+  /// 사용 가능한 엔드포인트 ID 목록입니다.
   List<String> get endpointIds =>
       KlasEndpointCatalog.byId.keys.toList(growable: false);
 
-  /// 엔드포인트 메타데이터를 조회한다.
+  /// 엔드포인트 메타데이터를 조회합니다.
   KlasEndpointSpec? spec(String id) => KlasEndpointCatalog.byId[id];
 
-  /// 카탈로그 ID로 API를 호출한다.
+  /// 카탈로그 ID로 API를 호출합니다.
   Future<Object?> call(
     String id, {
     Map<String, dynamic>? payload,
@@ -666,7 +666,7 @@ final class KlasReadOnlyApi {
     };
   }
 
-  /// JSON 객체 응답을 강제한다.
+  /// JSON 객체 응답을 강제합니다.
   Future<Map<String, dynamic>> callObject(
     String id, {
     Map<String, dynamic>? payload,
@@ -691,7 +691,7 @@ final class KlasReadOnlyApi {
     throw const ParsingException('Expected JSON object response.');
   }
 
-  /// JSON 배열 응답을 강제한다.
+  /// JSON 배열 응답을 강제합니다.
   Future<List<dynamic>> callArray(
     String id, {
     Map<String, dynamic>? payload,
@@ -713,7 +713,7 @@ final class KlasReadOnlyApi {
     throw const ParsingException('Expected JSON array response.');
   }
 
-  /// 문자열 응답을 강제한다.
+  /// 문자열 응답을 강제합니다.
   Future<String> callText(
     String id, {
     Map<String, dynamic>? payload,
@@ -735,7 +735,7 @@ final class KlasReadOnlyApi {
     throw const ParsingException('Expected text response.');
   }
 
-  /// 바이너리 응답을 강제한다.
+  /// 바이너리 응답을 강제합니다.
   Future<FilePayload> callBinary(
     String id, {
     Map<String, String>? pathParams,

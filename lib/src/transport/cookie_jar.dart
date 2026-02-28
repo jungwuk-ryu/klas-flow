@@ -1,10 +1,10 @@
 import 'package:http/http.dart' as http;
 
-/// 세션 쿠키를 보관하고 요청 헤더로 직렬화한다.
+/// 세션 쿠키를 보관하고 요청 헤더로 직렬화합니다.
 final class CookieJar {
   final Map<String, String> _cookies = <String, String>{};
 
-  /// 저장된 쿠키 헤더 문자열이다.
+  /// 저장된 쿠키 헤더 문자열입니다.
   String? get cookieHeader {
     if (_cookies.isEmpty) {
       return null;
@@ -14,7 +14,7 @@ final class CookieJar {
         .join('; ');
   }
 
-  /// 응답의 Set-Cookie 값을 저장한다.
+  /// 응답의 Set-Cookie 값을 저장합니다.
   void absorb(http.BaseResponse response) {
     final setCookie = response.headers['set-cookie'];
     if (setCookie == null || setCookie.trim().isEmpty) {
@@ -44,7 +44,7 @@ final class CookieJar {
     }
   }
 
-  /// 모든 쿠키를 비운다.
+  /// 모든 쿠키를 비웁니다.
   void clear() => _cookies.clear();
 
   static List<String> _splitSetCookieHeader(String raw) {

@@ -1,15 +1,15 @@
-/// 로그인 세션 정보를 담는 모델이다.
+/// 로그인 세션 정보를 담는 모델입니다.
 final class SessionInfo {
-  /// 학번 또는 사용자 식별자다.
+  /// 학번 또는 사용자 식별자입니다.
   final String? userId;
 
-  /// 사용자 이름이다.
+  /// 사용자 이름입니다.
   final String? userName;
 
-  /// 세션 유효 여부다.
+  /// 세션 유효 여부입니다.
   final bool authenticated;
 
-  /// 원본 응답 데이터다.
+  /// 원본 응답 데이터입니다.
   final Map<String, dynamic> raw;
 
   const SessionInfo({
@@ -19,7 +19,7 @@ final class SessionInfo {
     this.userName,
   });
 
-  /// JSON으로부터 SessionInfo를 생성한다.
+  /// JSON으로부터 SessionInfo를 생성합니다.
   factory SessionInfo.fromJson(Map<String, dynamic> json) {
     final normalized = _normalize(json);
     return SessionInfo(

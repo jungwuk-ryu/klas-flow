@@ -3,14 +3,14 @@ import '../models/course_context.dart';
 import '../transport/transport.dart';
 import 'api_paths.dart';
 
-/// 학기/과목 컨텍스트 API를 담당한다.
+/// 학기/과목 컨텍스트 API를 담당합니다.
 final class ContextApi {
   final KlasTransport _transport;
   final ApiPaths _paths;
 
   ContextApi(this._transport, this._paths);
 
-  /// 사용 가능한 컨텍스트 목록을 조회한다.
+  /// 사용 가능한 컨텍스트 목록을 조회합니다.
   Future<List<CourseContext>> fetchCourseContexts() async {
     final response = await _transport.getJson(_paths.yearhakgiSubjectList);
     final body = response.body;

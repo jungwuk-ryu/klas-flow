@@ -4,7 +4,7 @@ import '../api/session_api.dart';
 import '../exceptions/klas_exceptions.dart';
 import 'credentials_encryptor.dart';
 
-/// 다단계 로그인 오케스트레이션을 담당한다.
+/// 다단계 로그인 오케스트레이션을 담당합니다.
 final class AuthFlow {
   final AuthApi _authApi;
   final FrameApi _frameApi;
@@ -21,7 +21,7 @@ final class AuthFlow {
        _sessionApi = sessionApi,
        _encryptor = encryptor;
 
-  /// 로그인 전체 과정을 수행한다.
+  /// 로그인 전체 과정을 수행합니다.
   Future<void> login({required String id, required String password}) async {
     final security = await _authApi.fetchLoginSecurity();
     final encryptedLoginToken = _encryptor.encryptLoginToken(

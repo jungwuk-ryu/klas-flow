@@ -2,9 +2,9 @@ import '../exceptions/klas_exceptions.dart';
 import '../models/login_result.dart';
 import '../models/login_security.dart';
 
-/// 로그인 관련 JSON 응답을 모델로 변환한다.
+/// 로그인 관련 JSON 응답을 모델로 변환합니다.
 final class LoginParser {
-  /// LoginSecurity 응답을 파싱한다.
+  /// LoginSecurity 응답을 파싱합니다.
   LoginSecurity parseSecurity(Map<String, dynamic> json) {
     final normalized = _normalize(json);
 
@@ -38,7 +38,7 @@ final class LoginParser {
     }
   }
 
-  /// LoginConfirm 응답을 파싱한다.
+  /// LoginConfirm 응답을 파싱합니다.
   LoginResult parseLoginResult(Map<String, dynamic> json) {
     final normalized = _normalize(json);
 

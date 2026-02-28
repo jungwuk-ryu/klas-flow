@@ -6,7 +6,7 @@ import '../models/login_result.dart';
 import '../models/login_security.dart';
 import 'api_paths.dart';
 
-/// 인증 관련 엔드포인트 호출을 담당한다.
+/// 인증 관련 엔드포인트 호출을 담당합니다.
 final class AuthApi {
   final KlasTransport _transport;
   final ApiPaths _paths;
@@ -14,18 +14,18 @@ final class AuthApi {
 
   AuthApi(this._transport, this._paths, this._loginParser);
 
-  /// 공개키/로그인 토큰을 조회한다.
+  /// 공개키/로그인 토큰을 조회합니다.
   Future<LoginSecurity> fetchLoginSecurity() async {
     final response = await _transport.postFormJson(_paths.loginSecurity);
     return _loginParser.parseSecurity(response.body);
   }
 
-  /// 캡차 단계 초기화를 요청한다.
+  /// 캡차 단계 초기화를 요청합니다.
   Future<void> invokeLoginCaptcha() async {
     await _transport.postFormText(_paths.loginCaptcha);
   }
 
-  /// 로그인 확인 요청을 수행한다.
+  /// 로그인 확인 요청을 수행합니다.
   Future<LoginResult> confirmLogin({
     required String id,
     required String encryptedLoginToken,
@@ -65,7 +65,7 @@ final class AuthApi {
         return decoded;
       }
     } catch (_) {
-      // JSON이 아닌 경우는 로그인 페이지 HTML일 수 있다.
+      // JSON이 아닌 경우는 로그인 페이지 HTML일 수 있습니다.
     }
     return null;
   }
