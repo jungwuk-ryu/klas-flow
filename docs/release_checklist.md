@@ -22,7 +22,10 @@
 ## 3) 문서/예제
 
 - README 예제 코드가 최신 API 시그니처와 일치하는지 확인
-- `example/*.dart` 실행 커맨드가 실제로 동작하는지 확인
+- `example/` Flutter 데모 앱이 실제로 실행되는지 확인
+  - `cd example`
+  - `flutter pub get`
+  - `flutter run`
 - 위험한 쓰기 API 예제가 포함되지 않았는지 확인
 
 ## 4) 배포 메타데이터

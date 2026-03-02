@@ -2,6 +2,27 @@
 
 `klasflow`는 순수 Dart 패키지이므로 Flutter에서 바로 주입해서 사용할 수 있습니다.
 
+## 0) 실행 가능한 데모 앱
+
+저장소의 `example/`은 실제 Flutter 앱 데모입니다.
+
+```bash
+cd example
+flutter pub get
+flutter run
+```
+
+주의:
+- Flutter Web(`localhost`) + 기본 `baseUri(https://klas.kw.ac.kr)` 조합은
+  cross-origin 쿠키 제한으로 로그인 단계에서 실패할 수 있습니다.
+- 실사용 로그인 검증은 Android/iOS/desktop 또는 same-origin reverse proxy 환경을 권장합니다.
+- 데모 앱은 `--dart-define=KLAS_BASE_URI=<url>`로 base URI를 바꿔 실행할 수 있습니다.
+
+데모 화면은 로그인 후 아래 데이터를 UI에 표시합니다.
+- `SessionInfo`
+- 과목 컨텍스트 목록(`availableContexts`)
+- 과제 목록(`learning.taskStdList`)
+
 ## 1) Riverpod 예시
 
 ```dart

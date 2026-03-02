@@ -1,24 +1,50 @@
-# Example Guide
+# Flutter Demo App
 
-Run with environment defines:
+This folder is a runnable Flutter app that demonstrates:
+
+- Login with student ID and password
+- Session info rendering
+- Context list rendering and context switching
+- Task list rendering from `learning.taskStdList`
+
+## Run
 
 ```bash
-dart run example/basic_login_demo.dart -DKLAS_ID=<id> -DKLAS_PASSWORD=<password>
+cd example
+flutter pub get
+flutter run
 ```
 
-Available demos:
+Windows desktop run:
 
-- `basic_login_demo.dart`: Minimal login + session/context output
-- `error_handling_demo.dart`: Catch each typed exception
-- `context_workflow_demo.dart`: Refresh/switch context and call context-aware endpoint
-- `file_download_demo.dart`: Download binary and save to temp folder
-- `auto_session_renewal_demo.dart`: Demonstrate session polling with auto-renew support
-- `api_catalog_demo.dart`: Browse 65 endpoint IDs and call catalog-based APIs
-  - includes both `client.api` and `client.endpoints` usage
-- `heartbeat_demo.dart`: Keep session alive with heartbeat timer and error callback
-- `bootstrap_and_health_demo.dart`: One-shot login bootstrap + runtime health check
+```bash
+flutter run -d windows
+```
 
-Safety note:
+Prerequisite for Windows desktop:
+- Install Visual Studio 2022 (or Build Tools) with `Desktop development with C++`.
+- Verify with `flutter doctor -v` that Visual Studio shows no error.
 
-- Use read-only endpoints only when testing with real accounts.
-- Do not hardcode credentials in source code.
+If you run on Flutter Web (`localhost`) with the default base URL
+(`https://klas.kw.ac.kr`), browser cookie policy blocks cross-origin session
+cookies. In that case, login fails around `LoginCaptcha`/`LoginConfirm`.
+Use Android/iOS/desktop, or provide a same-origin reverse proxy.
+
+Optional base URL override:
+
+```bash
+flutter run --dart-define=KLAS_BASE_URI=https://your-proxy.example.com
+```
+
+## Demo Flow
+
+1. Enter student ID and password.
+2. Tap `Sign in and load data`.
+3. Confirm session info, context list, and task list are shown.
+4. Change context from the dropdown and verify task list reload.
+
+## Safety
+
+- Use read-only endpoints only when testing with a real account.
+- Never hardcode credentials in source code.
+- Do not log student ID, password, token, or cookie values.

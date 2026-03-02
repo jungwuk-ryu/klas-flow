@@ -1,0 +1,22 @@
+name: klasflow_example
+description: Runnable Flutter demo app for klasflow.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  klasflow:
+    path: ../
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

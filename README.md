@@ -47,6 +47,28 @@ Future<void> main() async {
 }
 ```
 
+## Flutter Demo App
+
+실행 가능한 Flutter 데모 앱은 `example/`에 있습니다.
+
+```bash
+cd example
+flutter pub get
+flutter run
+```
+
+주의:
+- Flutter Web에서 `localhost`로 실행하면 `https://klas.kw.ac.kr`와 교차 출처가 되어
+  브라우저 세션 쿠키 정책 때문에 로그인(`LoginCaptcha`/`LoginConfirm`)이 실패할 수 있습니다.
+- 이 경우 Android/iOS/desktop 타깃으로 실행하거나 same-origin reverse proxy를 사용하세요.
+- 데모 앱 base URI는 `--dart-define=KLAS_BASE_URI=<url>`로 오버라이드할 수 있습니다.
+
+데모 구성:
+- 로그인(학번/비밀번호)
+- 세션 정보 UI 표시
+- 컨텍스트 목록 UI 표시 및 전환
+- `learning.taskStdList` 데이터 UI 표시
+
 ## Pick Your Usage Path
 
 1. Simple Path
