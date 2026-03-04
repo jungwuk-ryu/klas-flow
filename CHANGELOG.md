@@ -1,19 +1,20 @@
 ## Unreleased
 
-- `KlasClient.loginAndBootstrap()` 추가(로그인 + 초기 상태 반환)
-- `KlasClient.runHealthCheck()` 추가(세션/컨텍스트/핵심 endpoint 진단)
-- `KlasClientConfig.cacheCredentialsForAutoRenewal` 추가(자격증명 메모리 캐시 제어)
-- KLAS 신규 로그인 프로토콜(`publicKey` 기반 JSON 플로우) 대응
-- `YearhakgiAtnlcSbjectList` 응답 구조(`year/subjList`) 파싱 보강
-- 실계정 10개 읽기 전용 시나리오 러너 추가
-- Quick Tutorial/FAQ/Bootstrap+Health demo 문서/예제 추가
-- `KlasClient.endpoints` 그룹형 자동완성 API 추가 (65개 카탈로그 래퍼)
-- `tool/generate_typed_endpoints.dart` 추가 및 CI 생성 동기화 검증
-- `KlasClient.startSessionHeartbeat` 오류 콜백(`onError`) 및 실행 상태 getter 추가
-- 세션 자동 재로그인 재시도 횟수 설정(`maxSessionRenewRetries`) 검증 테스트 강화
-- `tool/prepublish_check.dart` 추가 (비공개 명세/민감 문자열 누출 점검)
-- GitHub Actions CI 추가 (`analyze`, `test`, prepublish check)
-- Flutter 연동/배포 체크리스트/heartbeat 데모 문서 추가
+- (none)
+
+## 1.1.0 - 2026-03-05
+
+- BREAKING: 공개 API를 도메인 객체 중심으로 재구성
+  - `login()` 반환 타입 변경: `Future<void>` -> `Future<KlasUser>`
+  - `KlasUser`/`KlasCourse` 및 feature 메서드 도입
+  - `client.endpoints.*`, `client.api.call*`, `loginAndBootstrap()`, `setContext()` 제거
+- 강의 컨텍스트를 `KlasCourse` 객체에 바인딩해 강의 단위 호출 일관성 강화
+- 품질 파이프라인 단순화
+  - `tool/check_all.dart`에서 typed endpoint 생성/검증 단계 제거
+  - 저수준 생성 도구/산출물(`generate_typed_endpoints.dart`, `typed_endpoints.dart`) 제거
+- 문서/예제 전면 갱신
+  - README, 튜토리얼, FAQ, Flutter 가이드, 마이그레이션 문서 업데이트
+  - example 앱을 `user -> course` 흐름으로 교체
 
 ## 1.0.0
 

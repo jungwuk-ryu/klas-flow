@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:klasflow/klasflow.dart';
@@ -41,10 +39,11 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
 
   bool _isLoading = false;
   String? _errorMessage;
-  SessionInfo? _session;
-  List<CourseContext> _contexts = const <CourseContext>[];
-  CourseContext? _currentContext;
-  List<dynamic> _tasks = const <dynamic>[];
+  KlasUser? _user;
+  KlasUserProfile? _profile;
+  List<KlasCourse> _courses = const <KlasCourse>[];
+  KlasCourse? _currentCourse;
+  List<KlasTask> _tasks = const <KlasTask>[];
 
   @override
   void initState() {
@@ -74,7 +73,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
 
     final id = _idController.text.trim();
     final password = _passwordController.text;
-
     if (id.isEmpty || password.isEmpty) {
       setState(() {
         _errorMessage = 'Enter both ID and password.';
@@ -85,39 +83,38 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _session = null;
-      _contexts = const <CourseContext>[];
-      _currentContext = null;
-      _tasks = const <dynamic>[];
+      _user = null;
+      _profile = null;
+      _courses = const <KlasCourse>[];
+      _currentCourse = null;
+      _tasks = const <KlasTask>[];
     });
 
     try {
-      final bootstrap = await _client.loginAndBootstrap(id, password);
-      final resolvedContext = _resolveCurrentContext(
-        bootstrap.contexts,
-        bootstrap.currentContext,
-      );
-
-      final tasks = await _client.endpoints.learning.taskStdList(
-        payload: const {'currentPage': 0},
-      );
+      final user = await _client.login(id, password);
+      final profile = await user.profile(refresh: true);
+      final courses = await user.courses(refresh: true);
+      final current = await user.defaultCourse();
+      final tasks = current == null
+          ? const <KlasTask>[]
+          : await current.listTasks(page: 0);
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _session = bootstrap.session;
-        _contexts = List<CourseContext>.unmodifiable(bootstrap.contexts);
-        _currentContext = resolvedContext;
-        _tasks = List<dynamic>.unmodifiable(tasks);
+        _user = user;
+        _profile = profile;
+        _courses = List<KlasCourse>.unmodifiable(courses);
+        _currentCourse = current;
+        _tasks = List<KlasTask>.unmodifiable(tasks);
         _isLoading = false;
       });
     } on KlasException catch (error) {
       if (!mounted) {
         return;
       }
-
       setState(() {
         _errorMessage = _friendlyError(error);
         _isLoading = false;
@@ -126,7 +123,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
       if (!mounted) {
         return;
       }
-
       setState(() {
         _errorMessage = 'Unexpected error occurred. Please try again.';
         _isLoading = false;
@@ -135,7 +131,8 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
   }
 
   Future<void> _reloadTasks() async {
-    if (_session == null) {
+    final course = _currentCourse;
+    if (course == null) {
       return;
     }
 
@@ -145,23 +142,18 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
     });
 
     try {
-      final tasks = await _client.endpoints.learning.taskStdList(
-        payload: const {'currentPage': 0},
-      );
-
+      final tasks = await course.listTasks(page: 0);
       if (!mounted) {
         return;
       }
-
       setState(() {
-        _tasks = List<dynamic>.unmodifiable(tasks);
+        _tasks = List<KlasTask>.unmodifiable(tasks);
         _isLoading = false;
       });
     } on KlasException catch (error) {
       if (!mounted) {
         return;
       }
-
       setState(() {
         _errorMessage = _friendlyError(error);
         _isLoading = false;
@@ -170,7 +162,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
       if (!mounted) {
         return;
       }
-
       setState(() {
         _errorMessage = 'Failed to load tasks.';
         _isLoading = false;
@@ -178,8 +169,8 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
     }
   }
 
-  Future<void> _changeContext(CourseContext? context) async {
-    if (context == null || _session == null) {
+  Future<void> _changeCourse(KlasCourse? course) async {
+    if (course == null) {
       return;
     }
 
@@ -189,30 +180,19 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
     });
 
     try {
-      _client.setContext(
-        selectYearhakgi: context.selectYearhakgi,
-        selectSubj: context.selectSubj,
-        selectChangeYn: context.selectChangeYn,
-      );
-
-      final tasks = await _client.endpoints.learning.taskStdList(
-        payload: const {'currentPage': 0},
-      );
-
+      final tasks = await course.listTasks(page: 0);
       if (!mounted) {
         return;
       }
-
       setState(() {
-        _currentContext = context;
-        _tasks = List<dynamic>.unmodifiable(tasks);
+        _currentCourse = course;
+        _tasks = List<KlasTask>.unmodifiable(tasks);
         _isLoading = false;
       });
     } on KlasException catch (error) {
       if (!mounted) {
         return;
       }
-
       setState(() {
         _errorMessage = _friendlyError(error);
         _isLoading = false;
@@ -221,34 +201,11 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
       if (!mounted) {
         return;
       }
-
       setState(() {
-        _errorMessage = 'Failed to switch context.';
+        _errorMessage = 'Failed to switch course.';
         _isLoading = false;
       });
     }
-  }
-
-  CourseContext? _resolveCurrentContext(
-    List<CourseContext> contexts,
-    CourseContext? currentContext,
-  ) {
-    if (contexts.isEmpty) {
-      return null;
-    }
-    if (currentContext == null) {
-      return contexts.first;
-    }
-
-    for (final context in contexts) {
-      if (context.selectYearhakgi == currentContext.selectYearhakgi &&
-          context.selectSubj == currentContext.selectSubj &&
-          context.selectChangeYn == currentContext.selectChangeYn) {
-        return context;
-      }
-    }
-
-    return contexts.first;
   }
 
   String _friendlyError(KlasException error) {
@@ -271,90 +228,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
       return 'KLAS service is unavailable. Try again later.';
     }
     return 'KLAS request failed: ${error.message}';
-  }
-
-  String _displayValue(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return '(unknown)';
-    }
-    return value;
-  }
-
-  String _contextLabel(CourseContext context) {
-    final name = context.subjectName?.trim();
-    if (name != null && name.isNotEmpty) {
-      return '$name (${context.selectYearhakgi}/${context.selectSubj})';
-    }
-    return '${context.selectYearhakgi}/${context.selectSubj}';
-  }
-
-  String _taskTitle(dynamic task) {
-    if (task is Map) {
-      const titleKeys = <String>[
-        'taskTitle',
-        'title',
-        'subjectName',
-        'subjNm',
-        'contentsTitle',
-      ];
-      for (final key in titleKeys) {
-        final value = task[key];
-        if (value is String && value.trim().isNotEmpty) {
-          return value.trim();
-        }
-      }
-      return _truncate(_stringify(task), 100);
-    }
-    return _truncate(task.toString(), 100);
-  }
-
-  String _taskSubtitle(dynamic task) {
-    if (task is! Map) {
-      return '';
-    }
-
-    const subtitleKeys = <String>[
-      'deadline',
-      'dueDate',
-      'endDate',
-      'submitEndDt',
-      'subjectName',
-      'subjNm',
-    ];
-    final fields = <String>[];
-    for (final key in subtitleKeys) {
-      final value = task[key];
-      if (value == null) {
-        continue;
-      }
-      final text = value.toString().trim();
-      if (text.isEmpty) {
-        continue;
-      }
-      fields.add('$key: $text');
-      if (fields.length == 2) {
-        break;
-      }
-    }
-    if (fields.isEmpty) {
-      return '';
-    }
-    return fields.join('  |  ');
-  }
-
-  String _stringify(Object value) {
-    try {
-      return jsonEncode(value);
-    } catch (_) {
-      return value.toString();
-    }
-  }
-
-  String _truncate(String value, int maxLength) {
-    if (value.length <= maxLength) {
-      return value;
-    }
-    return '${value.substring(0, maxLength - 3)}...';
   }
 
   bool get _isLikelyBrowserCrossOriginLogin {
@@ -384,12 +257,20 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
     if (override.isEmpty) {
       return Uri(scheme: 'https', host: 'klas.kw.ac.kr');
     }
-
     final parsed = Uri.tryParse(override);
     if (parsed == null || !parsed.hasScheme || parsed.host.isEmpty) {
       return Uri(scheme: 'https', host: 'klas.kw.ac.kr');
     }
     return parsed;
+  }
+
+  String _courseLabel(KlasCourse course) {
+    final title = course.title ?? '(unknown course)';
+    final professor = course.professorName;
+    if (professor == null || professor.isEmpty) {
+      return '$title [${course.termId}]';
+    }
+    return '$title - $professor [${course.termId}]';
   }
 
   @override
@@ -400,24 +281,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: <Widget>[
-            if (_isLikelyBrowserCrossOriginLogin) ...<Widget>[
-              Card(
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    'Web demo on ${Uri.base.origin} cannot keep KLAS session '
-                    'cookies for ${_apiBaseUri.origin}. '
-                    'Login will fail at LoginCaptcha/LoginConfirm. '
-                    'Use Android/iOS/desktop, or a same-origin reverse proxy.',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
             _buildLoginCard(context),
             if (_isLoading) ...<Widget>[
               const SizedBox(height: 12),
@@ -433,11 +296,11 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
                 ),
               ),
             ],
-            if (_session != null) ...<Widget>[
+            if (_user != null) ...<Widget>[
               const SizedBox(height: 16),
-              _buildSessionCard(context),
+              _buildProfileCard(context),
               const SizedBox(height: 12),
-              _buildContextCard(context),
+              _buildCourseCard(context),
               const SizedBox(height: 12),
               _buildTaskCard(context),
             ],
@@ -459,7 +322,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
             TextField(
               controller: _idController,
               enabled: !_isLoading,
-              textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 border: OutlineInputBorder(),
                 labelText: 'Student ID',
@@ -493,9 +355,9 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
     );
   }
 
-  Widget _buildSessionCard(BuildContext context) {
-    final session = _session;
-    if (session == null) {
+  Widget _buildProfileCard(BuildContext context) {
+    final profile = _profile;
+    if (profile == null) {
       return const SizedBox.shrink();
     }
 
@@ -505,52 +367,49 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Session', style: Theme.of(context).textTheme.titleMedium),
+            Text('Profile', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text('Authenticated: ${session.authenticated}'),
-            Text('User ID: ${_displayValue(session.userId)}'),
-            Text('User Name: ${_displayValue(session.userName)}'),
+            Text('Authenticated: ${profile.authenticated}'),
+            Text('User ID: ${profile.userId ?? '(unknown)'}'),
+            Text('User Name: ${profile.userName ?? '(unknown)'}'),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildContextCard(BuildContext context) {
-    final contexts = _contexts;
-    final current = _resolveCurrentContext(contexts, _currentContext);
-
+  Widget _buildCourseCard(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Contexts', style: Theme.of(context).textTheme.titleMedium),
+            Text('Courses', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text('Available contexts: ${contexts.length}'),
+            Text('Available courses: ${_courses.length}'),
             const SizedBox(height: 8),
-            if (contexts.isEmpty)
+            if (_courses.isEmpty)
               const Text('No course context available.')
             else
-              DropdownButtonFormField<CourseContext>(
-                initialValue: current,
+              DropdownButtonFormField<KlasCourse>(
+                initialValue: _currentCourse,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Current context',
+                  labelText: 'Current course',
                 ),
-                items: contexts
+                items: _courses
                     .map(
-                      (context) => DropdownMenuItem<CourseContext>(
-                        value: context,
+                      (course) => DropdownMenuItem<KlasCourse>(
+                        value: course,
                         child: Text(
-                          _contextLabel(context),
+                          _courseLabel(course),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     )
                     .toList(),
-                onChanged: _isLoading ? null : _changeContext,
+                onChanged: _isLoading ? null : _changeCourse,
               ),
           ],
         ),
@@ -559,8 +418,6 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
   }
 
   Widget _buildTaskCard(BuildContext context) {
-    final tasks = _tasks;
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -578,34 +435,28 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
               ],
             ),
             const SizedBox(height: 4),
-            Text('Loaded items: ${tasks.length}'),
+            Text('Loaded items: ${_tasks.length}'),
             const SizedBox(height: 8),
-            if (tasks.isEmpty)
+            if (_tasks.isEmpty)
               const Text('No task data available.')
             else
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: tasks.length,
+                itemCount: _tasks.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (BuildContext context, int index) {
-                  final task = tasks[index];
-                  final subtitle = _taskSubtitle(task);
+                  final task = _tasks[index];
                   return ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      _taskTitle(task),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    title: Text(task.title ?? '(untitled task)'),
+                    subtitle: Text(
+                      'No:${task.taskNo ?? '-'}  '
+                      'Start:${task.startDate ?? '-'}  '
+                      'Due:${task.expireDate ?? '-'}',
                     ),
-                    subtitle: subtitle.isEmpty
-                        ? null
-                        : Text(
-                            subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                    trailing: Text(task.submitted == true ? 'Submitted' : '-'),
                   );
                 },
               ),

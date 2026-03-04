@@ -1,0 +1,401 @@
+import 'session_info.dart';
+
+/// 확장 가능한 고수준 레코드 객체입니다.
+final class KlasRecord {
+  /// 원본 응답 데이터입니다.
+  final Map<String, dynamic> raw;
+
+  const KlasRecord(this.raw);
+
+  /// 문자열 필드를 읽습니다.
+  String? string(String key) {
+    final value = raw[key];
+    if (value is String && value.trim().isNotEmpty) {
+      return value;
+    }
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+    return null;
+  }
+
+  /// 정수 필드를 읽습니다.
+  int? integer(String key) {
+    final value = raw[key];
+    if (value is int) {
+      return value;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+    if (value is String) {
+      return int.tryParse(value.trim());
+    }
+    return null;
+  }
+
+  /// 불리언 필드를 읽습니다.
+  bool? boolean(String key) {
+    final value = raw[key];
+    if (value is bool) {
+      return value;
+    }
+    if (value is num) {
+      return value != 0;
+    }
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == 'y' || normalized == 'yes') {
+        return true;
+      }
+      if (normalized == 'false' || normalized == 'n' || normalized == 'no') {
+        return false;
+      }
+      final parsed = num.tryParse(normalized);
+      if (parsed != null) {
+        return parsed != 0;
+      }
+    }
+    return null;
+  }
+}
+
+/// 페이징 메타데이터입니다.
+final class KlasPageInfo {
+  final int? totalPages;
+  final int? totalElements;
+  final int? currentPage;
+  final int? pageSize;
+  final Map<String, dynamic> raw;
+
+  const KlasPageInfo({
+    required this.raw,
+    this.totalPages,
+    this.totalElements,
+    this.currentPage,
+    this.pageSize,
+  });
+
+  factory KlasPageInfo.fromJson(Map<String, dynamic> json) {
+    return KlasPageInfo(
+      raw: json,
+      totalPages: _toInt(json['totalPages']),
+      totalElements: _toInt(json['totalElements']),
+      currentPage: _toInt(json['currentPage']),
+      pageSize: _toInt(json['pageSize']),
+    );
+  }
+}
+
+/// 사용자 프로필입니다.
+final class KlasUserProfile {
+  final String? userId;
+  final String? userName;
+  final bool authenticated;
+  final Map<String, dynamic> raw;
+
+  const KlasUserProfile({
+    required this.authenticated,
+    required this.raw,
+    this.userId,
+    this.userName,
+  });
+
+  factory KlasUserProfile.fromSessionInfo(SessionInfo session) {
+    return KlasUserProfile(
+      authenticated: session.authenticated,
+      userId: session.userId,
+      userName: session.userName,
+      raw: session.raw,
+    );
+  }
+}
+
+/// 세션 상태 정보입니다.
+final class KlasSessionStatus {
+  final bool authenticated;
+  final int? logoutCountDownSec;
+  final int? sessionNotiSec;
+  final int? remainingTime;
+  final Map<String, dynamic> raw;
+
+  const KlasSessionStatus({
+    required this.authenticated,
+    required this.raw,
+    this.logoutCountDownSec,
+    this.sessionNotiSec,
+    this.remainingTime,
+  });
+
+  factory KlasSessionStatus.fromJson(Map<String, dynamic> json) {
+    return KlasSessionStatus(
+      authenticated: _readBool(json),
+      logoutCountDownSec: _toInt(json['logoutCountDownSec']),
+      sessionNotiSec: _toInt(json['sessionNotiSec']),
+      remainingTime: _toInt(json['remainingTime']),
+      raw: json,
+    );
+  }
+
+  static bool _readBool(Map<String, dynamic> json) {
+    final keys = <String>[
+      'authenticated',
+      'isAuthenticated',
+      'isLogin',
+      'sessionAlive',
+      'remainingTime',
+      'logoutCountDownSec',
+    ];
+    for (final key in keys) {
+      final value = json[key];
+      if (value is bool) {
+        return value;
+      }
+      if (value is num) {
+        return value != 0;
+      }
+      if (value is String) {
+        final normalized = value.trim().toLowerCase();
+        if (normalized == 'true' || normalized == 'y' || normalized == 'yes') {
+          return true;
+        }
+        if (normalized == 'false' || normalized == 'n' || normalized == 'no') {
+          return false;
+        }
+        final parsed = num.tryParse(normalized);
+        if (parsed != null) {
+          return parsed != 0;
+        }
+      }
+    }
+    return false;
+  }
+}
+
+/// 강의 개요 정보입니다.
+final class KlasCourseOverview {
+  final KlasRecord record;
+
+  const KlasCourseOverview(this.record);
+}
+
+/// 과제 항목입니다.
+final class KlasTask {
+  final int? taskNo;
+  final String? title;
+  final String? startDate;
+  final String? expireDate;
+  final bool? submitted;
+  final Map<String, dynamic> raw;
+
+  const KlasTask({
+    required this.raw,
+    this.taskNo,
+    this.title,
+    this.startDate,
+    this.expireDate,
+    this.submitted,
+  });
+
+  factory KlasTask.fromJson(Map<String, dynamic> json) {
+    return KlasTask(
+      raw: json,
+      taskNo: _toInt(json['taskNo']),
+      title: _toString(json['title']),
+      startDate: _toString(json['startdate']),
+      expireDate: _toString(json['expiredate']),
+      submitted: _toBoolYn(json['submityn']),
+    );
+  }
+}
+
+/// 게시글 목록 요약 항목입니다.
+final class KlasBoardPostSummary {
+  final int? boardNo;
+  final String? title;
+  final String? authorName;
+  final String? registeredAt;
+  final int? fileCount;
+  final Map<String, dynamic> raw;
+
+  const KlasBoardPostSummary({
+    required this.raw,
+    this.boardNo,
+    this.title,
+    this.authorName,
+    this.registeredAt,
+    this.fileCount,
+  });
+
+  factory KlasBoardPostSummary.fromJson(Map<String, dynamic> json) {
+    return KlasBoardPostSummary(
+      raw: json,
+      boardNo: _toInt(json['boardNo']),
+      title: _toString(json['title']),
+      authorName: _toString(json['userNm']),
+      registeredAt: _toString(json['registDt']),
+      fileCount: _toInt(json['fileCnt']),
+    );
+  }
+}
+
+/// 게시판 목록 결과입니다.
+final class KlasBoardList {
+  final List<KlasBoardPostSummary> posts;
+  final KlasPageInfo? page;
+  final Map<String, dynamic> raw;
+
+  const KlasBoardList({required this.posts, required this.raw, this.page});
+
+  factory KlasBoardList.fromJson(Map<String, dynamic> json) {
+    final list = json['list'];
+    final postItems = <KlasBoardPostSummary>[];
+    if (list is List) {
+      for (final item in list) {
+        final mapped = _asMap(item);
+        if (mapped != null) {
+          postItems.add(KlasBoardPostSummary.fromJson(mapped));
+        }
+      }
+    }
+
+    KlasPageInfo? pageInfo;
+    final page = _asMap(json['page']);
+    if (page != null) {
+      pageInfo = KlasPageInfo.fromJson(page);
+    }
+
+    return KlasBoardList(posts: postItems, page: pageInfo, raw: json);
+  }
+}
+
+/// 게시글 상세 결과입니다.
+final class KlasBoardPostDetail {
+  final KlasRecord? board;
+  final KlasRecord? previous;
+  final KlasRecord? next;
+  final List<KlasRecord> comments;
+  final Map<String, dynamic> raw;
+
+  const KlasBoardPostDetail({
+    required this.comments,
+    required this.raw,
+    this.board,
+    this.previous,
+    this.next,
+  });
+
+  factory KlasBoardPostDetail.fromJson(Map<String, dynamic> json) {
+    final commentItems = <KlasRecord>[];
+    final comments = json['comment'];
+    if (comments is List) {
+      for (final item in comments) {
+        final mapped = _asMap(item);
+        if (mapped != null) {
+          commentItems.add(KlasRecord(mapped));
+        }
+      }
+    }
+
+    return KlasBoardPostDetail(
+      comments: commentItems,
+      board: _asMap(json['board']) == null
+          ? null
+          : KlasRecord(_asMap(json['board'])!),
+      previous: _asMap(json['boardPre']) == null
+          ? null
+          : KlasRecord(_asMap(json['boardPre'])!),
+      next: _asMap(json['boardNex']) == null
+          ? null
+          : KlasRecord(_asMap(json['boardNex'])!),
+      raw: json,
+    );
+  }
+}
+
+/// 파일 메타데이터 항목입니다.
+final class KlasAttachedFile {
+  final String? attachId;
+  final String? fileSn;
+  final String? fileName;
+  final int? size;
+  final Map<String, dynamic> raw;
+
+  const KlasAttachedFile({
+    required this.raw,
+    this.attachId,
+    this.fileSn,
+    this.fileName,
+    this.size,
+  });
+
+  factory KlasAttachedFile.fromJson(Map<String, dynamic> json) {
+    return KlasAttachedFile(
+      raw: json,
+      attachId: _toString(
+        json['atchFileId'] ?? json['attachId'] ?? json['fileGroupId'],
+      ),
+      fileSn: _toString(json['fileSn'] ?? json['sn']),
+      fileName: _toString(
+        json['orignlFileNm'] ?? json['originFileNm'] ?? json['fileNm'],
+      ),
+      size: _toInt(json['fileMg'] ?? json['fileSize']),
+    );
+  }
+}
+
+Map<String, dynamic>? _asMap(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value;
+  }
+  if (value is Map) {
+    return value.cast<String, dynamic>();
+  }
+  return null;
+}
+
+int? _toInt(Object? value) {
+  if (value is int) {
+    return value;
+  }
+  if (value is num) {
+    return value.toInt();
+  }
+  if (value is String) {
+    return int.tryParse(value.trim());
+  }
+  return null;
+}
+
+String? _toString(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is String) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+  if (value is num || value is bool) {
+    return value.toString();
+  }
+  return null;
+}
+
+bool? _toBoolYn(Object? value) {
+  if (value is bool) {
+    return value;
+  }
+  if (value is num) {
+    return value != 0;
+  }
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'y' || normalized == 'yes' || normalized == 'true') {
+      return true;
+    }
+    if (normalized == 'n' || normalized == 'no' || normalized == 'false') {
+      return false;
+    }
+  }
+  return null;
+}

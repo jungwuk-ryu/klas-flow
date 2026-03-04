@@ -39,145 +39,113 @@ Future<void> main() async {
   );
 
   final results = <ScenarioResult>[];
-  List<CourseContext> contexts = const <CourseContext>[];
-  List<dynamic> tasksFromTyped = const <dynamic>[];
+  KlasUser? user;
+  KlasCourse? course;
   final heartbeatErrors = <Object>[];
 
   try {
     results.add(
       await _runScenario(
-        name: '1) login() succeeds',
+        name: '1) login() returns KlasUser',
         execute: () async {
-          await client.login(id, password);
-          return 'login completed';
+          user = await client.login(id, password);
+          return 'userId=${_mask(user?.id)}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '2) getSessionInfo() returns authenticated=true',
+        name: '2) user.profile(refresh:true)',
         execute: () async {
-          final session = await client.getSessionInfo();
-          if (!session.authenticated) {
+          final profile = await user!.profile(refresh: true);
+          if (!profile.authenticated) {
             throw StateError('authenticated=false');
           }
-          final maskedUserId = _mask(session.userId);
-          return 'authenticated=true, userId=$maskedUserId';
+          return 'authenticated=true, userId=${_mask(profile.userId)}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '3) api.callObject(session.info) returns object',
+        name: '3) user.sessionStatus()',
         execute: () async {
-          final response = await client.api.callObject(
-            'session.info',
-            includeContext: false,
-          );
-          if (response.isEmpty) {
-            throw StateError('session.info returned an empty object');
+          final status = await user!.sessionStatus();
+          return 'remainingTime=${status.remainingTime ?? -1}';
+        },
+      ),
+    );
+
+    results.add(
+      await _runScenario(
+        name: '4) user.courses() loads contexts',
+        execute: () async {
+          final courses = await user!.courses(refresh: true);
+          if (courses.isEmpty) {
+            throw StateError('no available courses');
           }
-          return 'keys=${response.keys.take(6).join(', ')}';
+          return 'count=${courses.length}, first=${_mask(courses.first.courseId)}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '4) initializeFrame() parses HTML title',
+        name: '5) user.defaultCourse()',
         execute: () async {
-          final page = await client.initializeFrame();
-          final title = (page.title ?? '').trim();
-          return 'sourceLength=${page.source.length}, '
-              'title=${title.isEmpty ? '(empty)' : title}';
-        },
-      ),
-    );
-
-    results.add(
-      await _runScenario(
-        name: '5) refreshContexts() loads contexts',
-        execute: () async {
-          contexts = await client.refreshContexts();
-          if (contexts.isEmpty) {
-            throw StateError('no available contexts');
+          course = await user!.defaultCourse(refresh: true);
+          if (course == null) {
+            throw StateError('default course is null');
           }
-          final first = contexts.first;
-          return 'count=${contexts.length}, first=${_mask(first.selectSubj)}';
+          return 'course=${_mask(course!.courseId)}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '6) setContext() updates currentContext',
+        name: '6) course.overview()',
         execute: () async {
-          final first = contexts.first;
-          client.setContext(
-            selectYearhakgi: first.selectYearhakgi,
-            selectSubj: first.selectSubj,
-            selectChangeYn: first.selectChangeYn,
-          );
-          final current = client.currentContext;
-          if (current == null) {
-            throw StateError('currentContext is null');
-          }
-          if (current.selectSubj != first.selectSubj) {
-            throw StateError('context mismatch after setContext');
-          }
-          return 'current=${_mask(current.selectSubj)}';
+          final overview = await course!.overview();
+          return 'keys=${overview.record.raw.keys.length}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '7) endpoints.learning.taskStdList() works',
+        name: '7) course.listTasks(page:0)',
         execute: () async {
-          tasksFromTyped = await client.endpoints.learning.taskStdList(
-            payload: {'currentPage': 0},
-          );
-          return 'items=${tasksFromTyped.length}';
+          final tasks = await course!.listTasks(page: 0);
+          return 'items=${tasks.length}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '8) api.callArray(learning.taskStdList) matches typed call',
+        name: '8) course.noticeBoard.listPosts(page:0)',
         execute: () async {
-          final tasksFromCatalog = await client.api.callArray(
-            'learning.taskStdList',
-            payload: {'currentPage': 0},
-          );
-          if (tasksFromCatalog.length != tasksFromTyped.length) {
-            throw StateError(
-              'count mismatch: typed=${tasksFromTyped.length}, '
-              'catalog=${tasksFromCatalog.length}',
-            );
-          }
-          return 'items=${tasksFromCatalog.length}';
+          final board = await course!.noticeBoard.listPosts(page: 0);
+          return 'posts=${board.posts.length}';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '9) updateSession() and typed updateSession() both succeed',
+        name: '9) user.keepAlive()',
         execute: () async {
-          final responseA = await client.updateSession();
-          final responseB = await client.endpoints.loginSession.updateSession();
-          return 'clientKeys=${responseA.keys.length}, '
-              'typedKeys=${responseB.keys.length}';
+          await user!.keepAlive();
+          return 'ok';
         },
       ),
     );
 
     results.add(
       await _runScenario(
-        name: '10) heartbeat start/stop + clearLocalState invalidates session',
+        name: '10) heartbeat start/stop + clearLocalState',
         execute: () async {
           client.startSessionHeartbeat(
             interval: const Duration(seconds: 2),
@@ -200,7 +168,7 @@ Future<void> main() async {
 
           client.clearLocalState();
           try {
-            await client.getSessionInfo();
+            await user!.sessionStatus();
             throw StateError('expected SessionExpiredException');
           } on SessionExpiredException {
             return 'heartbeat ok, clearLocalState verified';

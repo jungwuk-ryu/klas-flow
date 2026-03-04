@@ -5,14 +5,14 @@
 ## Product Fit
 
 - 이 SDK가 우리 앱의 KLAS 사용 범위(조회/다운로드/알림)에 정확히 맞는가?
-- 팀이 원하는 추상화 수준은 typed endpoint인가, catalog call인가?
+- 팀이 원하는 추상화 수준이 `login -> user -> course` 도메인 API와 맞는가?
 - 사용자에게 보여줄 핵심 가치(안정성, 개발 속도, 유지보수성)가 문서에 드러나는가?
 
 ## Architecture
 
 - 앱 레이어가 `KlasClient` 외 내부 구현(`lib/src`)에 의존하고 있지 않은가?
 - 세션 만료 정책(`maxSessionRenewRetries`)이 앱 UX와 충돌하지 않는가?
-- 컨텍스트 자동 주입과 수동 `setContext()` 사용 기준이 팀 내에서 합의되었는가?
+- 과목 컨텍스트를 `KlasCourse` 객체 단위로 다루는 기준이 팀 내에서 합의되었는가?
 
 ## Reliability
 
@@ -30,7 +30,7 @@
 
 - KLAS 응답 필드/상태 코드가 바뀌면 누가 어떻게 대응하는가?
 - parser 수정 후 회귀 테스트 케이스를 추가하는 규칙이 있는가?
-- endpoint 경로 변경을 `ApiPaths` override로 임시 우회할 운영 절차가 있는가?
+- 특정 feature가 실패할 때 임시 비활성화/대체 UX 절차가 있는가?
 
 ## Developer Experience
 

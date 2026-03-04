@@ -6,8 +6,6 @@
 - `dart pub get`
 - `dart analyze`
 - `dart test`
-- `dart run tool/generate_typed_endpoints.dart`
-- `git diff --exit-code -- lib/src/api/typed_endpoints.dart`
 - `dart pub outdated`로 주요 의존성 업데이트 가능 여부 점검
 
 ## 2) 보안/비공개 문서

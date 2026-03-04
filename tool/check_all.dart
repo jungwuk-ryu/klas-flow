@@ -14,18 +14,6 @@ Future<void> main(List<String> args) async {
     const _Step('Install dependencies', ['dart', 'pub', 'get']),
     const _Step('Analyze', ['dart', 'analyze']),
     const _Step('Test', ['dart', 'test']),
-    const _Step('Generate typed endpoints', [
-      'dart',
-      'run',
-      'tool/generate_typed_endpoints.dart',
-    ]),
-    const _Step('Verify generated file is clean', [
-      'git',
-      'diff',
-      '--exit-code',
-      '--',
-      'lib/src/api/typed_endpoints.dart',
-    ]),
     _Step('Prepublish check', [
       'dart',
       'run',

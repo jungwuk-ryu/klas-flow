@@ -2,25 +2,23 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
+import 'src/api/api_paths.dart';
 import 'src/api/auth_api.dart';
 import 'src/api/context_api.dart';
 import 'src/api/frame_api.dart';
 import 'src/api/readonly_api.dart';
 import 'src/api/request_executor.dart';
 import 'src/api/session_api.dart';
-import 'src/api/typed_endpoints.dart';
 import 'src/auth/auth_flow.dart';
 import 'src/auth/credentials_encryptor.dart';
 import 'src/auth/session_coordinator.dart';
 import 'src/context/context_manager.dart';
-import 'src/exceptions/klas_exceptions.dart';
-import 'src/models/course_context.dart';
+import 'src/domain/domain_executor.dart';
+import 'src/domain/klas_user.dart';
 import 'src/models/file_payload.dart';
-import 'src/models/html_page.dart';
-import 'src/models/klas_bootstrap_result.dart';
+import 'src/models/high_level_models.dart';
 import 'src/models/klas_client_config.dart';
 import 'src/models/klas_health_report.dart';
-import 'src/models/session_info.dart';
 import 'src/parsers/html_parser.dart';
 import 'src/parsers/login_parser.dart';
 import 'src/transport/transport.dart';
@@ -36,16 +34,14 @@ final class KlasClient {
   late final FrameApi _frameApi;
   late final SessionCoordinator _sessionCoordinator;
   late final RequestExecutor _requestExecutor;
+  late final KlasReadOnlyApi _api;
+  late final KlasDomainExecutor _domainExecutor;
+
   Timer? _sessionHeartbeatTimer;
   bool _sessionHeartbeatInFlight = false;
   void Function(Object error, StackTrace stackTrace)?
   _sessionHeartbeatErrorHandler;
-
-  /// 명세 기반 읽기 전용 API 진입점입니다.
-  late final KlasReadOnlyApi api;
-
-  /// 그룹별 자동완성 API 진입점입니다.
-  late final KlasTypedEndpoints endpoints;
+  KlasUser? _currentUser;
 
   /// 클라이언트를 생성합니다.
   KlasClient({KlasClientConfig? config, http.Client? httpClient})
@@ -59,12 +55,13 @@ final class KlasClient {
       ownsHttpClient: httpClient == null,
     );
 
-    _sessionApi = SessionApi(_transport, _config.apiPaths);
-    _contextApi = ContextApi(_transport, _config.apiPaths);
-    _frameApi = FrameApi(_transport, _config.apiPaths, HtmlPageParser());
+    const apiPaths = ApiPaths();
+    _sessionApi = SessionApi(_transport, apiPaths);
+    _contextApi = ContextApi(_transport, apiPaths);
+    _frameApi = FrameApi(_transport, apiPaths, HtmlPageParser());
 
     final authFlow = AuthFlow(
-      authApi: AuthApi(_transport, _config.apiPaths, LoginParser()),
+      authApi: AuthApi(_transport, apiPaths, LoginParser()),
       frameApi: _frameApi,
       sessionApi: _sessionApi,
       encryptor: CredentialsEncryptor(),
@@ -84,7 +81,7 @@ final class KlasClient {
       sessionCoordinator: _sessionCoordinator,
     );
 
-    api = KlasReadOnlyApi(
+    _api = KlasReadOnlyApi(
       postJsonDynamic: _requestExecutor.postJsonDynamic,
       postJsonText: _requestExecutor.postJsonText,
       postFormDynamic: _requestExecutor.postFormDynamic,
@@ -94,48 +91,35 @@ final class KlasClient {
       getBinary: _requestExecutor.getBinary,
     );
 
-    endpoints = KlasTypedEndpoints(api);
+    _domainExecutor = KlasDomainExecutor(
+      api: _api,
+      sessionApi: _sessionApi,
+      frameApi: _frameApi,
+      requestExecutor: _requestExecutor,
+      sessionCoordinator: _sessionCoordinator,
+      contextManager: _contextManager,
+    );
   }
 
-  /// 현재 선택된 과목 컨텍스트입니다.
-  CourseContext? get currentContext => _contextManager.currentContext;
-
-  /// 저장된 컨텍스트 목록입니다.
-  List<CourseContext> get availableContexts =>
-      _contextManager.availableContexts;
+  /// 현재 로그인된 사용자입니다.
+  KlasUser? get currentUser => _currentUser;
 
   /// 세션 하트비트 타이머가 동작 중인지 여부입니다.
   bool get isSessionHeartbeatRunning => _sessionHeartbeatTimer != null;
 
-  /// 로그인 오케스트레이션을 실행합니다.
-  Future<void> login(String id, String password) {
-    return _sessionCoordinator.login(id, password);
+  /// 로그인 오케스트레이션을 실행하고 사용자 객체를 반환합니다.
+  Future<KlasUser> login(String id, String password) async {
+    await _sessionCoordinator.login(id, password);
+    final session = await _domainExecutor.fetchSessionInfo();
+    final profile = KlasUserProfile.fromSessionInfo(session);
+    final user = KlasUser(executor: _domainExecutor, profile: profile);
+    _currentUser = user;
+    return user;
   }
 
-  /// 로그인 후 앱 초기화에 필요한 상태를 한 번에 반환합니다.
-  Future<KlasBootstrapResult> loginAndBootstrap(
-    String id,
-    String password,
-  ) async {
-    await login(id, password);
-    final session = await getSessionInfo();
-    return KlasBootstrapResult(
-      session: session,
-      contexts: availableContexts,
-      currentContext: currentContext,
-    );
-  }
-
-  /// 세션 정보를 조회합니다.
-  Future<SessionInfo> getSessionInfo() {
-    return _sessionCoordinator.withAutoRenewal(
-      () => _sessionApi.fetchSessionInfo(),
-    );
-  }
-
-  /// 서버 세션을 연장하기 위해 UpdateSession API를 호출합니다.
-  Future<Map<String, dynamic>> updateSession() {
-    return api.callObject('loginSession.updateSession', includeContext: false);
+  /// 캡차 이미지를 조회합니다.
+  Future<FilePayload> requestCaptchaImage() {
+    return _domainExecutor.callBinary('loginSession.captchaImg');
   }
 
   /// 주기적으로 UpdateSession API를 호출해 세션을 유지합니다.
@@ -167,73 +151,7 @@ final class KlasClient {
     _sessionHeartbeatErrorHandler = null;
   }
 
-  /// 학기/과목 컨텍스트 목록을 다시 불러옵니다.
-  Future<List<CourseContext>> refreshContexts() {
-    return _sessionCoordinator.refreshContexts();
-  }
-
-  /// 현재 과목 컨텍스트를 수동 지정합니다.
-  void setContext({
-    required String selectYearhakgi,
-    required String selectSubj,
-    String selectChangeYn = 'Y',
-  }) {
-    _contextManager.setCurrentByValues(
-      selectYearhakgi: selectYearhakgi,
-      selectSubj: selectSubj,
-      selectChangeYn: selectChangeYn,
-    );
-  }
-
-  /// 프레임 초기화 페이지를 조회합니다.
-  Future<HtmlPage> initializeFrame() {
-    return _sessionCoordinator.withAutoRenewal(
-      () => _frameApi.initializeFrame(),
-    );
-  }
-
-  /// 파일을 다운로드합니다.
-  Future<FilePayload> downloadFile(String path, {Map<String, String>? query}) {
-    return _requestExecutor.getBinary(path, query: query);
-  }
-
-  /// 컨텍스트가 필요한 JSON API를 호출합니다.
-  Future<Map<String, dynamic>> postJsonWithContext(
-    String path, {
-    Map<String, String>? form,
-  }) async {
-    final result = await _requestExecutor.postFormDynamic(
-      path,
-      payload: form == null
-          ? null
-          : <String, dynamic>{
-              for (final entry in form.entries) entry.key: entry.value,
-            },
-      includeContext: true,
-    );
-
-    if (result is Map<String, dynamic>) {
-      return result;
-    }
-    if (result is Map) {
-      return result.cast<String, dynamic>();
-    }
-
-    throw ParsingException(
-      'Expected JSON object from $path, got ${result.runtimeType}.',
-    );
-  }
-
-  /// 로컬 세션/컨텍스트를 초기화합니다.
-  void clearLocalState() {
-    _transport.clearSession();
-    _contextManager.clear();
-    _sessionCoordinator.clearCachedCredentials();
-  }
-
   /// 주요 API 호환성과 세션 상태를 점검합니다.
-  ///
-  /// 운영 환경에서는 앱 시작 또는 문제 신고 시 진단용으로 사용할 수 있습니다.
   Future<KlasHealthReport> runHealthCheck({
     bool includeCourseEndpoints = true,
     bool includeFrameEndpoint = true,
@@ -267,38 +185,57 @@ final class KlasClient {
       }
     }
 
-    await probe('session.info', () async {
-      final session = await getSessionInfo();
+    await probe('user.session', () async {
+      final status = await _domainExecutor.callObject(
+        'session.info',
+        includeContext: false,
+      );
+      final session = KlasSessionStatus.fromJson(status);
       return 'authenticated=${session.authenticated}';
     });
 
-    await probe('context.refresh', () async {
-      final contexts = await refreshContexts();
+    await probe('user.courses', () async {
+      final contexts = await _domainExecutor.refreshContexts();
       return 'count=${contexts.length}';
     });
 
-    await probe('session.update', () async {
-      final result = await updateSession();
-      return 'keys=${result.keys.length}';
+    await probe('user.keepAlive', () async {
+      await _domainExecutor.keepAlive();
+      return 'ok';
     });
 
     if (includeFrameEndpoint) {
-      await probe('frame.initialize', () async {
-        final page = await initializeFrame();
+      await probe('user.frame.initialize', () async {
+        final page = await _domainExecutor.initializeFrame();
         return 'sourceLength=${page.source.length}';
       });
     }
 
-    if (includeCourseEndpoints && currentContext != null) {
-      await probe('learning.taskStdList', () async {
-        final tasks = await endpoints.learning.taskStdList(
-          payload: {'currentPage': taskPage},
-        );
+    if (includeCourseEndpoints) {
+      await probe('course.tasks', () async {
+        final user = _currentUser;
+        if (user == null) {
+          return 'skipped=no-current-user';
+        }
+        final defaultCourse = await user.defaultCourse(refresh: true);
+        if (defaultCourse == null) {
+          return 'skipped=no-course-context';
+        }
+        final tasks = await defaultCourse.listTasks(page: taskPage);
         return 'items=${tasks.length}';
       });
     }
 
     return KlasHealthReport(checkedAt: DateTime.now(), items: items);
+  }
+
+  /// 로컬 세션/컨텍스트를 초기화합니다.
+  void clearLocalState() {
+    _transport.clearSession();
+    _contextManager.clear();
+    _sessionCoordinator.clearCachedCredentials();
+    _currentUser?.clearCache();
+    _currentUser = null;
   }
 
   /// 내부 리소스를 정리합니다.
@@ -313,7 +250,7 @@ final class KlasClient {
     }
     _sessionHeartbeatInFlight = true;
     try {
-      await updateSession();
+      await _domainExecutor.keepAlive();
     } catch (error, stackTrace) {
       _sessionHeartbeatErrorHandler?.call(error, stackTrace);
     } finally {

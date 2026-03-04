@@ -3,9 +3,9 @@
 This folder is a runnable Flutter app that demonstrates:
 
 - Login with student ID and password
-- Session info rendering
-- Context list rendering and context switching
-- Task list rendering from `learning.taskStdList`
+- User profile rendering
+- Course list rendering and course switching
+- Task list rendering from `course.listTasks()`
 
 ## Run
 
@@ -40,8 +40,8 @@ flutter run --dart-define=KLAS_BASE_URI=https://your-proxy.example.com
 
 1. Enter student ID and password.
 2. Tap `Sign in and load data`.
-3. Confirm session info, context list, and task list are shown.
-4. Change context from the dropdown and verify task list reload.
+3. Confirm profile, course list, and task list are shown.
+4. Change course from the dropdown and verify task list reload.
 
 ## Safety
 

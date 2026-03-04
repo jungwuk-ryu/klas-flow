@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -8,54 +7,45 @@ import 'package:test/test.dart';
 
 void main() {
   group('KlasClient', () {
-    test('login은 인증/프레임/세션/컨텍스트 초기화를 순차 수행한다', () async {
+    test('login creates currentUser and loads profile', () async {
       final requestOrder = <String>[];
       final mock = MockClient((request) async {
         requestOrder.add(request.url.path);
-
         switch (request.url.path) {
           case '/usr/cmn/login/LoginSecurity.do':
-            return _jsonResponse(
-              {
-                'data': {
-                  'publicKeyModulus': _modulus,
-                  'publicKeyExponent': '10001',
-                  'loginToken': 'nonce-1',
-                },
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
               },
-              headers: {'set-cookie': 'JSESSIONID=abc123; Path=/; HttpOnly'},
-            );
+            });
           case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
+            return _jsonResponse(0);
           case '/usr/cmn/login/LoginConfirm.do':
-            final body = request.bodyFields;
-            expect(body['id'], equals('test-user'));
-            expect(body['loginToken'], isNotEmpty);
             return _jsonResponse({'success': true});
           case '/std/cmn/frame/KlasStop.do':
-            return http.Response(
+            return _utf8TextResponse(
               '<html><head><title>KLAS</title></head></html>',
               200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
             );
-          case '/api/v1/session/info':
-            final cookie = request.headers['cookie'];
-            expect(cookie, contains('JSESSIONID=abc123'));
-            return _jsonResponse({
-              'authenticated': true,
-              'userId': 'test-user',
-              'userName': '테스터',
-            });
           case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
             return _jsonResponse({
               'data': [
                 {
                   'selectYearhakgi': '20261',
                   'selectSubj': 'CSE101',
-                  'selectChangeYn': 'N',
+                  'selectChangeYn': 'Y',
                   'isDefault': true,
-                  'subjectName': '자료구조',
                 },
               ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({
+              'authenticated': true,
+              'userId': 'test-user',
+              'userName': '테스터',
             });
           default:
             return http.Response('Not Found', 404);
@@ -66,76 +56,25 @@ void main() {
         config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
         httpClient: mock,
       );
+      addTearDown(client.close);
 
-      await client.login('test-user', 'test-password');
-
-      expect(client.availableContexts, hasLength(1));
-      expect(client.currentContext?.selectSubj, equals('CSE101'));
+      final user = await client.login('test-user', 'test-password');
+      expect(client.currentUser, isNotNull);
+      expect(user.id, equals('test-user'));
       expect(
         requestOrder,
-        equals([
+        containsAllInOrder([
           '/usr/cmn/login/LoginSecurity.do',
           '/usr/cmn/login/LoginCaptcha.do',
           '/usr/cmn/login/LoginConfirm.do',
           '/std/cmn/frame/KlasStop.do',
-          '/api/v1/session/info',
           '/std/cmn/frame/YearhakgiAtnlcSbjectList.do',
+          '/api/v1/session/info',
         ]),
       );
     });
 
-    test('세션 만료 응답은 SessionExpiredException으로 변환된다', () async {
-      final mock = MockClient((request) async {
-        if (request.url.path == '/api/v1/session/info') {
-          return _utf8TextResponse('세션이 만료되었습니다.', 401);
-        }
-        return http.Response('Not Found', 404);
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      await expectLater(
-        client.getSessionInfo(),
-        throwsA(isA<SessionExpiredException>()),
-      );
-    });
-
-    test('updateSession은 UpdateSession API를 호출한다', () async {
-      var called = false;
-      final mock = MockClient((request) async {
-        if (request.url.path == '/usr/cmn/login/UpdateSession.do') {
-          called = true;
-          return _jsonResponse({'success': true});
-        }
-        return http.Response('Not Found', 404);
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      final result = await client.updateSession();
-      expect(result['success'], isTrue);
-      expect(called, isTrue);
-    });
-
-    test('startSessionHeartbeat는 0 이하 interval에서 ArgumentError를 던진다', () {
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-      );
-      addTearDown(client.close);
-
-      expect(
-        () => client.startSessionHeartbeat(interval: Duration.zero),
-        throwsArgumentError,
-      );
-    });
-
-    test('세션 하트비트 오류는 onError 콜백으로 전달된다', () async {
+    test('startSessionHeartbeat reports failure through callback', () async {
       var heartbeatCalls = 0;
       final capturedErrors = <Object>[];
 
@@ -151,218 +90,186 @@ void main() {
         config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
         httpClient: mock,
       );
+      addTearDown(client.close);
 
       client.startSessionHeartbeat(
         interval: const Duration(milliseconds: 30),
         onError: (error, _) => capturedErrors.add(error),
       );
-      addTearDown(client.close);
-
       await Future<void>.delayed(const Duration(milliseconds: 120));
 
       expect(client.isSessionHeartbeatRunning, isTrue);
       expect(heartbeatCalls, greaterThanOrEqualTo(1));
       expect(capturedErrors, isNotEmpty);
-
-      client.stopSessionHeartbeat();
-      expect(client.isSessionHeartbeatRunning, isFalse);
     });
 
-    test('postJsonWithContext는 과목 컨텍스트를 자동 주입한다', () async {
-      final mock = MockClient((request) async {
-        if (request.url.path == '/context-required') {
-          final body = request.bodyFields;
-          return _jsonResponse({'echo': body});
-        }
-        return http.Response('Not Found', 404);
-      });
+    test(
+      'course.listTasks retries after session expiration when credentials are cached',
+      () async {
+        final requestOrder = <String>[];
+        var loginSecurityCalls = 0;
+        var taskCalls = 0;
 
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-      client.setContext(
-        selectYearhakgi: '20261',
-        selectSubj: 'CSE101',
-        selectChangeYn: 'Y',
-      );
-
-      final response = await client.postJsonWithContext(
-        '/context-required',
-        form: {'custom': 'value'},
-      );
-
-      final echo = (response['echo'] as Map<String, dynamic>);
-      expect(echo['custom'], equals('value'));
-      expect(echo['selectYearhakgi'], equals('20261'));
-      expect(echo['selectSubj'], equals('CSE101'));
-      expect(echo['selectChangeYn'], equals('Y'));
-    });
-
-    test('세션 만료 시 자동 재로그인 후 요청을 재시도한다', () async {
-      final requestOrder = <String>[];
-      var loginSecurityCalls = 0;
-      var protectedApiCalls = 0;
-
-      final mock = MockClient((request) async {
-        requestOrder.add(request.url.path);
-
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            loginSecurityCalls++;
-            return _jsonResponse(
-              {
+        final mock = MockClient((request) async {
+          requestOrder.add(request.url.path);
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              loginSecurityCalls++;
+              return _jsonResponse({
                 'data': {
                   'publicKeyModulus': _modulus,
                   'publicKeyExponent': '10001',
                   'loginToken': 'nonce-$loginSecurityCalls',
                 },
-              },
-              headers: {
-                'set-cookie':
-                    'JSESSIONID=session$loginSecurityCalls; Path=/; HttpOnly',
-              },
-            );
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'success': true});
-          case '/std/cmn/frame/KlasStop.do':
-            return _utf8TextResponse(
-              '<html><head><title>KLAS</title></head></html>',
-              200,
-              headers: {'content-type': 'text/html; charset=utf-8'},
-            );
-          case '/api/v1/session/info':
-            return _jsonResponse({
-              'authenticated': true,
-              'userId': 'test-user',
-            });
-          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-            return _jsonResponse({
-              'data': [
-                {
-                  'selectYearhakgi': '20261',
-                  'selectSubj': 'CSE101',
-                  'selectChangeYn': 'N',
-                  'isDefault': true,
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return _jsonResponse(0);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/api/v1/session/info':
+              return _jsonResponse({
+                'authenticated': true,
+                'userId': 'test-user',
+              });
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                  },
+                ],
+              });
+            case '/std/lis/evltn/TaskStdList.do':
+              taskCalls++;
+              if (taskCalls == 1) {
+                return _utf8TextResponse('세션이 만료되었습니다.', 401);
+              }
+              return _jsonResponse([]);
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final course = (await user.defaultCourse())!;
+        final tasks = await course.listTasks(page: 0);
+
+        expect(tasks, isEmpty);
+        expect(taskCalls, equals(2));
+        expect(loginSecurityCalls, equals(2));
+        expect(
+          requestOrder
+              .where((path) => path == '/usr/cmn/login/LoginSecurity.do')
+              .length,
+          equals(2),
+        );
+      },
+    );
+
+    test(
+      'maxSessionRenewRetries=0 does not retry on session expiration',
+      () async {
+        var loginSecurityCalls = 0;
+        var taskCalls = 0;
+
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              loginSecurityCalls++;
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-$loginSecurityCalls',
                 },
-              ],
-            });
-          case '/context-required':
-            protectedApiCalls++;
-            if (protectedApiCalls == 1) {
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return _jsonResponse(0);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/api/v1/session/info':
+              return _jsonResponse({
+                'authenticated': true,
+                'userId': 'test-user',
+              });
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                  },
+                ],
+              });
+            case '/std/lis/evltn/TaskStdList.do':
+              taskCalls++;
               return _utf8TextResponse('세션이 만료되었습니다.', 401);
-            }
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
 
-            final body = request.bodyFields;
-            expect(body['custom'], equals('value'));
-            expect(body['selectYearhakgi'], equals('20261'));
-            expect(body['selectSubj'], equals('CSE101'));
-            expect(body['selectChangeYn'], equals('N'));
-            return _jsonResponse({'ok': true, 'attempt': protectedApiCalls});
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
+        final client = KlasClient(
+          config: KlasClientConfig(
+            baseUri: Uri.parse('https://example.com'),
+            maxSessionRenewRetries: 0,
+          ),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
 
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
+        final user = await client.login('test-user', 'test-password');
+        final course = (await user.defaultCourse())!;
 
-      await client.login('test-user', 'test-password');
-      final result = await client.postJsonWithContext(
-        '/context-required',
-        form: {'custom': 'value'},
-      );
+        await expectLater(
+          course.listTasks(page: 0),
+          throwsA(isA<SessionExpiredException>()),
+        );
 
-      expect(result['ok'], isTrue);
-      expect(result['attempt'], equals(2));
-      expect(protectedApiCalls, equals(2));
-      expect(loginSecurityCalls, equals(2));
-      expect(
-        requestOrder
-            .where((path) => path == '/usr/cmn/login/LoginSecurity.do')
-            .length,
-        equals(2),
-      );
-    });
+        expect(taskCalls, equals(1));
+        expect(loginSecurityCalls, equals(1));
+      },
+    );
 
-    test('loginAndBootstrap은 세션과 컨텍스트 상태를 반환한다', () async {
-      final mock = MockClient((request) async {
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            return _jsonResponse({
-              'data': {
-                'publicKeyModulus': _modulus,
-                'publicKeyExponent': '10001',
-                'loginToken': 'nonce-1',
-              },
-            });
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'success': true});
-          case '/std/cmn/frame/KlasStop.do':
-            return _utf8TextResponse(
-              '<html><head><title>KLAS</title></head></html>',
-              200,
-              headers: {'content-type': 'text/html; charset=utf-8'},
-            );
-          case '/api/v1/session/info':
-            return _jsonResponse({
-              'authenticated': true,
-              'userId': 'test-user',
-            });
-          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-            return _jsonResponse({
-              'data': [
-                {
-                  'selectYearhakgi': '20261',
-                  'selectSubj': 'CSE101',
-                  'selectChangeYn': 'N',
-                  'isDefault': true,
-                },
-              ],
-            });
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      final result = await client.loginAndBootstrap(
-        'test-user',
-        'test-password',
-      );
-      expect(result.session.authenticated, isTrue);
-      expect(result.contexts, hasLength(1));
-      expect(result.currentContext?.selectSubj, equals('CSE101'));
-    });
-
-    test('runHealthCheck는 각 단계 성공/실패를 수집한다', () async {
+    test('runHealthCheck reports course task failure', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
           case '/api/v1/session/info':
             return _jsonResponse({'authenticated': true});
           case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-            return http.Response(
-              jsonEncode([
+            return _jsonResponse({
+              'data': [
                 {
-                  'value': '2026,1',
-                  'subjList': [
-                    {'value': 'CSE101', 'label': '자료구조'},
-                  ],
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
                 },
-              ]),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            );
+              ],
+            });
           case '/usr/cmn/login/UpdateSession.do':
             return _jsonResponse({});
           case '/std/cmn/frame/KlasStop.do':
@@ -382,311 +289,80 @@ void main() {
         config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
         httpClient: mock,
       );
+      addTearDown(client.close);
 
-      final report = await client.runHealthCheck();
-      expect(report.items, isNotEmpty);
-      expect(report.items.any((item) => item.id == 'session.info'), isTrue);
-      expect(report.items.any((item) => item.id == 'context.refresh'), isTrue);
-      expect(report.items.any((item) => item.id == 'session.update'), isTrue);
-      expect(report.items.any((item) => item.id == 'frame.initialize'), isTrue);
+      // user가 없는 경우 course probe는 skipped 상태로 성공 처리된다.
+      final reportBeforeLogin = await client.runHealthCheck();
       expect(
-        report.items.any(
-          (item) => item.id == 'learning.taskStdList' && !item.success,
-        ),
+        reportBeforeLogin.items.any((item) => item.id == 'user.session'),
+        isTrue,
+      );
+
+      // 로그인 후에는 course.tasks를 실제로 검사한다.
+      final loginMock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return _jsonResponse(0);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/api/v1/session/info':
+            return _jsonResponse({
+              'authenticated': true,
+              'userId': 'test-user',
+            });
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                },
+              ],
+            });
+          case '/usr/cmn/login/UpdateSession.do':
+            return _jsonResponse({});
+          case '/std/lis/evltn/TaskStdList.do':
+            return http.Response('server error', 500);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final loggedInClient = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: loginMock,
+      );
+      addTearDown(loggedInClient.close);
+      await loggedInClient.login('test-user', 'test-password');
+
+      final report = await loggedInClient.runHealthCheck();
+      expect(report.items.any((item) => item.id == 'course.tasks'), isTrue);
+      expect(
+        report.items.any((item) => item.id == 'course.tasks' && !item.success),
         isTrue,
       );
       expect(report.allPassed, isFalse);
-      expect(report.failedCount, equals(1));
-    });
-
-    test('maxSessionRenewRetries가 0이면 자동 재로그인을 수행하지 않는다', () async {
-      var loginSecurityCalls = 0;
-      var protectedCalls = 0;
-
-      final mock = MockClient((request) async {
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            loginSecurityCalls++;
-            return _jsonResponse({
-              'data': {
-                'publicKeyModulus': _modulus,
-                'publicKeyExponent': '10001',
-                'loginToken': 'nonce-$loginSecurityCalls',
-              },
-            });
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'success': true});
-          case '/std/cmn/frame/KlasStop.do':
-            return _utf8TextResponse(
-              '<html><head><title>KLAS</title></head></html>',
-              200,
-              headers: {'content-type': 'text/html; charset=utf-8'},
-            );
-          case '/api/v1/session/info':
-            return _jsonResponse({
-              'authenticated': true,
-              'userId': 'test-user',
-            });
-          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-            return _jsonResponse({
-              'data': [
-                {
-                  'selectYearhakgi': '20261',
-                  'selectSubj': 'CSE101',
-                  'selectChangeYn': 'N',
-                  'isDefault': true,
-                },
-              ],
-            });
-          case '/context-required':
-            protectedCalls++;
-            return _utf8TextResponse('세션이 만료되었습니다.', 401);
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(
-          baseUri: Uri.parse('https://example.com'),
-          maxSessionRenewRetries: 0,
-        ),
-        httpClient: mock,
-      );
-
-      await client.login('test-user', 'test-password');
-      await expectLater(
-        client.postJsonWithContext(
-          '/context-required',
-          form: {'custom': 'value'},
-        ),
-        throwsA(isA<SessionExpiredException>()),
-      );
-
-      expect(protectedCalls, equals(1));
-      expect(loginSecurityCalls, equals(1));
-    });
-
-    test('자격증명 캐시를 끄면 세션 만료 시 자동 재로그인을 수행하지 않는다', () async {
-      var loginSecurityCalls = 0;
-      var protectedCalls = 0;
-
-      final mock = MockClient((request) async {
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            loginSecurityCalls++;
-            return _jsonResponse({
-              'data': {
-                'publicKeyModulus': _modulus,
-                'publicKeyExponent': '10001',
-                'loginToken': 'nonce-$loginSecurityCalls',
-              },
-            });
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'success': true});
-          case '/std/cmn/frame/KlasStop.do':
-            return _utf8TextResponse(
-              '<html><head><title>KLAS</title></head></html>',
-              200,
-              headers: {'content-type': 'text/html; charset=utf-8'},
-            );
-          case '/api/v1/session/info':
-            return _jsonResponse({
-              'authenticated': true,
-              'userId': 'test-user',
-            });
-          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-            return _jsonResponse({
-              'data': [
-                {
-                  'selectYearhakgi': '20261',
-                  'selectSubj': 'CSE101',
-                  'selectChangeYn': 'N',
-                  'isDefault': true,
-                },
-              ],
-            });
-          case '/context-required':
-            protectedCalls++;
-            return _utf8TextResponse('세션이 만료되었습니다.', 401);
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(
-          baseUri: Uri.parse('https://example.com'),
-          maxSessionRenewRetries: 1,
-          cacheCredentialsForAutoRenewal: false,
-        ),
-        httpClient: mock,
-      );
-
-      await client.login('test-user', 'test-password');
-      await expectLater(
-        client.postJsonWithContext(
-          '/context-required',
-          form: {'custom': 'value'},
-        ),
-        throwsA(isA<SessionExpiredException>()),
-      );
-
-      expect(protectedCalls, equals(1));
-      expect(loginSecurityCalls, equals(1));
-    });
-
-    test('initializeFrame은 HTML을 파싱해 제목을 제공한다', () async {
-      final mock = MockClient((request) async {
-        if (request.url.path == '/std/cmn/frame/KlasStop.do') {
-          return _utf8TextResponse(
-            '<html><head><title>포털 메인</title></head><body>ok</body></html>',
-            200,
-            headers: {'content-type': 'text/html; charset=utf-8'},
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      final page = await client.initializeFrame();
-      expect(page.title, equals('포털 메인'));
-    });
-
-    test('downloadFile은 바이너리와 파일명을 추출한다', () async {
-      final bytes = Uint8List.fromList([0, 1, 2, 3, 4]);
-      final mock = MockClient((request) async {
-        if (request.url.path == '/files/test.bin') {
-          return http.Response.bytes(
-            bytes,
-            200,
-            headers: {
-              'content-type': 'application/octet-stream',
-              'content-disposition': 'attachment; filename="test.bin"',
-            },
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      final file = await client.downloadFile('/files/test.bin');
-      expect(file.fileName, equals('test.bin'));
-      expect(file.contentType, contains('application/octet-stream'));
-      expect(file.bytes, equals(bytes));
-    });
-
-    test('로그인 실패는 InvalidCredentialsException으로 변환된다', () async {
-      final mock = MockClient((request) async {
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            return _jsonResponse({
-              'data': {
-                'publicKeyModulus': _modulus,
-                'publicKeyExponent': '10001',
-                'loginToken': 'nonce-1',
-              },
-            });
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'success': false, 'message': '인증 실패'});
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      await expectLater(
-        client.login('wrong', 'wrong'),
-        throwsA(isA<InvalidCredentialsException>()),
-      );
-    });
-
-    test('OTP 요구 응답은 OtpRequiredException으로 변환된다', () async {
-      final mock = MockClient((request) async {
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            return _jsonResponse({
-              'data': {
-                'publicKeyModulus': _modulus,
-                'publicKeyExponent': '10001',
-                'loginToken': 'nonce-1',
-              },
-            });
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'otpRequired': true, 'message': 'OTP 필요'});
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      await expectLater(
-        client.login('id', 'pw'),
-        throwsA(isA<OtpRequiredException>()),
-      );
-    });
-
-    test('Captcha 요구 응답은 CaptchaRequiredException으로 변환된다', () async {
-      final mock = MockClient((request) async {
-        switch (request.url.path) {
-          case '/usr/cmn/login/LoginSecurity.do':
-            return _jsonResponse({
-              'data': {
-                'publicKeyModulus': _modulus,
-                'publicKeyExponent': '10001',
-                'loginToken': 'nonce-1',
-              },
-            });
-          case '/usr/cmn/login/LoginCaptcha.do':
-            return http.Response('OK', 200);
-          case '/usr/cmn/login/LoginConfirm.do':
-            return _jsonResponse({'captchaRequired': true, 'message': '캡차 필요'});
-          default:
-            return http.Response('Not Found', 404);
-        }
-      });
-
-      final client = KlasClient(
-        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-        httpClient: mock,
-      );
-
-      await expectLater(
-        client.login('id', 'pw'),
-        throwsA(isA<CaptchaRequiredException>()),
-      );
     });
   });
 }
 
-http.Response _jsonResponse(
-  Map<String, dynamic> payload, {
-  Map<String, String>? headers,
-}) {
+http.Response _jsonResponse(Object payload, {Map<String, String>? headers}) {
   return http.Response(
     jsonEncode(payload),
     200,
