@@ -257,6 +257,19 @@ final class KlasDomainExecutor {
       }
     }
 
+    if (userId == null || userName == null) {
+      try {
+        final frameHtml = await _requestExecutor.getText(
+          _frameIdentityFallbackPath,
+        );
+        final identityFromHtml = _extractIdentityFromFrameHtml(frameHtml);
+        userId ??= identityFromHtml.userId;
+        userName ??= identityFromHtml.userName;
+      } catch (_) {
+        // HTML fallback 실패도 프로필 조회 전체 실패로 처리하지 않는다.
+      }
+    }
+
     return _IdentityFallback(
       userId: userId,
       userName: userName,
@@ -275,6 +288,13 @@ final class _IdentityFallback {
     required this.userName,
     required this.rawBySource,
   });
+}
+
+final class _FrameIdentity {
+  final String? userId;
+  final String? userName;
+
+  const _FrameIdentity({required this.userId, required this.userName});
 }
 
 String? _findStringByKeys(Map<String, dynamic> source, List<String> keys) {
@@ -331,7 +351,20 @@ String _normalizeFieldKey(String key) {
   return key.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toLowerCase();
 }
 
+_FrameIdentity _extractIdentityFromFrameHtml(String html) {
+  final matches = _frameProfileAnchorPattern.allMatches(html);
+  for (final match in matches) {
+    final name = match.group(1)?.trim();
+    final id = match.group(2)?.trim();
+    if (name != null && name.isNotEmpty && id != null && id.isNotEmpty) {
+      return _FrameIdentity(userId: id, userName: name);
+    }
+  }
+  return const _FrameIdentity(userId: null, userName: null);
+}
+
 const List<String> _identityFallbackEndpointIds = <String>[
+  'user.personalInfo',
   'frame.stdHome',
   'academic.atnlcScreHakjukInfo',
   'studentRecord.tmpabssklGetHakjuk',
@@ -354,6 +387,7 @@ const List<String> _userIdFieldCandidates = <String>[
 ];
 
 const List<String> _userNameFieldCandidates = <String>[
+  'kname',
   'userName',
   'userNm',
   'stdNm',
@@ -365,3 +399,11 @@ const List<String> _userNameFieldCandidates = <String>[
   'name',
   'nm',
 ];
+
+const String _frameIdentityFallbackPath = '/std/cmn/frame/Frame.do';
+
+final RegExp _frameProfileAnchorPattern = RegExp(
+  r'MyInfoStdPage\.do"[^>]*>\s*(?:<i[^>]*>.*?</i>\s*)?([^<(]+)\(([^)]+)\)',
+  caseSensitive: false,
+  dotAll: true,
+);

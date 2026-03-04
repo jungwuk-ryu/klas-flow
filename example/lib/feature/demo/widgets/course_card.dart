@@ -26,18 +26,18 @@ class CourseCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Courses', style: Theme.of(context).textTheme.titleMedium),
+            Text('수강 과목', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text('Available courses: ${courses.length}'),
+            Text('조회된 과목 수: ${courses.length}'),
             const SizedBox(height: 8),
             if (courses.isEmpty)
-              const Text('No course context available.')
+              const Text('선택 가능한 과목이 없습니다.')
             else
               DropdownButtonFormField<KlasCourse>(
                 initialValue: currentCourse,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Current course',
+                  labelText: '현재 과목',
                 ),
                 items: courses
                     .map(

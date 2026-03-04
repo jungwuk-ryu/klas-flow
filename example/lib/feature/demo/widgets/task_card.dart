@@ -25,18 +25,18 @@ class TaskCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Text('Tasks', style: Theme.of(context).textTheme.titleMedium),
+                Text('과제 목록', style: Theme.of(context).textTheme.titleMedium),
                 TextButton(
                   onPressed: isLoading ? null : onReload,
-                  child: const Text('Reload'),
+                  child: const Text('새로고침'),
                 ),
               ],
             ),
             const SizedBox(height: 4),
-            Text('Loaded items: ${tasks.length}'),
+            Text('조회된 항목 수: ${tasks.length}'),
             const SizedBox(height: 8),
             if (tasks.isEmpty)
-              const Text('No task data available.')
+              const Text('과제 데이터가 없습니다.')
             else
               ListView.separated(
                 shrinkWrap: true,
@@ -48,13 +48,13 @@ class TaskCard extends StatelessWidget {
                   return ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    title: Text(task.title ?? '(untitled task)'),
+                    title: Text(task.title ?? '(제목 없음)'),
                     subtitle: Text(
-                      'No:${task.taskNo ?? '-'}  '
-                      'Start:${task.startDate ?? '-'}  '
-                      'Due:${task.expireDate ?? '-'}',
+                      '번호:${task.taskNo ?? '-'}  '
+                      '시작:${task.startDate ?? '-'}  '
+                      '마감:${task.expireDate ?? '-'}',
                     ),
-                    trailing: Text(task.submitted == true ? 'Submitted' : '-'),
+                    trailing: Text(task.submitted == true ? '제출완료' : '-'),
                   );
                 },
               ),

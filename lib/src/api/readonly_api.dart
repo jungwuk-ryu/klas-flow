@@ -375,6 +375,14 @@ final class KlasEndpointCatalog {
       requestEncoding: KlasEndpointRequestEncoding.json,
       includeContextByDefault: false,
     ),
+    'user.personalInfo': KlasEndpointSpec(
+      id: 'user.personalInfo',
+      method: KlasEndpointMethod.post,
+      path: '/std/ads/admst/IdModifySpvInfo.do',
+      responseType: KlasEndpointResponseType.jsonObject,
+      requestEncoding: KlasEndpointRequestEncoding.json,
+      includeContextByDefault: false,
+    ),
     'file.downloadFile': KlasEndpointSpec(
       id: 'file.downloadFile',
       method: KlasEndpointMethod.get,

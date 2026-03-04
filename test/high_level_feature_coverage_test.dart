@@ -9,7 +9,7 @@ import 'package:test/test.dart';
 void main() {
   group('High-level feature coverage', () {
     test(
-      'all 65 catalog endpoints are reachable through high-level API',
+      'all catalog endpoints are reachable through high-level API',
       () async {
         final calledPaths = <String, int>{};
         final missingCourseContext = <String>[];
@@ -113,6 +113,13 @@ void main() {
                 'userName': '테스터',
                 'remainingTime': 300,
               });
+            case '/std/ads/admst/IdModifySpvInfo.do':
+              return _jsonResponse({
+                'kname': '테스터',
+                'hakbun': 'test-user',
+                'emailId': 'tester',
+                'emailHost': 'example.com',
+              });
             case '/common/file/UploadFileList.do':
               return _jsonResponse([
                 {
@@ -168,6 +175,8 @@ void main() {
         final profile = await user.profile(refresh: true);
         expect(profile.authenticated, isTrue);
         expect(profile.userId, equals('test-user'));
+        final personal = await user.personalInfo();
+        expect(personal.userId, equals('test-user'));
 
         await user.sessionStatus();
         await user.keepAlive();

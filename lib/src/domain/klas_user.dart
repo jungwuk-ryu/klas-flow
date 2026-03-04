@@ -7,6 +7,7 @@ import '../models/high_level_models.dart';
 final class KlasUser {
   final KlasDomainExecutor _executor;
   KlasUserProfile _profile;
+  KlasPersonalInfo? _cachedPersonalInfo;
   List<KlasCourse>? _cachedCourses;
 
   late final KlasAcademicFeature academic = KlasAcademicFeature(_executor);
@@ -55,6 +56,22 @@ final class KlasUser {
     return KlasSessionStatus.fromJson(raw);
   }
 
+  /// 개인정보 수정 화면 기준 상세 프로필을 조회합니다.
+  Future<KlasPersonalInfo> personalInfo({bool refresh = false}) async {
+    if (!refresh && _cachedPersonalInfo != null) {
+      return _cachedPersonalInfo!;
+    }
+
+    final raw = await _executor.callObject(
+      'user.personalInfo',
+      payload: const <String, dynamic>{},
+      includeContext: false,
+    );
+    final info = KlasPersonalInfo.fromJson(raw);
+    _cachedPersonalInfo = info;
+    return info;
+  }
+
   /// 서버 세션을 연장합니다.
   Future<void> keepAlive() {
     return _executor.keepAlive();
@@ -96,6 +113,7 @@ final class KlasUser {
 
   /// 내부 캐시를 초기화합니다.
   void clearCache() {
+    _cachedPersonalInfo = null;
     _cachedCourses = null;
   }
 }

@@ -48,6 +48,13 @@ void main() {
                 'userId': 'test-user',
                 'userName': '테스터',
               });
+            case '/std/ads/admst/IdModifySpvInfo.do':
+              return _jsonResponse({
+                'kname': '테스터',
+                'hakbun': '2023000001',
+                'emailId': 'tester',
+                'emailHost': 'example.com',
+              });
             case '/std/lis/evltn/TaskStdList.do':
               final body = jsonDecode(request.body) as Map<String, dynamic>;
               expect(body['selectYearhakgi'], equals('20261'));
@@ -78,6 +85,10 @@ void main() {
         final profile = await user.profile(refresh: true);
         expect(profile.authenticated, isTrue);
         expect(profile.userId, equals('test-user'));
+        final personal = await user.personalInfo();
+        expect(personal.userId, equals('2023000001'));
+        expect(personal.userName, equals('테스터'));
+        expect(personal.email, equals('tester@example.com'));
 
         final defaultCourse = await user.defaultCourse();
         expect(defaultCourse, isNotNull);

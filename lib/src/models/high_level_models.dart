@@ -111,6 +111,73 @@ final class KlasUserProfile {
   }
 }
 
+/// 개인정보 수정 화면 기반 사용자 상세 프로필입니다.
+final class KlasPersonalInfo {
+  final String? userId;
+  final String? userName;
+  final String? englishName;
+  final String? koreanNickname;
+  final String? emailId;
+  final String? emailHost;
+  final String? homePostNo;
+  final String? homeAddress1;
+  final String? homeAddress2;
+  final String? homePhone;
+  final String? mobilePhone;
+  final String? birthday;
+  final bool? bankInfoOpen;
+  final bool? birthdayOpen;
+  final Map<String, dynamic> raw;
+
+  const KlasPersonalInfo({
+    required this.raw,
+    this.userId,
+    this.userName,
+    this.englishName,
+    this.koreanNickname,
+    this.emailId,
+    this.emailHost,
+    this.homePostNo,
+    this.homeAddress1,
+    this.homeAddress2,
+    this.homePhone,
+    this.mobilePhone,
+    this.birthday,
+    this.bankInfoOpen,
+    this.birthdayOpen,
+  });
+
+  factory KlasPersonalInfo.fromJson(Map<String, dynamic> json) {
+    return KlasPersonalInfo(
+      raw: json,
+      userId: _toString(json['hakbun'] ?? json['userId'] ?? json['studentNo']),
+      userName: _toString(json['kname'] ?? json['userName'] ?? json['name']),
+      englishName: _toString(json['ename']),
+      koreanNickname: _toString(json['knickname']),
+      emailId: _toString(json['emailId']),
+      emailHost: _toString(json['emailHost']),
+      homePostNo: _toString(json['homePostno']),
+      homeAddress1: _toString(json['homeAddr1']),
+      homeAddress2: _toString(json['homeAddr2']),
+      homePhone: _toString(json['homePhoneno']),
+      mobilePhone: _toString(json['handPhoneno']),
+      birthday: _toString(json['birthday']),
+      bankInfoOpen: _toBoolYn(json['bankOpt']),
+      birthdayOpen: _toBoolYn(json['birthdayOpt']),
+    );
+  }
+
+  /// 이메일 표시 문자열입니다.
+  String? get email {
+    final id = emailId;
+    final host = emailHost;
+    if (id == null || host == null) {
+      return null;
+    }
+    return '$id@$host';
+  }
+}
+
 /// 세션 상태 정보입니다.
 final class KlasSessionStatus {
   final bool authenticated;

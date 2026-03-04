@@ -144,6 +144,84 @@ void main() {
       },
     );
 
+    test(
+      'login resolves profile name/id from frame html when json fallbacks miss',
+      () async {
+        final calledPaths = <String>[];
+        final mock = MockClient((request) async {
+          calledPaths.add(request.url.path);
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return _jsonResponse(0);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({
+                'logoutCountDownSec': 300,
+                'sessionNotiSec': 6870,
+                'remainingTime': 7170,
+              });
+            case '/std/cmn/frame/StdHome.do':
+            case '/std/cps/inqire/AtnlcScreHakjukInfo.do':
+            case '/std/hak/hakjuk/TmpabssklGetHakjuk.do':
+              return _jsonResponse({'data': {}});
+            case '/std/cmn/frame/Frame.do':
+              return _utf8TextResponse(
+                '''
+<!doctype html>
+<html>
+  <body>
+    <a href="/std/ads/admst/MyInfoStdPage.do"><i class="fas fa-cog"></i>테스트사용자(2023000001)</a>
+  </body>
+</html>
+''',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+
+        expect(user.id, equals('2023000001'));
+        expect(user.name, equals('테스트사용자'));
+        expect(calledPaths, contains('/std/cmn/frame/Frame.do'));
+      },
+    );
+
     test('startSessionHeartbeat reports failure through callback', () async {
       var heartbeatCalls = 0;
       final capturedErrors = <Object>[];
