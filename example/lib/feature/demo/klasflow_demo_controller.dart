@@ -13,6 +13,7 @@ class DemoActionResult {
   final String title;
   final bool success;
   final String summary;
+  final Object? payload;
   final String payloadPreview;
   final DateTime executedAt;
   final Duration elapsed;
@@ -22,6 +23,7 @@ class DemoActionResult {
     required this.title,
     required this.success,
     required this.summary,
+    required this.payload,
     required this.payloadPreview,
     required this.executedAt,
     required this.elapsed,
@@ -151,19 +153,21 @@ class KlasflowDemoController extends ChangeNotifier {
       _currentCourse = current;
       _tasks = List<KlasTask>.unmodifiable(tasks);
 
+      final payload = <String, Object?>{
+        'profile': _normalizePayload(profile),
+        'personalInfo': _normalizePayload(personalInfo),
+        'sessionStatus': _normalizePayload(sessionStatus),
+        'courses': courses.length,
+        'tasks': tasks.length,
+      };
       _recordActionResult(
         DemoActionResult(
           id: 'auth.login',
           title: '로그인 및 기본 데이터 로딩',
           success: true,
           summary: '로그인 성공, 기본 데이터 로딩 완료',
-          payloadPreview: _toPrettyPreview(<String, Object?>{
-            'profile': _normalizePayload(profile),
-            'personalInfo': _normalizePayload(personalInfo),
-            'sessionStatus': _normalizePayload(sessionStatus),
-            'courses': courses.length,
-            'tasks': tasks.length,
-          }),
+          payload: payload,
+          payloadPreview: _toPrettyPreviewFromNormalized(payload),
           executedAt: DateTime.now(),
           elapsed: Duration.zero,
         ),
@@ -555,6 +559,7 @@ class KlasflowDemoController extends ChangeNotifier {
 
     try {
       final payload = await action();
+      final normalizedPayload = _normalizePayload(payload);
       stopwatch.stop();
       _recordActionResult(
         DemoActionResult(
@@ -562,7 +567,8 @@ class KlasflowDemoController extends ChangeNotifier {
           title: title,
           success: true,
           summary: '요청 성공',
-          payloadPreview: _toPrettyPreview(payload),
+          payload: normalizedPayload,
+          payloadPreview: _toPrettyPreviewFromNormalized(normalizedPayload),
           executedAt: startedAt,
           elapsed: stopwatch.elapsed,
         ),
@@ -577,6 +583,7 @@ class KlasflowDemoController extends ChangeNotifier {
           title: title,
           success: false,
           summary: message,
+          payload: null,
           payloadPreview: '',
           executedAt: startedAt,
           elapsed: stopwatch.elapsed,
@@ -592,6 +599,7 @@ class KlasflowDemoController extends ChangeNotifier {
           title: title,
           success: false,
           summary: message,
+          payload: null,
           payloadPreview: '',
           executedAt: startedAt,
           elapsed: stopwatch.elapsed,
@@ -607,6 +615,7 @@ class KlasflowDemoController extends ChangeNotifier {
           title: title,
           success: false,
           summary: '$message\n$error',
+          payload: null,
           payloadPreview: '',
           executedAt: startedAt,
           elapsed: stopwatch.elapsed,
@@ -765,8 +774,7 @@ class KlasflowDemoController extends ChangeNotifier {
     return value.toString();
   }
 
-  String _toPrettyPreview(Object? value) {
-    final normalized = _normalizePayload(value);
+  String _toPrettyPreviewFromNormalized(Object? normalized) {
     if (normalized == null) {
       return '(no data)';
     }

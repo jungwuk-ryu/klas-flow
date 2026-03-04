@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'action_result_visual_content.dart';
 import '../klasflow_demo_controller.dart';
 
-/// 기능 실행 결과 로그를 카드 형태로 보여준다.
+/// 기능 실행 결과를 카드 형태로 보여준다.
 ///
-/// 결과 본문(payloadPreview)은 길 수 있으므로 ExpansionTile 내부에 넣어서
-/// 필요할 때만 열어보도록 구성한다.
+/// 기본 화면에서는 JSON 문자열 대신 "의미 있는 UI"를 우선 노출하고,
+/// 필요할 때만 원본 JSON을 열어볼 수 있게 구성한다.
 class ActionResultsCard extends StatelessWidget {
   final List<DemoActionResult> results;
 
@@ -60,25 +61,39 @@ class ActionResultsCard extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                            if (result.success) ...<Widget>[
+                              const SizedBox(height: 10),
+                              ActionResultVisualContent(result: result),
+                            ],
                             if (result.payloadPreview.isNotEmpty) ...<Widget>[
                               const SizedBox(height: 8),
-                              DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(8),
+                              ExpansionTile(
+                                tilePadding: EdgeInsets.zero,
+                                childrenPadding: EdgeInsets.zero,
+                                title: const Text(
+                                  '원본 JSON 보기',
+                                  style: TextStyle(fontSize: 13),
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: SelectableText(
-                                    result.payloadPreview,
-                                    style: const TextStyle(
-                                      fontFamily: 'monospace',
-                                      fontSize: 12,
+                                children: <Widget>[
+                                  DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(10),
+                                      child: SelectableText(
+                                        result.payloadPreview,
+                                        style: const TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ],
