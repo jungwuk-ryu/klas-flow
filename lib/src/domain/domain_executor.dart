@@ -6,6 +6,7 @@ import '../auth/session_coordinator.dart';
 import '../context/context_manager.dart';
 import '../models/course_context.dart';
 import '../models/file_payload.dart';
+import '../models/high_level_models.dart';
 import '../models/html_page.dart';
 import '../models/session_info.dart';
 
@@ -35,6 +36,33 @@ final class KlasDomainExecutor {
   Future<SessionInfo> fetchSessionInfo() {
     return _sessionCoordinator.withAutoRenewal(
       () => _sessionApi.fetchSessionInfo(),
+    );
+  }
+
+  /// 세션 정보를 기반으로 사용자 프로필을 조회한다.
+  ///
+  /// `/api/v1/session/info`에 사용자 식별자가 없는 배포를 대비해
+  /// 읽기 전용 API 몇 개를 순차적으로 조회하여 userId/userName을 보완한다.
+  Future<KlasUserProfile> fetchUserProfile() async {
+    final session = await fetchSessionInfo();
+    var userId = session.userId;
+    var userName = session.userName;
+
+    final raw = <String, dynamic>{'sessionInfo': session.raw};
+    if (userId == null || userName == null) {
+      final fallback = await _fetchIdentityFallback();
+      if (fallback.rawBySource.isNotEmpty) {
+        raw['identityFallback'] = fallback.rawBySource;
+      }
+      userId ??= fallback.userId;
+      userName ??= fallback.userName;
+    }
+
+    return KlasUserProfile(
+      authenticated: session.authenticated,
+      userId: userId,
+      userName: userName,
+      raw: raw,
     );
   }
 
@@ -208,4 +236,132 @@ final class KlasDomainExecutor {
       'selectChangeYn': context.selectChangeYn,
     };
   }
+
+  Future<_IdentityFallback> _fetchIdentityFallback() async {
+    String? userId;
+    String? userName;
+    final rawBySource = <String, Map<String, dynamic>>{};
+
+    for (final endpointId in _identityFallbackEndpointIds) {
+      if (userId != null && userName != null) {
+        break;
+      }
+
+      try {
+        final raw = await callObject(endpointId, includeContext: false);
+        rawBySource[endpointId] = raw;
+        userId ??= _findStringByKeys(raw, _userIdFieldCandidates);
+        userName ??= _findStringByKeys(raw, _userNameFieldCandidates);
+      } catch (_) {
+        // Fallback probe 실패는 로그인 실패로 취급하지 않는다.
+      }
+    }
+
+    return _IdentityFallback(
+      userId: userId,
+      userName: userName,
+      rawBySource: rawBySource,
+    );
+  }
 }
+
+final class _IdentityFallback {
+  final String? userId;
+  final String? userName;
+  final Map<String, Map<String, dynamic>> rawBySource;
+
+  const _IdentityFallback({
+    required this.userId,
+    required this.userName,
+    required this.rawBySource,
+  });
+}
+
+String? _findStringByKeys(Map<String, dynamic> source, List<String> keys) {
+  final normalizedKeys = keys.map(_normalizeFieldKey).toSet();
+  final queue = <Object?>[source];
+
+  for (var index = 0; index < queue.length; index++) {
+    final current = queue[index];
+    if (current is Map) {
+      String? matched;
+      current.forEach((Object? key, Object? value) {
+        if (value is Map || value is List) {
+          queue.add(value);
+        }
+
+        final keyText = key?.toString();
+        if (keyText == null) {
+          return;
+        }
+
+        if (!normalizedKeys.contains(_normalizeFieldKey(keyText))) {
+          return;
+        }
+
+        final text = _toNonEmptyString(value);
+        if (text != null) {
+          matched = text;
+        }
+      });
+
+      if (matched != null) {
+        return matched;
+      }
+    } else if (current is List) {
+      queue.addAll(current);
+    }
+  }
+
+  return null;
+}
+
+String? _toNonEmptyString(Object? value) {
+  if (value is String) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+  if (value is num) {
+    return value.toString();
+  }
+  return null;
+}
+
+String _normalizeFieldKey(String key) {
+  return key.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toLowerCase();
+}
+
+const List<String> _identityFallbackEndpointIds = <String>[
+  'frame.stdHome',
+  'academic.atnlcScreHakjukInfo',
+  'studentRecord.tmpabssklGetHakjuk',
+];
+
+const List<String> _userIdFieldCandidates = <String>[
+  'userId',
+  'studentNo',
+  'stdNo',
+  'stdntNo',
+  'hakbun',
+  'hakbeon',
+  'loginId',
+  'memberId',
+  'memberNo',
+  'mberNo',
+  'studentId',
+  'stdId',
+  'usrId',
+];
+
+const List<String> _userNameFieldCandidates = <String>[
+  'userName',
+  'userNm',
+  'stdNm',
+  'studentName',
+  'memberName',
+  'mberNm',
+  'korName',
+  'korNm',
+  'name',
+  'nm',
+];

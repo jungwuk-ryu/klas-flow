@@ -110,8 +110,7 @@ final class KlasClient {
   /// 로그인 오케스트레이션을 실행하고 사용자 객체를 반환합니다.
   Future<KlasUser> login(String id, String password) async {
     await _sessionCoordinator.login(id, password);
-    final session = await _domainExecutor.fetchSessionInfo();
-    final profile = KlasUserProfile.fromSessionInfo(session);
+    final profile = await _domainExecutor.fetchUserProfile();
     final user = KlasUser(executor: _domainExecutor, profile: profile);
     _currentUser = user;
     return user;

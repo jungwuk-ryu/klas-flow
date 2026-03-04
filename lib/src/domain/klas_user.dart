@@ -42,8 +42,7 @@ final class KlasUser {
     if (!refresh) {
       return _profile;
     }
-    final session = await _executor.fetchSessionInfo();
-    _profile = KlasUserProfile.fromSessionInfo(session);
+    _profile = await _executor.fetchUserProfile();
     return _profile;
   }
 
