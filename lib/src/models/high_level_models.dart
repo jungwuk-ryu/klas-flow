@@ -450,6 +450,60 @@ final class KlasAnytimeQuiz {
   String get displayTitle => title ?? '(제목 없음)';
 }
 
+/// 토론 항목입니다.
+final class KlasDiscussionTopic {
+  final String? discussionId;
+  final String? title;
+  final String? startAt;
+  final String? endAt;
+  final String? status;
+  final Map<String, dynamic> raw;
+
+  const KlasDiscussionTopic({
+    required this.raw,
+    this.discussionId,
+    this.title,
+    this.startAt,
+    this.endAt,
+    this.status,
+  });
+
+  factory KlasDiscussionTopic.fromJson(Map<String, dynamic> json) {
+    return KlasDiscussionTopic(
+      raw: json,
+      discussionId: _readNormalizedString(json, const <String>[
+        'dscsnNo',
+        'discussionId',
+        'id',
+      ]),
+      title: _readNormalizedString(json, const <String>[
+        'dscsnTitle',
+        'discussionTitle',
+        'title',
+        'name',
+      ]),
+      startAt: _readNormalizedString(json, const <String>[
+        'startDate',
+        'startdate',
+        'openDate',
+      ]),
+      endAt: _readNormalizedString(json, const <String>[
+        'endDate',
+        'expireDate',
+        'expiredate',
+      ]),
+      status: _readNormalizedString(json, const <String>[
+        'status',
+        'state',
+        'submitYn',
+        'submityn',
+      ]),
+    );
+  }
+
+  String get displayTitle => title ?? '(제목 없음)';
+}
+
 /// 학기 시간표의 단일 수업 항목입니다.
 final class KlasTimetableEntry {
   final String? subjectName;

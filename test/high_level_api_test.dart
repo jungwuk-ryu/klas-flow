@@ -300,6 +300,72 @@ void main() {
       expect(rows.first.displayTitle, equals('1차 퀴즈'));
     });
 
+    test('learning discussions are mapped to typed model', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/lis/evltn/DscsnStdList.do':
+            return _jsonResponse([
+              {
+                'dscsnNo': 'D1',
+                'dscsnTitle': '객체지향 토론',
+                'startDate': '2026-03-15 00:00:00',
+                'endDate': '2026-03-22 23:59:59',
+                'status': '참여중',
+              },
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final course = (await user.defaultCourse())!;
+      final rows = await course.learning.listDiscussionItems(page: 0);
+
+      expect(rows, hasLength(1));
+      expect(rows.first.discussionId, equals('D1'));
+      expect(rows.first.displayTitle, equals('객체지향 토론'));
+      expect(rows.first.status, equals('참여중'));
+    });
+
     test('enrollment timetable is exposed as high-level typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {

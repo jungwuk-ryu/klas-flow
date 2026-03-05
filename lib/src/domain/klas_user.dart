@@ -289,6 +289,17 @@ final class KlasLearningFeature extends _CourseFeatureBase {
     return array('learning.dscsnStdList', payload: withPage(page, query));
   }
 
+  /// 토론 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasDiscussionTopic>> listDiscussionItems({
+    int page = 0,
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listDiscussions(page: page, query: query);
+    return List<KlasDiscussionTopic>.unmodifiable(
+      rows.map((row) => KlasDiscussionTopic.fromJson(row.raw)),
+    );
+  }
+
   Future<KlasRecord> homeInfo({Map<String, dynamic>? query}) {
     return object('learning.lctrumHomeStdInfo', payload: query);
   }
