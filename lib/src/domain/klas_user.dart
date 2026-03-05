@@ -271,6 +271,17 @@ final class KlasLearningFeature extends _CourseFeatureBase {
     return array('learning.anytmQuizStdList', payload: withPage(page, query));
   }
 
+  /// 수시퀴즈 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasAnytimeQuiz>> listAnytimeQuizItems({
+    int page = 0,
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listAnytimeQuizzes(page: page, query: query);
+    return List<KlasAnytimeQuiz>.unmodifiable(
+      rows.map((row) => KlasAnytimeQuiz.fromJson(row.raw)),
+    );
+  }
+
   Future<List<KlasRecord>> listDiscussions({
     int page = 0,
     Map<String, dynamic>? query,
