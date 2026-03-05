@@ -101,17 +101,14 @@ print('상세 keys: ${detail.board?.raw.keys.toList()}');
 
 ```dart
 final post = notices.posts.firstWhere((p) => (p.fileCount ?? 0) > 0);
-final attachId = post.raw['atchFileId']?.toString();
+final attachId = post.attachId;
 if (attachId == null || attachId.isEmpty) return;
 
 final files = await user.files.listByAttachId(attachId: attachId);
 if (files.isEmpty) return;
 
 final file = files.first;
-final payload = await user.files.download(
-  attachId: file.attachId ?? attachId,
-  fileSn: file.fileSn ?? '1',
-);
+final payload = await file.download();
 
 print('다운로드 파일명: ${file.fileName}');
 print('바이트 수: ${payload.bytes.length}');
@@ -155,10 +152,12 @@ print('health passed=${report.allPassed} failed=${report.failedCount}');
 - `KlasCourse.listTasks(...)`
 - `KlasCourse.noticeBoard.listPosts(...)`
 - `KlasCourse.noticeBoard.getPost(...)`
+- `KlasBoardPostSummary.getPost(...)`
 - `KlasCourse.materialBoard.*`
 - `KlasCourse.learning.*`
 - `KlasFileFeature.listByAttachId(...)`
 - `KlasFileFeature.download(...)`
+- `KlasAttachedFile.download(...)`
 - `KlasClient.startSessionHeartbeat(...)`
 - `KlasClient.runHealthCheck(...)`
 

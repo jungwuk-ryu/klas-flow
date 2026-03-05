@@ -217,6 +217,7 @@ void main() {
                   'title': '중간고사 공지',
                   'userNm': '김교수',
                   'registDt': '2024-06-20T13:30:20.000+00:00',
+                  'atchFileId': 'attach-123',
                   'fileCnt': 1,
                 },
               ],
@@ -245,7 +246,79 @@ void main() {
       expect(board.posts, hasLength(1));
       expect(board.posts.first.boardNo, equals(123));
       expect(board.posts.first.title, equals('중간고사 공지'));
+      expect(board.posts.first.attachId, equals('attach-123'));
+      expect(board.posts.first.hasAttachments, isTrue);
       expect(board.page?.totalPages, equals(2));
+    });
+
+    test('attached file can download itself after listByAttachId', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true, 'userId': 'u1'});
+          case '/common/file/UploadFileList.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            expect(body['attachId'] ?? body['atchFileId'], equals('attach-1'));
+            return _jsonResponse([
+              {'fileSn': '1', 'orignlFileNm': 'demo.pdf'},
+            ]);
+          case '/common/file/DownloadFile/attach-1/1':
+            return http.Response.bytes(
+              <int>[1, 2, 3],
+              200,
+              headers: {
+                'content-type': 'application/octet-stream',
+                'content-disposition': 'attachment; filename=\"demo.pdf\"',
+              },
+            );
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final files = await user.files.listByAttachId(attachId: 'attach-1');
+      expect(files, hasLength(1));
+      expect(files.first.attachId, isNull);
+
+      final payload = await files.first.download();
+      expect(payload.bytes, equals(<int>[1, 2, 3]));
     });
 
     test('post summary can load detail directly with auto searchMasterNo', () async {

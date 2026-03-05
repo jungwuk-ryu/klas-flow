@@ -1,3 +1,4 @@
+import 'file_payload.dart';
 import 'session_info.dart';
 
 /// 확장 가능한 고수준 레코드 객체입니다.
@@ -283,6 +284,12 @@ typedef KlasBoardPostDetailResolver =
       Map<String, dynamic>? query,
     });
 
+typedef KlasAttachedFileDownloadResolver =
+    Future<FilePayload> Function({
+      required String attachId,
+      required String fileSn,
+    });
+
 /// 게시글 목록 요약 항목입니다.
 final class KlasBoardPostSummary {
   final int? boardNo;
@@ -290,6 +297,7 @@ final class KlasBoardPostSummary {
   final String? title;
   final String? authorName;
   final String? registeredAt;
+  final String? attachId;
   final int? fileCount;
   final Map<String, dynamic> raw;
   final KlasBoardPostDetailResolver? _detailResolver;
@@ -301,6 +309,7 @@ final class KlasBoardPostSummary {
     this.title,
     this.authorName,
     this.registeredAt,
+    this.attachId,
     this.fileCount,
     KlasBoardPostDetailResolver? detailResolver,
   }) : _detailResolver = detailResolver;
@@ -334,6 +343,9 @@ final class KlasBoardPostSummary {
     );
   }
 
+  /// 첨부파일 존재 여부입니다.
+  bool get hasAttachments => (fileCount ?? 0) > 0 || attachId != null;
+
   factory KlasBoardPostSummary.fromJson(
     Map<String, dynamic> json, {
     KlasBoardPostDetailResolver? detailResolver,
@@ -345,6 +357,9 @@ final class KlasBoardPostSummary {
       title: _toString(json['title']),
       authorName: _toString(json['userNm']),
       registeredAt: _toString(json['registDt']),
+      attachId: _toString(
+        json['atchFileId'] ?? json['attachId'] ?? json['fileGroupId'],
+      ),
       fileCount: _toInt(json['fileCnt']),
       detailResolver: detailResolver,
     );
@@ -446,6 +461,8 @@ final class KlasAttachedFile {
   final String? fileName;
   final int? size;
   final Map<String, dynamic> raw;
+  final KlasAttachedFileDownloadResolver? _downloadResolver;
+  final String? _defaultAttachId;
 
   const KlasAttachedFile({
     required this.raw,
@@ -453,9 +470,40 @@ final class KlasAttachedFile {
     this.fileSn,
     this.fileName,
     this.size,
-  });
+    KlasAttachedFileDownloadResolver? downloadResolver,
+    String? defaultAttachId,
+  }) : _downloadResolver = downloadResolver,
+       _defaultAttachId = defaultAttachId;
 
-  factory KlasAttachedFile.fromJson(Map<String, dynamic> json) {
+  /// 파일 객체에서 바로 다운로드를 수행합니다.
+  Future<FilePayload> download({String? attachId}) {
+    final resolvedAttachId = (this.attachId ?? attachId ?? _defaultAttachId)
+        ?.trim();
+    if (resolvedAttachId == null || resolvedAttachId.isEmpty) {
+      throw StateError('Cannot download file because attachId is missing.');
+    }
+
+    final resolvedFileSn = fileSn?.trim();
+    if (resolvedFileSn == null || resolvedFileSn.isEmpty) {
+      throw StateError('Cannot download file because fileSn is missing.');
+    }
+
+    final resolver = _downloadResolver;
+    if (resolver == null) {
+      throw StateError(
+        'This attached file is not bound to a file feature. '
+        'Load it via KlasFileFeature.listByAttachId().',
+      );
+    }
+
+    return resolver(attachId: resolvedAttachId, fileSn: resolvedFileSn);
+  }
+
+  factory KlasAttachedFile.fromJson(
+    Map<String, dynamic> json, {
+    KlasAttachedFileDownloadResolver? downloadResolver,
+    String? defaultAttachId,
+  }) {
     return KlasAttachedFile(
       raw: json,
       attachId: _toString(
@@ -470,6 +518,8 @@ final class KlasAttachedFile {
             json['fileNm'],
       ),
       size: _toInt(json['fileMg'] ?? json['fileSize']),
+      downloadResolver: downloadResolver,
+      defaultAttachId: defaultAttachId,
     );
   }
 }

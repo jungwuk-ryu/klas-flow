@@ -735,7 +735,16 @@ final class KlasFileFeature extends _UserFeatureBase {
         final rows = await array('file.uploadFileList', payload: payload);
         hadSuccessfulCall = true;
         final files = rows
-            .map((record) => KlasAttachedFile.fromJson(record.raw))
+            .map(
+              (record) => KlasAttachedFile.fromJson(
+                record.raw,
+                defaultAttachId: resolvedAttachId,
+                downloadResolver:
+                    ({required String attachId, required String fileSn}) {
+                      return download(attachId: attachId, fileSn: fileSn);
+                    },
+              ),
+            )
             .toList(growable: false);
         if (files.isNotEmpty) {
           return files;

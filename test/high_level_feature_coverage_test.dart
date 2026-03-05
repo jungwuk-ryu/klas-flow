@@ -264,10 +264,7 @@ void main() {
           attachId: 'attach-1',
         );
         expect(attachedFiles, hasLength(1));
-        final downloaded = await user.files.download(
-          attachId: 'attach-1',
-          fileSn: '1',
-        );
+        final downloaded = await attachedFiles.first.download();
         expect(downloaded.bytes, isNotEmpty);
 
         final expectedPaths = KlasEndpointCatalog.byId.values
