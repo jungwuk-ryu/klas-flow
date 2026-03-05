@@ -545,6 +545,16 @@ final class KlasSurveyFeature extends _CourseFeatureBase {
   Future<List<KlasRecord>> list({Map<String, dynamic>? query}) {
     return array('boardSurvey.qustnrStdList', payload: query);
   }
+
+  /// 설문 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasSurveyEntry>> listSurveyItems({
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await list(query: query);
+    return List<KlasSurveyEntry>.unmodifiable(
+      rows.map((row) => KlasSurveyEntry.fromJson(row.raw)),
+    );
+  }
 }
 
 /// eClass feature입니다.
