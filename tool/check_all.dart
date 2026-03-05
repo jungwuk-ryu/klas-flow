@@ -11,7 +11,7 @@ Future<void> main(List<String> args) async {
   final blockedArgs = args.where((arg) => arg.startsWith('--block=')).toList();
 
   final steps = <_Step>[
-    const _Step('Install dependencies', ['dart', 'pub', 'get']),
+    const _Step('Install dependencies', ['dart', 'pub', 'get', '--no-example']),
     const _Step('Analyze', ['dart', 'analyze']),
     const _Step('Test', ['dart', 'test']),
     _Step('Prepublish check', [
