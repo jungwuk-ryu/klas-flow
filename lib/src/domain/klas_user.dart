@@ -323,6 +323,17 @@ final class KlasLearningFeature extends _CourseFeatureBase {
     return array('learning.onlineTestStdList', payload: withPage(page, query));
   }
 
+  /// 온라인 시험 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasOnlineTest>> listOnlineTestItems({
+    int page = 0,
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await onlineTests(page: page, query: query);
+    return List<KlasOnlineTest>.unmodifiable(
+      rows.map((row) => KlasOnlineTest.fromJson(row.raw)),
+    );
+  }
+
   Future<List<KlasRecord>> onlineContents({
     int page = 0,
     Map<String, dynamic>? query,

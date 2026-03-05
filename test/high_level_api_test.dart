@@ -169,6 +169,72 @@ void main() {
       expect(rows.first.status, equals('완료'));
     });
 
+    test('learning online tests are mapped to typed model', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/lis/evltn/OnlineTestStdList.do':
+            return _jsonResponse([
+              {
+                'testNo': 8,
+                'testTitle': '중간고사',
+                'startDate': '2026-04-10 10:00:00',
+                'endDate': '2026-04-10 10:50:00',
+                'status': '응시전',
+              },
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final course = (await user.defaultCourse())!;
+      final rows = await course.learning.listOnlineTestItems(page: 0);
+
+      expect(rows, hasLength(1));
+      expect(rows.first.testId, equals('8'));
+      expect(rows.first.displayTitle, equals('중간고사'));
+      expect(rows.first.status, equals('응시전'));
+    });
+
     test('enrollment timetable is exposed as high-level typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
