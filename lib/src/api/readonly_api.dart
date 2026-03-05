@@ -150,6 +150,14 @@ final class KlasEndpointCatalog {
       requestEncoding: KlasEndpointRequestEncoding.json,
       includeContextByDefault: true,
     ),
+    'learning.taskStdView': KlasEndpointSpec(
+      id: 'learning.taskStdView',
+      method: KlasEndpointMethod.post,
+      path: '/std/lis/evltn/TaskStdView.do',
+      responseType: KlasEndpointResponseType.jsonObject,
+      requestEncoding: KlasEndpointRequestEncoding.json,
+      includeContextByDefault: true,
+    ),
     'boardSurvey.boardStdList_6972896b': KlasEndpointSpec(
       id: 'boardSurvey.boardStdList_6972896b',
       method: KlasEndpointMethod.post,

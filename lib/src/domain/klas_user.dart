@@ -330,6 +330,32 @@ final class KlasLearningFeature extends _CourseFeatureBase {
     return array('learning.lrnSttusStdTaskList', payload: query);
   }
 
+  /// 과제 상세 정보를 조회합니다.
+  Future<KlasTaskDetail> getTaskDetail({
+    required int ordseq,
+    int? seq,
+    Map<String, dynamic>? query,
+  }) async {
+    final payload = <String, dynamic>{
+      'pageInit': true,
+      'rpt': const <Object>[],
+      'smt': const <Object>[],
+      'selectChangeYn': context.selectChangeYn,
+      'ordseq': ordseq.toString(),
+      'seq': seq,
+      'contents': '',
+      'selectYearhakgi': context.selectYearhakgi,
+      'selectSubj': context.selectSubj,
+      if (query != null) ...query,
+    };
+    final raw = await executor.callCourseObject(
+      'learning.taskStdView',
+      context: context,
+      payload: payload,
+    );
+    return KlasTaskDetail.fromJson(raw);
+  }
+
   Future<List<KlasRecord>> teamProjects({Map<String, dynamic>? query}) {
     return array('learning.lrnSttusStdTeamPrjctList', payload: query);
   }

@@ -4,6 +4,7 @@ import 'package:klasflow/klasflow.dart';
 import 'app_session.dart';
 import 'klas_app_utils.dart';
 import 'klas_post_detail_page.dart';
+import 'klas_task_detail_page.dart';
 
 /// 단일 강의 상세 화면.
 ///
@@ -238,7 +239,20 @@ class _KlasCoursePageState extends State<KlasCoursePage> {
                             );
                           },
                         ),
-                        _TaskTab(tasks: _tasks),
+                        _TaskTab(
+                          tasks: _tasks,
+                          onTaskTap: (task) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<KlasTaskDetailPage>(
+                                builder: (_) => KlasTaskDetailPage(
+                                  session: widget.session,
+                                  course: widget.course,
+                                  task: task,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                         _LearningTab(
                           onlineContents: _onlineContents,
                           onlineTests: _onlineTests,
@@ -368,8 +382,9 @@ class _BoardTab extends StatelessWidget {
 
 class _TaskTab extends StatelessWidget {
   final List<KlasTask> tasks;
+  final void Function(KlasTask task) onTaskTap;
 
-  const _TaskTab({required this.tasks});
+  const _TaskTab({required this.tasks, required this.onTaskTap});
 
   @override
   Widget build(BuildContext context) {
@@ -393,7 +408,15 @@ class _TaskTab extends StatelessWidget {
           subtitle: Text(
             '시작 ${task.startDate ?? '-'} · 마감 ${task.expireDate ?? '-'}',
           ),
-          trailing: Text(task.submitted == true ? '제출완료' : '미제출'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(task.submitted == true ? '제출완료' : '미제출'),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+          onTap: () => onTaskTap(task),
         );
       },
     );

@@ -29,6 +29,7 @@ void main() {
           '/std/lis/evltn/OnlineTestStdList.do',
           '/std/lis/evltn/SelectOnlineCntntsStdList.do',
           '/std/lis/evltn/TaskStdList.do',
+          '/std/lis/evltn/TaskStdView.do',
           '/std/lis/sport/6972896bfe72408eb72926780e85d041/BoardStdList.do',
           '/std/lis/sport/6972896bfe72408eb72926780e85d041/BoardStdView.do',
           '/std/lis/sport/d052b8f845784c639f036b102fdc3023/BoardStdList.do',
@@ -211,6 +212,7 @@ void main() {
         await course.learning.testAndQuizStatus();
         await course.learning.onlineTests(page: 0);
         await course.learning.onlineContents(page: 0);
+        await course.learning.getTaskDetail(ordseq: 1);
 
         await course.noticeBoard.listPosts(page: 0);
         await course.noticeBoard.getPost(boardNo: 1);

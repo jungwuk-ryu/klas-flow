@@ -277,6 +277,67 @@ final class KlasTask {
   }
 }
 
+/// 과제 상세 정보입니다.
+final class KlasTaskDetail {
+  final KlasRecord? report;
+  final KlasRecord? submission;
+  final Map<String, dynamic> raw;
+
+  const KlasTaskDetail({required this.raw, this.report, this.submission});
+
+  factory KlasTaskDetail.fromJson(Map<String, dynamic> json) {
+    final reportMap = _firstMapByKeys(json, const <String>[
+      'rpt',
+      'report',
+      'task',
+      'taskInfo',
+    ]);
+    final submissionMap = _firstMapByKeys(json, const <String>[
+      'smt',
+      'submit',
+      'submission',
+      'submitInfo',
+    ]);
+
+    return KlasTaskDetail(
+      raw: json,
+      report: reportMap == null ? null : KlasRecord(reportMap),
+      submission: submissionMap == null ? null : KlasRecord(submissionMap),
+    );
+  }
+
+  String? get reportTitle => report?.string('title');
+  String? get reportHtml => report?.string('contents');
+  String? get reportStartDate => report?.string('startdate');
+  String? get reportExpireDate => report?.string('expiredate');
+  String? get submissionTitle => submission?.string('title');
+  String? get submissionText => submission?.string('contents');
+
+  String? get reportAttachId {
+    final raw = report?.raw;
+    if (raw == null) {
+      return null;
+    }
+    return _readNormalizedString(raw, const <String>[
+      'atchFileId',
+      'attachId',
+      'fileGroupId',
+    ]);
+  }
+
+  String? get submissionAttachId {
+    final raw = submission?.raw;
+    if (raw == null) {
+      return null;
+    }
+    return _readNormalizedString(raw, const <String>[
+      'atchFileId',
+      'attachId',
+      'fileGroupId',
+    ]);
+  }
+}
+
 /// 온라인 콘텐츠 항목입니다.
 final class KlasOnlineContent {
   final String? contentId;

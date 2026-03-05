@@ -103,6 +103,90 @@ void main() {
       },
     );
 
+    test(
+      'course.learning.getTaskDetail maps report/submission payload',
+      () async {
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자료구조 - 김교수',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true});
+            case '/std/lis/evltn/TaskStdView.do':
+              final body = jsonDecode(request.body) as Map<String, dynamic>;
+              expect(body['selectYearhakgi'], equals('20261'));
+              expect(body['selectSubj'], equals('CSE101'));
+              expect(body['selectChangeYn'], equals('Y'));
+              expect(body['ordseq'], equals('3'));
+              expect(body['pageInit'], isTrue);
+              return _jsonResponse({
+                'rpt': {
+                  'ordseq': 3,
+                  'title': '과제3',
+                  'startdate': '2024-06-25 00시00분',
+                  'expiredate': '2024-06-26 14시00분',
+                  'contents': '<p>과제 본문</p>',
+                  'atchFileId': 'attach-report',
+                },
+                'smt': {
+                  'seq': 1,
+                  'title': '과제 제출합니다',
+                  'contents': '제출 본문',
+                  'atchFileId': 'attach-submit',
+                },
+              });
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final course = (await user.defaultCourse())!;
+        final detail = await course.learning.getTaskDetail(ordseq: 3);
+
+        expect(detail.reportTitle, equals('과제3'));
+        expect(detail.reportHtml, contains('과제 본문'));
+        expect(detail.submissionTitle, equals('과제 제출합니다'));
+        expect(detail.submissionText, equals('제출 본문'));
+        expect(detail.reportAttachId, equals('attach-report'));
+        expect(detail.submissionAttachId, equals('attach-submit'));
+      },
+    );
+
     test('learning online contents are mapped to typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
