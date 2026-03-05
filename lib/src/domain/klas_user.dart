@@ -1,5 +1,6 @@
 import 'domain_executor.dart';
 import '../models/course_context.dart';
+import '../exceptions/klas_exceptions.dart';
 import '../models/file_payload.dart';
 import '../models/high_level_models.dart';
 
@@ -697,16 +698,54 @@ final class KlasFileFeature extends _UserFeatureBase {
     required String attachId,
     Map<String, dynamic>? query,
   }) async {
-    final rows = await array(
-      'file.uploadFileList',
-      payload: <String, dynamic>{
-        'atchFileId': attachId,
-        if (query != null) ...query,
+    final resolvedAttachId = attachId.trim();
+    final baseQuery = <String, dynamic>{if (query != null) ...query};
+    final storageIdRaw = baseQuery['storageId']?.toString().trim();
+    final storageId = (storageIdRaw == null || storageIdRaw.isEmpty)
+        ? 'CLS_BOARD'
+        : storageIdRaw;
+
+    final attempts = <Map<String, dynamic>>[
+      <String, dynamic>{
+        ...baseQuery,
+        'storageId': storageId,
+        'attachId': resolvedAttachId,
       },
-    );
-    return rows
-        .map((record) => KlasAttachedFile.fromJson(record.raw))
-        .toList(growable: false);
+      <String, dynamic>{...baseQuery, 'attachId': resolvedAttachId},
+      <String, dynamic>{...baseQuery, 'atchFileId': resolvedAttachId},
+    ];
+
+    KlasException? lastKlasError;
+    Object? lastError;
+    var hadSuccessfulCall = false;
+
+    for (final payload in attempts) {
+      try {
+        final rows = await array('file.uploadFileList', payload: payload);
+        hadSuccessfulCall = true;
+        final files = rows
+            .map((record) => KlasAttachedFile.fromJson(record.raw))
+            .toList(growable: false);
+        if (files.isNotEmpty) {
+          return files;
+        }
+      } on KlasException catch (error) {
+        lastKlasError = error;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (hadSuccessfulCall) {
+      return const <KlasAttachedFile>[];
+    }
+    if (lastKlasError != null) {
+      throw lastKlasError;
+    }
+    if (lastError != null) {
+      throw lastError;
+    }
+    return const <KlasAttachedFile>[];
   }
 
   Future<FilePayload> download({

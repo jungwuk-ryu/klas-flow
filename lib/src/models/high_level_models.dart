@@ -413,7 +413,10 @@ final class KlasAttachedFile {
       ),
       fileSn: _toString(json['fileSn'] ?? json['sn']),
       fileName: _toString(
-        json['orignlFileNm'] ?? json['originFileNm'] ?? json['fileNm'],
+        json['fileName'] ??
+            json['orignlFileNm'] ??
+            json['originFileNm'] ??
+            json['fileNm'],
       ),
       size: _toInt(json['fileMg'] ?? json['fileSize']),
     );

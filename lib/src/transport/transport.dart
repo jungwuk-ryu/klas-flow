@@ -321,6 +321,10 @@ final class KlasTransport {
       return true;
     }
 
+    if (!_isLikelyTextResponse(response)) {
+      return false;
+    }
+
     final lowerBody = _decodeText(response).toLowerCase();
     return lowerBody.contains('session expired') ||
         lowerBody.contains('세션이 만료') ||
@@ -330,11 +334,20 @@ final class KlasTransport {
   }
 
   String _decodeText(http.Response response) {
-    try {
-      return utf8.decode(response.bodyBytes);
-    } catch (_) {
-      return response.body;
+    return utf8.decode(response.bodyBytes, allowMalformed: true);
+  }
+
+  bool _isLikelyTextResponse(http.Response response) {
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    if (contentType.isEmpty) {
+      return true;
     }
+    return contentType.contains('text/') ||
+        contentType.contains('json') ||
+        contentType.contains('xml') ||
+        contentType.contains('html') ||
+        contentType.contains('javascript') ||
+        contentType.contains('charset=');
   }
 
   Map<String, dynamic> _decodeJson(http.Response response) {

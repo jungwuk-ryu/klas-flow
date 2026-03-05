@@ -39,4 +39,20 @@ void main() {
       expect(detail.comments.first.raw['text'], equals('댓글2'));
     });
   });
+
+  group('KlasAttachedFile model', () {
+    test('parses fileName key used by modern UploadFileList response', () {
+      final file = KlasAttachedFile.fromJson(<String, dynamic>{
+        'attachId': 'attach-1',
+        'fileSn': '1',
+        'fileName': 'lecture-note.pdf',
+        'fileSize': 1200,
+      });
+
+      expect(file.attachId, equals('attach-1'));
+      expect(file.fileSn, equals('1'));
+      expect(file.fileName, equals('lecture-note.pdf'));
+      expect(file.size, equals(1200));
+    });
+  });
 }

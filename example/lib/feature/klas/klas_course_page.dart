@@ -477,19 +477,34 @@ class _LearningSection extends StatelessWidget {
                 final titleText =
                     _pickRecordText(row, const <String>[
                       'title',
+                      'sdesc',
+                      'sbjt',
+                      'moduletitle',
+                      'lessontitle',
                       'quizTitle',
                       'testTitle',
+                      'papernm',
                       'taskTitle',
                       'cntntsNm',
+                      'cntntNm',
+                      'dscsnTitle',
                       'discussionTitle',
+                      'examTitle',
+                      'examtypenm',
                       'name',
                     ]) ??
                     '(제목 없음)';
                 final statusText = _pickRecordText(row, const <String>[
                   'status',
                   'state',
+                  'submit',
                   'submitYn',
                   'submityn',
+                  'issubmit',
+                  'progress',
+                  'prog',
+                  'examtype',
+                  'examtypenm',
                   'completeYn',
                   'attendYn',
                 ]);

@@ -121,6 +121,15 @@ void main() {
                 'emailHost': 'example.com',
               });
             case '/common/file/UploadFileList.do':
+              final body = jsonDecode(request.body);
+              if (body is! Map) {
+                return http.Response('Bad Request', 400);
+              }
+              final payload = body.cast<String, dynamic>();
+              if (payload['attachId'] != 'attach-1' ||
+                  payload['storageId'] != 'CLS_BOARD') {
+                return http.Response('Server Error', 500);
+              }
               return _jsonResponse([
                 {
                   'atchFileId': 'attach-1',
@@ -131,7 +140,7 @@ void main() {
               ]);
             case '/common/file/DownloadFile/attach-1/1':
               return http.Response.bytes(
-                [9, 8, 7, 6],
+                [0xff, 0xd8, 0xff, 0x00],
                 200,
                 headers: {
                   'content-type': 'application/octet-stream',
