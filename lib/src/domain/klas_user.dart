@@ -650,6 +650,16 @@ final class KlasAcademicFeature extends _UserFeatureBase {
     return array('academic.atnlcScreSungjukInfo', payload: query);
   }
 
+  /// 성적 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasGradeEntry>> listGradeEntries({
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listGrades(query: query);
+    return List<KlasGradeEntry>.unmodifiable(
+      rows.map((row) => KlasGradeEntry.fromJson(row.raw)),
+    );
+  }
+
   Future<KlasRecord> gradeSummary({Map<String, dynamic>? query}) {
     return object('academic.atnlcScreSungjukTot', payload: query);
   }

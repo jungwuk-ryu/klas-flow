@@ -758,6 +758,61 @@ final class KlasMonthlyScheduleTableItem {
   String get displayTitle => title ?? '(제목 없음)';
 }
 
+/// 성적 조회 항목입니다.
+final class KlasGradeEntry {
+  final String? subjectName;
+  final String? grade;
+  final String? credit;
+  final String? professorName;
+  final String? termId;
+  final Map<String, dynamic> raw;
+
+  const KlasGradeEntry({
+    required this.raw,
+    this.subjectName,
+    this.grade,
+    this.credit,
+    this.professorName,
+    this.termId,
+  });
+
+  factory KlasGradeEntry.fromJson(Map<String, dynamic> json) {
+    return KlasGradeEntry(
+      raw: json,
+      subjectName: _readNormalizedString(json, const <String>[
+        'subjNm',
+        'subjectName',
+        'gwamokNm',
+        'courseName',
+      ]),
+      grade: _readNormalizedString(json, const <String>[
+        'grade',
+        'scoreGrade',
+        'sungjuk',
+        'grd',
+      ]),
+      credit: _readNormalizedString(json, const <String>[
+        'credit',
+        'hakjum',
+        'creditNo',
+        'point',
+      ]),
+      professorName: _readNormalizedString(json, const <String>[
+        'prfsrNm',
+        'professorName',
+        'teacherName',
+      ]),
+      termId: _readNormalizedString(json, const <String>[
+        'yearhakgi',
+        'termId',
+        'hakgi',
+      ]),
+    );
+  }
+
+  String get displaySubjectName => subjectName ?? '(과목명 없음)';
+}
+
 /// 학기 시간표의 단일 수업 항목입니다.
 final class KlasTimetableEntry {
   final String? subjectName;

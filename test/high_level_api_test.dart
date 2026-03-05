@@ -691,6 +691,73 @@ void main() {
       expect(rows.first.displayTitle, equals('중간고사'));
     });
 
+    test('academic grades are mapped to typed model', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/cps/inqire/AtnlcScreSungjukInfo.do':
+            return _jsonResponse([
+              {
+                'subjNm': '자료구조',
+                'grade': 'A+',
+                'credit': '3',
+                'prfsrNm': '김교수',
+                'yearhakgi': '20261',
+              },
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final rows = await user.academic.listGradeEntries();
+
+      expect(rows, hasLength(1));
+      expect(rows.first.displaySubjectName, equals('자료구조'));
+      expect(rows.first.grade, equals('A+'));
+      expect(rows.first.credit, equals('3'));
+      expect(rows.first.professorName, equals('김교수'));
+      expect(rows.first.termId, equals('20261'));
+    });
+
     test('enrollment timetable is exposed as high-level typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {
