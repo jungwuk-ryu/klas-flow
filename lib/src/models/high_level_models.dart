@@ -710,6 +710,54 @@ final class KlasMonthlyScheduleItem {
   String get displayTitle => title ?? '(제목 없음)';
 }
 
+/// 월간 일정 테이블 항목입니다.
+final class KlasMonthlyScheduleTableItem {
+  final String? dayOfMonth;
+  final String? weekday;
+  final String? title;
+  final String? status;
+  final Map<String, dynamic> raw;
+
+  const KlasMonthlyScheduleTableItem({
+    required this.raw,
+    this.dayOfMonth,
+    this.weekday,
+    this.title,
+    this.status,
+  });
+
+  factory KlasMonthlyScheduleTableItem.fromJson(Map<String, dynamic> json) {
+    return KlasMonthlyScheduleTableItem(
+      raw: json,
+      dayOfMonth: _readNormalizedString(json, const <String>[
+        'day',
+        'dayNo',
+        'dayOfMonth',
+      ]),
+      weekday: _readNormalizedString(json, const <String>[
+        'weekday',
+        'dayNm',
+        'yoil',
+        'yoilNm',
+      ]),
+      title: _readNormalizedString(json, const <String>[
+        'title',
+        'schdulTitle',
+        'subjectName',
+        'subjNm',
+        'name',
+      ]),
+      status: _readNormalizedString(json, const <String>[
+        'status',
+        'state',
+        'attendStatus',
+      ]),
+    );
+  }
+
+  String get displayTitle => title ?? '(제목 없음)';
+}
+
 /// 학기 시간표의 단일 수업 항목입니다.
 final class KlasTimetableEntry {
   final String? subjectName;
