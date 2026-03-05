@@ -563,6 +563,70 @@ void main() {
       expect(rows.first.termId, equals('20261'));
     });
 
+    test('attendance month list is mapped to typed model', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/ads/admst/MySchdulMonthList.do':
+            return _jsonResponse([
+              {
+                'schdulNo': 'M1',
+                'schdulTitle': '중간고사',
+                'schdulDate': '2026-04-20',
+                'status': '예정',
+              },
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final rows = await user.attendance.listMonthlySchedules();
+
+      expect(rows, hasLength(1));
+      expect(rows.first.scheduleId, equals('M1'));
+      expect(rows.first.displayTitle, equals('중간고사'));
+      expect(rows.first.date, equals('2026-04-20'));
+    });
+
     test('enrollment timetable is exposed as high-level typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {

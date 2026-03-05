@@ -778,6 +778,16 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     return array('attendance.mySchdulMonthList', payload: query);
   }
 
+  /// 월간 일정 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasMonthlyScheduleItem>> listMonthlySchedules({
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await monthList(query: query);
+    return List<KlasMonthlyScheduleItem>.unmodifiable(
+      rows.map((row) => KlasMonthlyScheduleItem.fromJson(row.raw)),
+    );
+  }
+
   Future<List<KlasRecord>> monthTable({Map<String, dynamic>? query}) {
     return array('attendance.mySchdulMonthTableList', payload: query);
   }
