@@ -291,7 +291,12 @@ class _CourseHeader extends StatelessWidget {
             runSpacing: 8,
             children: <Widget>[
               _MetricChip(label: '학기', value: termId),
-              _MetricChip(label: '담당 교수', value: professorName ?? '-'),
+              _MetricChip(
+                label: '담당 교수',
+                value: (professorName?.trim().isNotEmpty == true)
+                    ? professorName!.trim()
+                    : '미지정',
+              ),
               if (scheduleText != null && scheduleText!.trim().isNotEmpty)
                 _MetricChip(
                   label: '시간표',

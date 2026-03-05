@@ -169,6 +169,62 @@ void main() {
       expect(rows.first.status, equals('완료'));
     });
 
+    test(
+      'course label trailing dash is trimmed and professor becomes null',
+      () async {
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'JAVA101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자바프로그래밍 (0000-2-3679-01) -',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true});
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final course = await user.defaultCourse();
+        expect(course, isNotNull);
+        expect(course!.title, equals('자바프로그래밍 (0000-2-3679-01)'));
+        expect(course.professorName, isNull);
+      },
+    );
+
     test('learning online tests are mapped to typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {

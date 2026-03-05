@@ -946,12 +946,25 @@ Map<String, dynamic> _recordMap(Object? value) {
     return (null, null);
   }
 
-  final separator = trimmed.lastIndexOf(' - ');
-  if (separator == -1) {
-    return (trimmed, null);
+  // 일반 케이스: "과목명 - 교수명"
+  final withProfessor = RegExp(r'^(.*?)\s+-\s+(.+)$').firstMatch(trimmed);
+  if (withProfessor != null) {
+    final title = withProfessor.group(1)?.trim();
+    final professor = withProfessor.group(2)?.trim();
+    return (
+      title == null || title.isEmpty ? null : title,
+      professor == null || professor.isEmpty || professor == '-'
+          ? null
+          : professor,
+    );
   }
 
-  final title = trimmed.substring(0, separator).trim();
-  final professor = trimmed.substring(separator + 3).trim();
-  return (title.isEmpty ? null : title, professor.isEmpty ? null : professor);
+  // 교수명이 비어있는 케이스: "과목명 -"
+  final trailingDash = RegExp(r'^(.*?)\s+-$').firstMatch(trimmed);
+  if (trailingDash != null) {
+    final title = trailingDash.group(1)?.trim();
+    return (title == null || title.isEmpty ? null : title, null);
+  }
+
+  return (trimmed, null);
 }

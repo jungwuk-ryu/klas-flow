@@ -348,7 +348,9 @@ class _KlasHomePageState extends State<KlasHomePage> {
             else
               ...courses.map((course) {
                 final title = course.title ?? '(과목명 없음)';
-                final professor = course.professorName ?? '-';
+                final subtitle =
+                    _join(<String?>[course.professorName, course.termId]) ??
+                    course.termId;
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Container(
@@ -365,7 +367,7 @@ class _KlasHomePageState extends State<KlasHomePage> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      subtitle: Text('$professor · ${course.termId}'),
+                      subtitle: Text(subtitle),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
                         Navigator.of(context).push(
