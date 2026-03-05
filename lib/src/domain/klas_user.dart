@@ -113,8 +113,18 @@ final class KlasUser {
   }
 
   /// 학기 시간표를 조회합니다.
-  Future<KlasTimetable> timetable({Map<String, dynamic>? query}) {
-    return enrollment.timetable(query: query);
+  ///
+  /// `termId`를 넘기지 않으면 기본 과목의 학기를 사용해
+  /// `searchYear/searchHakgi`를 자동으로 채웁니다.
+  Future<KlasTimetable> timetable({
+    String? termId,
+    Map<String, dynamic>? query,
+  }) async {
+    String? resolvedTermId = _normalizeTermId(termId);
+    if (resolvedTermId == null && !_hasTimetableTermQuery(query)) {
+      resolvedTermId = _normalizeTermId((await defaultCourse())?.termId);
+    }
+    return enrollment.timetable(termId: resolvedTermId, query: query);
   }
 
   /// 내부 캐시를 초기화합니다.
@@ -771,21 +781,31 @@ final class KlasEnrollmentFeature extends _UserFeatureBase {
     return text('enrollment.lctrePlanStopFlag', payload: query);
   }
 
-  Future<List<KlasRecord>> listTimetable({Map<String, dynamic>? query}) {
-    return array('enrollment.timetableStdList', payload: query);
+  Future<List<KlasRecord>> listTimetable({
+    String? termId,
+    Map<String, dynamic>? query,
+  }) {
+    return array(
+      'enrollment.timetableStdList',
+      payload: _resolveTimetableQuery(termId: termId, query: query),
+    );
   }
 
   /// 학기 시간표 목록을 고수준 모델로 조회합니다.
   Future<List<KlasTimetableEntry>> listTimetableEntries({
+    String? termId,
     Map<String, dynamic>? query,
   }) async {
-    final parsed = await timetable(query: query);
+    final parsed = await timetable(termId: termId, query: query);
     return parsed.entries;
   }
 
   /// 학기 시간표를 조회합니다.
-  Future<KlasTimetable> timetable({Map<String, dynamic>? query}) async {
-    final rows = await listTimetable(query: query);
+  Future<KlasTimetable> timetable({
+    String? termId,
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listTimetable(termId: termId, query: query);
     return KlasTimetable.fromRows(rows.map((row) => row.raw));
   }
 }
@@ -1028,6 +1048,97 @@ Map<String, dynamic> _resolveMonthlyScheduleQuery({
   payload.putIfAbsent('schdulYear', () => now.year);
   payload.putIfAbsent('schdulMonth', () => now.month);
   return payload;
+}
+
+Map<String, dynamic> _resolveTimetableQuery({
+  required String? termId,
+  required Map<String, dynamic>? query,
+}) {
+  final payload = <String, dynamic>{if (query != null) ...query};
+
+  final normalizedTermId =
+      _normalizeTermId(termId) ?? _extractTermFromTimetableQuery(payload);
+  final fromTerm = _splitTermYearHakgi(normalizedTermId);
+
+  final searchYear = _asTrimmedString(payload['searchYear']) ?? fromTerm?.$1;
+  final searchHakgi = _asTrimmedString(payload['searchHakgi']) ?? fromTerm?.$2;
+
+  if (searchYear != null && searchHakgi != null) {
+    payload.putIfAbsent('searchYear', () => searchYear);
+    payload.putIfAbsent('searchHakgi', () => searchHakgi);
+    payload.putIfAbsent('selectYearhakgi', () => '$searchYear,$searchHakgi');
+  } else if (normalizedTermId != null) {
+    payload.putIfAbsent('selectYearhakgi', () => normalizedTermId);
+  }
+
+  // 실서버는 빈 기본 필드를 함께 보낼 때 안정적으로 동작한다.
+  payload.putIfAbsent('searchPgmNo', () => '');
+  payload.putIfAbsent('list', () => const <Object>[]);
+  payload.putIfAbsent('atnlcYearList', () => const <Object>[]);
+  payload.putIfAbsent('timeTableList', () => const <Object>[]);
+  return payload;
+}
+
+bool _hasTimetableTermQuery(Map<String, dynamic>? query) {
+  if (query == null || query.isEmpty) {
+    return false;
+  }
+  return _extractTermFromTimetableQuery(query) != null ||
+      (_asTrimmedString(query['searchYear']) != null &&
+          _asTrimmedString(query['searchHakgi']) != null);
+}
+
+String? _extractTermFromTimetableQuery(Map<String, dynamic> query) {
+  return _normalizeTermId(_asTrimmedString(query['selectYearhakgi'])) ??
+      _normalizeTermId(_asTrimmedString(query['yearhakgi'])) ??
+      _normalizeTermId(_asTrimmedString(query['termId']));
+}
+
+(String, String)? _splitTermYearHakgi(String? termId) {
+  final normalized = _normalizeTermId(termId);
+  if (normalized == null) {
+    return null;
+  }
+
+  final comma = RegExp(r'^(\d{4}),(\d{1,2})$').firstMatch(normalized);
+  if (comma != null) {
+    return (comma.group(1)!, comma.group(2)!);
+  }
+
+  final compact = RegExp(r'^(\d{4})(\d{1,2})$').firstMatch(normalized);
+  if (compact != null) {
+    return (compact.group(1)!, compact.group(2)!);
+  }
+  return null;
+}
+
+String? _normalizeTermId(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+
+  final withSeparator = RegExp(
+    r'^(\d{4})\s*[-,./]\s*(\d{1,2})$',
+  ).firstMatch(trimmed);
+  if (withSeparator != null) {
+    return '${withSeparator.group(1)},${withSeparator.group(2)}';
+  }
+
+  final compact = RegExp(r'^(\d{4})(\d{1,2})$').firstMatch(trimmed);
+  if (compact != null) {
+    return trimmed;
+  }
+
+  return null;
+}
+
+String? _asTrimmedString(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  final text = value.toString().trim();
+  return text.isEmpty ? null : text;
 }
 
 (String?, String?) _parseCourseLabel(String? source) {

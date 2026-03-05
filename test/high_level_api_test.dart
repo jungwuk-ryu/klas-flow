@@ -1199,6 +1199,161 @@ void main() {
     });
 
     test(
+      'user.timetable injects default term into timetable query payload',
+      () async {
+        Map<String, dynamic>? timetablePayload;
+
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '2024,1',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자료구조 - 김교수',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true, 'userId': 'u1'});
+            case '/std/cps/atnlc/TimetableStdList.do':
+              timetablePayload =
+                  jsonDecode(request.body) as Map<String, dynamic>;
+              return _jsonResponse([
+                {
+                  'wtTime': 1,
+                  'wtHasSchedule': 'Y',
+                  'wtSpan_1': 2,
+                  'wtSubjNm_1': '자료구조',
+                  'wtProfNm_1': '김교수',
+                  'wtLocHname_1': '새빛관 101',
+                },
+              ]);
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final timetable = await user.timetable();
+
+        expect(timetable.entries, isNotEmpty);
+        expect(timetablePayload, isNotNull);
+        expect(timetablePayload!['searchYear'], equals('2024'));
+        expect(timetablePayload!['searchHakgi'], equals('1'));
+        expect(timetablePayload!['selectYearhakgi'], equals('2024,1'));
+        expect(timetablePayload!['searchPgmNo'], equals(''));
+        expect(timetablePayload!['list'], isA<List>());
+        expect(timetablePayload!['atnlcYearList'], isA<List>());
+        expect(timetablePayload!['timeTableList'], isA<List>());
+      },
+    );
+
+    test(
+      'enrollment.timetable parses termId shorthand into searchYear/searchHakgi',
+      () async {
+        Map<String, dynamic>? timetablePayload;
+
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자료구조 - 김교수',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true, 'userId': 'u1'});
+            case '/std/cps/atnlc/TimetableStdList.do':
+              timetablePayload =
+                  jsonDecode(request.body) as Map<String, dynamic>;
+              return _jsonResponse([
+                {
+                  'subjNm': '자료구조',
+                  'dayNm': '월',
+                  'startTime': '09:00',
+                  'endTime': '10:15',
+                },
+              ]);
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final timetable = await user.enrollment.timetable(
+          termId: '2024-1',
+          query: const <String, dynamic>{'searchPgmNo': 'PGM-1'},
+        );
+
+        expect(timetable.entries, isNotEmpty);
+        expect(timetablePayload, isNotNull);
+        expect(timetablePayload!['searchYear'], equals('2024'));
+        expect(timetablePayload!['searchHakgi'], equals('1'));
+        expect(timetablePayload!['selectYearhakgi'], equals('2024,1'));
+        expect(timetablePayload!['searchPgmNo'], equals('PGM-1'));
+        expect(timetablePayload!['list'], isA<List>());
+      },
+    );
+
+    test(
       'two course objects keep their own contexts without global mutation',
       () async {
         final receivedSubj = <String>[];

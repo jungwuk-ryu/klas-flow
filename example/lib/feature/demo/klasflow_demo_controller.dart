@@ -327,7 +327,9 @@ class KlasflowDemoController extends ChangeNotifier {
       id: 'user.enrollment.timetable',
       title: '학기 시간표 조회',
       action: () async {
-        final timetable = await _requireUser().timetable();
+        final timetable = await _requireUser().timetable(
+          termId: _currentCourse?.termId,
+        );
         _semesterTimetable = timetable;
         return timetable;
       },

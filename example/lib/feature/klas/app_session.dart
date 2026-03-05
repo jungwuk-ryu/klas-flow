@@ -26,7 +26,7 @@ class KlasAppSession {
     personalInfo = await user.personalInfo(refresh: true);
     courses = await user.courses(refresh: true);
     if (_cachedTimetable != null) {
-      _cachedTimetable = await user.timetable();
+      _cachedTimetable = await user.timetable(termId: _resolvedTermId());
     }
   }
 
@@ -36,9 +36,18 @@ class KlasAppSession {
       return _cachedTimetable!;
     }
 
-    final loaded = await user.timetable();
+    final loaded = await user.timetable(termId: _resolvedTermId());
     _cachedTimetable = loaded;
     return loaded;
+  }
+
+  String? _resolvedTermId() {
+    for (final course in courses) {
+      if (course.isDefault) {
+        return course.termId;
+      }
+    }
+    return courses.isEmpty ? null : courses.first.termId;
   }
 
   /// 앱 로그아웃 시 클라이언트를 정리한다.
