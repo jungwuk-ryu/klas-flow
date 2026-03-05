@@ -753,10 +753,8 @@ final class KlasEnrollmentFeature extends _UserFeatureBase {
   Future<List<KlasTimetableEntry>> listTimetableEntries({
     Map<String, dynamic>? query,
   }) async {
-    final rows = await listTimetable(query: query);
-    return List<KlasTimetableEntry>.unmodifiable(
-      rows.map((row) => KlasTimetableEntry.fromJson(row.raw)),
-    );
+    final parsed = await timetable(query: query);
+    return parsed.entries;
   }
 
   /// 학기 시간표를 조회합니다.

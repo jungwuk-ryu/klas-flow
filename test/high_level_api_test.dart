@@ -758,6 +758,151 @@ void main() {
       expect(rows.first.termId, equals('20261'));
     });
 
+    test(
+      'enrollment timetable matrix rows are parsed into typed entries',
+      () async {
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자료구조 - 김교수',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true, 'userId': 'u1'});
+            case '/std/cps/atnlc/TimetableStdList.do':
+              return _jsonResponse([
+                {
+                  'wtTime': 1,
+                  'wtHasSchedule': 'Y',
+                  'wtSpan_1': 2,
+                  'wtSubj_1': 'S1',
+                  'wtSubjNm_1': '고급프로그래밍',
+                  'wtLocHname_1': '새빛204',
+                  'wtProfNm_1': '최영근',
+                  'wtSpan_5': 2,
+                  'wtSubj_5': 'S2',
+                  'wtSubjNm_5': '시스템프로그래밍실습',
+                  'wtLocHname_5': '새빛303',
+                  'wtProfNm_5': '최상호',
+                },
+                {'wtTime': 2, 'wtHasSchedule': 'Y'},
+                {'wtTime': 3, 'wtHasSchedule': 'N'},
+              ]);
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final timetable = await user.enrollment.timetable();
+        final entries = await user.enrollment.listTimetableEntries();
+
+        expect(timetable.entries, hasLength(2));
+        expect(entries, hasLength(2));
+        expect(entries.first.title, equals('고급프로그래밍'));
+        expect(entries.first.dayOfWeek, equals('월'));
+        expect(entries.first.periodText, equals('1-2교시'));
+        expect(entries.first.scheduleText, equals('월 1-2교시'));
+        expect(entries.last.title, equals('시스템프로그래밍실습'));
+        expect(entries.last.dayOfWeek, equals('금'));
+        expect(entries.last.periodText, equals('1-2교시'));
+      },
+    );
+
+    test('enrollment timetable matrix placeholder rows are ignored', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true, 'userId': 'u1'});
+          case '/std/cps/atnlc/TimetableStdList.do':
+            return _jsonResponse([
+              {'wtTime': 1, 'wtHasSchedule': 'N'},
+              {'wtTime': 2, 'wtHasSchedule': 'N'},
+              {'wtTime': 3, 'wtHasSchedule': 'N'},
+              {'wtTime': 4, 'wtHasSchedule': 'N'},
+              {'wtTime': 5, 'wtHasSchedule': 'N'},
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final timetable = await user.enrollment.timetable();
+      final entries = await user.enrollment.listTimetableEntries();
+
+      expect(timetable.entries, isEmpty);
+      expect(entries, isEmpty);
+    });
+
     test('enrollment timetable is exposed as high-level typed model', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {

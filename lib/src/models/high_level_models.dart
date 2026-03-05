@@ -931,9 +931,12 @@ final class KlasTimetable {
 
   factory KlasTimetable.fromRows(Iterable<Map<String, dynamic>> rows) {
     final copiedRows = rows.map(_copyMap).toList(growable: false);
-    final parsedEntries = copiedRows
-        .map(KlasTimetableEntry.fromJson)
-        .toList(growable: false);
+    final parsedEntries = _looksLikeWeeklyMatrixTimetable(copiedRows)
+        ? _expandWeeklyMatrixTimetableRows(copiedRows)
+        : copiedRows
+              .map(KlasTimetableEntry.fromJson)
+              .where(_isMeaningfulTimetableEntry)
+              .toList(growable: false);
     return KlasTimetable(
       entries: List<KlasTimetableEntry>.unmodifiable(parsedEntries),
       rawRows: List<Map<String, dynamic>>.unmodifiable(copiedRows),
@@ -1480,10 +1483,20 @@ int _weekdayOrder(String day) {
 }
 
 int _compareTimetableEntry(KlasTimetableEntry a, KlasTimetableEntry b) {
-  final startA = a.startTime ?? '';
-  final startB = b.startTime ?? '';
-  if (startA != startB) {
-    return startA.compareTo(startB);
+  final startA = a.startTime?.trim() ?? '';
+  final startB = b.startTime?.trim() ?? '';
+  if (startA.isNotEmpty || startB.isNotEmpty) {
+    if (startA != startB) {
+      return startA.compareTo(startB);
+    }
+  }
+
+  final periodStartA = _periodStartValue(a.periodText);
+  final periodStartB = _periodStartValue(b.periodText);
+  if (periodStartA != null &&
+      periodStartB != null &&
+      periodStartA != periodStartB) {
+    return periodStartA.compareTo(periodStartB);
   }
 
   final periodA = a.periodText ?? '';
@@ -1493,4 +1506,121 @@ int _compareTimetableEntry(KlasTimetableEntry a, KlasTimetableEntry b) {
   }
 
   return a.title.compareTo(b.title);
+}
+
+bool _isMeaningfulTimetableEntry(KlasTimetableEntry entry) {
+  final hasSubject = entry.subjectName?.trim().isNotEmpty == true;
+  final hasSchedule = entry.scheduleText?.trim().isNotEmpty == true;
+  final hasClassroom = entry.classroom?.trim().isNotEmpty == true;
+  final hasProfessor = entry.professorName?.trim().isNotEmpty == true;
+  return hasSubject || hasSchedule || hasClassroom || hasProfessor;
+}
+
+bool _looksLikeWeeklyMatrixTimetable(List<Map<String, dynamic>> rows) {
+  if (rows.isEmpty) {
+    return false;
+  }
+  final hasWtTime = rows.any(
+    (row) => _readNormalizedString(row, const <String>['wtTime']) != null,
+  );
+  if (!hasWtTime) {
+    return false;
+  }
+  final hasIndexedSubject = rows.any((row) {
+    for (final key in row.keys) {
+      if (RegExp(r'^wtsubjnm\d+$').hasMatch(_normalizeFieldKey(key))) {
+        return true;
+      }
+    }
+    return false;
+  });
+  final hasScheduleFlag = rows.any(
+    (row) =>
+        _readNormalizedString(row, const <String>['wtHasSchedule']) != null,
+  );
+  return hasIndexedSubject || hasScheduleFlag;
+}
+
+List<KlasTimetableEntry> _expandWeeklyMatrixTimetableRows(
+  List<Map<String, dynamic>> rows,
+) {
+  final entries = <KlasTimetableEntry>[];
+  final dedupe = <String>{};
+
+  for (final row in rows) {
+    final wtTime = _toInt(row['wtTime']) ?? _toInt(row['wt_time']);
+    for (var dayIndex = 1; dayIndex <= 7; dayIndex++) {
+      final subjectName = _readNormalizedString(row, <String>[
+        'wtSubjNm_$dayIndex',
+        'wtSubjNm$dayIndex',
+      ]);
+      final subjectCode = _readNormalizedString(row, <String>[
+        'wtSubj_$dayIndex',
+        'wtSubj$dayIndex',
+      ]);
+      if (subjectName == null && subjectCode == null) {
+        continue;
+      }
+
+      final spanRaw =
+          _toInt(row['wtSpan_$dayIndex']) ?? _toInt(row['wtSpan$dayIndex']);
+      final span = (spanRaw == null || spanRaw <= 0) ? 1 : spanRaw;
+      final periodText = wtTime == null
+          ? null
+          : (span == 1 ? '$wtTime교시' : '$wtTime-${wtTime + span - 1}교시');
+
+      final dayOfWeek = _toWeekdayLabel(dayIndex.toString());
+      final professorName = _readNormalizedString(row, <String>[
+        'wtProfNm_$dayIndex',
+        'wtProfNm$dayIndex',
+      ]);
+      final classroom = _readNormalizedString(row, <String>[
+        'wtLocHname_$dayIndex',
+        'wtLocHname$dayIndex',
+        'wtLocName_$dayIndex',
+        'wtLocName$dayIndex',
+      ]);
+
+      final entry = KlasTimetableEntry(
+        raw: <String, dynamic>{...row, '__dayIndex': dayIndex},
+        subjectName: subjectName ?? subjectCode,
+        professorName: professorName,
+        classroom: classroom,
+        dayOfWeek: dayOfWeek,
+        periodText: periodText,
+      );
+      if (!_isMeaningfulTimetableEntry(entry)) {
+        continue;
+      }
+
+      final dedupeKey =
+          '${entry.dayOfWeek}|${entry.periodText}|${entry.subjectName}|'
+          '${entry.classroom}|${entry.professorName}';
+      if (dedupe.add(dedupeKey)) {
+        entries.add(entry);
+      }
+    }
+  }
+
+  entries.sort((a, b) {
+    final dayA = a.dayOfWeek ?? '';
+    final dayB = b.dayOfWeek ?? '';
+    final dayCompare = _compareWeekdayLabels(dayA, dayB);
+    if (dayCompare != 0) {
+      return dayCompare;
+    }
+    return _compareTimetableEntry(a, b);
+  });
+  return entries;
+}
+
+int? _periodStartValue(String? text) {
+  if (text == null) {
+    return null;
+  }
+  final match = RegExp(r'(\d{1,2})').firstMatch(text);
+  if (match == null) {
+    return null;
+  }
+  return int.tryParse(match.group(1)!);
 }
