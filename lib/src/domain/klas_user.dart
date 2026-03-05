@@ -361,7 +361,17 @@ abstract base class _BaseBoardFeature extends _CourseFeatureBase {
       context: context,
       payload: payload,
     );
-    return KlasBoardList.fromJson(raw);
+    return KlasBoardList.fromJson(
+      raw,
+      detailResolver:
+          ({
+            required int boardNo,
+            required String cmd,
+            Map<String, dynamic>? query,
+          }) {
+            return getPost(boardNo: boardNo, cmd: cmd, query: query);
+          },
+    );
   }
 
   Future<KlasBoardPostDetail> getPost({

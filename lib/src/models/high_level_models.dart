@@ -276,6 +276,13 @@ final class KlasTask {
   }
 }
 
+typedef KlasBoardPostDetailResolver =
+    Future<KlasBoardPostDetail> Function({
+      required int boardNo,
+      required String cmd,
+      Map<String, dynamic>? query,
+    });
+
 /// 게시글 목록 요약 항목입니다.
 final class KlasBoardPostSummary {
   final int? boardNo;
@@ -285,6 +292,7 @@ final class KlasBoardPostSummary {
   final String? registeredAt;
   final int? fileCount;
   final Map<String, dynamic> raw;
+  final KlasBoardPostDetailResolver? _detailResolver;
 
   const KlasBoardPostSummary({
     required this.raw,
@@ -294,9 +302,42 @@ final class KlasBoardPostSummary {
     this.authorName,
     this.registeredAt,
     this.fileCount,
-  });
+    KlasBoardPostDetailResolver? detailResolver,
+  }) : _detailResolver = detailResolver;
 
-  factory KlasBoardPostSummary.fromJson(Map<String, dynamic> json) {
+  /// 요약 객체에서 바로 게시글 상세를 조회합니다.
+  Future<KlasBoardPostDetail> getPost({
+    String cmd = 'select',
+    Map<String, dynamic>? query,
+  }) {
+    final targetBoardNo = boardNo;
+    if (targetBoardNo == null) {
+      throw StateError('Cannot load post detail because boardNo is null.');
+    }
+
+    final resolver = _detailResolver;
+    if (resolver == null) {
+      throw StateError(
+        'This post summary is not bound to a board feature. '
+        'Load it via noticeBoard/materialBoard.listPosts().',
+      );
+    }
+
+    final resolvedQuery = <String, dynamic>{
+      if (masterNo != null) 'searchMasterNo': masterNo.toString(),
+      if (query != null) ...query,
+    };
+    return resolver(
+      boardNo: targetBoardNo,
+      cmd: cmd,
+      query: resolvedQuery.isEmpty ? null : resolvedQuery,
+    );
+  }
+
+  factory KlasBoardPostSummary.fromJson(
+    Map<String, dynamic> json, {
+    KlasBoardPostDetailResolver? detailResolver,
+  }) {
     return KlasBoardPostSummary(
       raw: json,
       boardNo: _toInt(json['boardNo']),
@@ -305,6 +346,7 @@ final class KlasBoardPostSummary {
       authorName: _toString(json['userNm']),
       registeredAt: _toString(json['registDt']),
       fileCount: _toInt(json['fileCnt']),
+      detailResolver: detailResolver,
     );
   }
 }
@@ -317,14 +359,22 @@ final class KlasBoardList {
 
   const KlasBoardList({required this.posts, required this.raw, this.page});
 
-  factory KlasBoardList.fromJson(Map<String, dynamic> json) {
+  factory KlasBoardList.fromJson(
+    Map<String, dynamic> json, {
+    KlasBoardPostDetailResolver? detailResolver,
+  }) {
     final list = json['list'];
     final postItems = <KlasBoardPostSummary>[];
     if (list is List) {
       for (final item in list) {
         final mapped = _asMap(item);
         if (mapped != null) {
-          postItems.add(KlasBoardPostSummary.fromJson(mapped));
+          postItems.add(
+            KlasBoardPostSummary.fromJson(
+              mapped,
+              detailResolver: detailResolver,
+            ),
+          );
         }
       }
     }

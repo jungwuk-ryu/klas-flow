@@ -248,6 +248,88 @@ void main() {
       expect(board.page?.totalPages, equals(2));
     });
 
+    test('post summary can load detail directly with auto searchMasterNo', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/lis/sport/d052b8f845784c639f036b102fdc3023/BoardStdList.do':
+            return _jsonResponse({
+              'list': [
+                {'boardNo': 123, 'masterNo': 7, 'title': '중간고사 공지'},
+              ],
+            });
+          case '/std/lis/sport/d052b8f845784c639f036b102fdc3023/BoardViewStdPage.do':
+            final body = request.bodyFields;
+            expect(body['boardNo'], equals('123'));
+            expect(body['searchMasterNo'], equals('7'));
+            expect(body['masterNo'], equals('7'));
+            return _utf8TextResponse(
+              '<html><body>ok</body></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/lis/sport/d052b8f845784c639f036b102fdc3023/BoardStdView.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            expect(body['boardNo'], equals('123'));
+            expect(body['searchMasterNo'], equals('7'));
+            expect(body['masterNo'], equals('7'));
+            return _jsonResponse({
+              'data': {
+                'detail': {'boardNo': 123, 'content': '<p>본문 테스트</p>'},
+                'comments': [],
+              },
+            });
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final course = (await user.defaultCourse())!;
+      final board = await course.noticeBoard.listPosts(page: 0);
+      final detail = await board.posts.first.getPost();
+
+      expect(detail.board?.raw['boardNo'], equals(123));
+      expect(detail.board?.raw['content'], equals('<p>본문 테스트</p>'));
+    });
+
     test(
       'noticeBoard getPost preloads page and parses wrapped detail payload',
       () async {

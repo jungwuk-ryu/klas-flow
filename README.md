@@ -91,14 +91,7 @@ final notices = await course.noticeBoard.listPosts(page: 0);
 if (notices.posts.isEmpty) return;
 
 final first = notices.posts.first;
-if (first.boardNo == null) return;
-
-final detail = await course.noticeBoard.getPost(
-  boardNo: first.boardNo!,
-  query: first.masterNo == null
-      ? null
-      : {'searchMasterNo': first.masterNo.toString()},
-);
+final detail = await first.getPost();
 
 print('공지 제목: ${first.title}');
 print('상세 keys: ${detail.board?.raw.keys.toList()}');
