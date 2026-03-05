@@ -277,6 +277,66 @@ final class KlasTask {
   }
 }
 
+/// 온라인 콘텐츠 항목입니다.
+final class KlasOnlineContent {
+  final String? contentId;
+  final String? title;
+  final String? startAt;
+  final String? endAt;
+  final String? status;
+  final Map<String, dynamic> raw;
+
+  const KlasOnlineContent({
+    required this.raw,
+    this.contentId,
+    this.title,
+    this.startAt,
+    this.endAt,
+    this.status,
+  });
+
+  factory KlasOnlineContent.fromJson(Map<String, dynamic> json) {
+    return KlasOnlineContent(
+      raw: json,
+      contentId: _readNormalizedString(json, const <String>[
+        'cntntsNo',
+        'contentId',
+        'cntntId',
+        'id',
+      ]),
+      title: _readNormalizedString(json, const <String>[
+        'cntntsNm',
+        'cntntNm',
+        'title',
+        'name',
+        'moduletitle',
+        'lessontitle',
+      ]),
+      startAt: _readNormalizedString(json, const <String>[
+        'startDate',
+        'startdate',
+        'openDate',
+        'starting',
+      ]),
+      endAt: _readNormalizedString(json, const <String>[
+        'endDate',
+        'expireDate',
+        'expiredate',
+        'dueDate',
+      ]),
+      status: _readNormalizedString(json, const <String>[
+        'status',
+        'state',
+        'progress',
+        'prog',
+        'completeYn',
+      ]),
+    );
+  }
+
+  String get displayTitle => title ?? '(제목 없음)';
+}
+
 /// 학기 시간표의 단일 수업 항목입니다.
 final class KlasTimetableEntry {
   final String? subjectName;

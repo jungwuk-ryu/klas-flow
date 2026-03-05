@@ -332,6 +332,17 @@ final class KlasLearningFeature extends _CourseFeatureBase {
       payload: withPage(page, query),
     );
   }
+
+  /// 온라인 콘텐츠 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasOnlineContent>> listOnlineContentItems({
+    int page = 0,
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await onlineContents(page: page, query: query);
+    return List<KlasOnlineContent>.unmodifiable(
+      rows.map((row) => KlasOnlineContent.fromJson(row.raw)),
+    );
+  }
 }
 
 abstract base class _BaseBoardFeature extends _CourseFeatureBase {
