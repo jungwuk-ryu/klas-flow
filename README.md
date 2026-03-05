@@ -202,6 +202,20 @@ dart run tool/check_all.dart
 dart run tool/prepublish_check.dart
 ```
 
+## 커밋 메시지 컨벤션
+
+- 형식: `type(scope): subject`
+- 예시: `feat(timetable): add typed semester timetable API`
+- 허용 타입: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`, `build`, `perf`, `revert`
+
+로컬 훅 활성화:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+CI에서도 동일한 규칙으로 커밋 메시지를 검증합니다.
+
 ## 운영 주의사항
 
 - 실계정 테스트는 읽기 전용 API만 사용해 주세요.
