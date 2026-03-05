@@ -12,7 +12,7 @@ Future<void> main(List<String> args) async {
 
   final steps = <_Step>[
     const _Step('Install dependencies', ['dart', 'pub', 'get', '--no-example']),
-    const _Step('Analyze', ['dart', 'analyze']),
+    const _Step('Analyze', ['dart', 'analyze', 'lib', 'test', 'tool']),
     const _Step('Test', ['dart', 'test']),
     _Step('Prepublish check', [
       'dart',
