@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../feature/demo/klasflow_demo_page.dart';
+import '../feature/klas/klas_login_page.dart';
 
 /// 데모 앱의 루트 MaterialApp을 구성한다.
 class KlasflowDemoApp extends StatelessWidget {
@@ -9,12 +9,15 @@ class KlasflowDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'klasflow 데모',
+      title: 'KLAS',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF2A5CAA),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
       ),
-      home: const KlasflowDemoPage(),
+      home: const KlasLoginPage(),
     );
   }
 }
