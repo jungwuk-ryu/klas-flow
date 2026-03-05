@@ -559,6 +559,61 @@ final class KlasSurveyEntry {
   String get displayTitle => title ?? '(제목 없음)';
 }
 
+/// e-Class 항목입니다.
+final class KlasEClassItem {
+  final String? itemId;
+  final String? title;
+  final String? startAt;
+  final String? endAt;
+  final String? status;
+  final Map<String, dynamic> raw;
+
+  const KlasEClassItem({
+    required this.raw,
+    this.itemId,
+    this.title,
+    this.startAt,
+    this.endAt,
+    this.status,
+  });
+
+  factory KlasEClassItem.fromJson(Map<String, dynamic> json) {
+    return KlasEClassItem(
+      raw: json,
+      itemId: _readNormalizedString(json, const <String>[
+        'eclassNo',
+        'itemId',
+        'id',
+      ]),
+      title: _readNormalizedString(json, const <String>[
+        'title',
+        'eclassTitle',
+        'name',
+        'cntntsNm',
+        'moduletitle',
+      ]),
+      startAt: _readNormalizedString(json, const <String>[
+        'startDate',
+        'startdate',
+        'openDate',
+      ]),
+      endAt: _readNormalizedString(json, const <String>[
+        'endDate',
+        'expireDate',
+        'expiredate',
+      ]),
+      status: _readNormalizedString(json, const <String>[
+        'status',
+        'state',
+        'progress',
+        'completeYn',
+      ]),
+    );
+  }
+
+  String get displayTitle => title ?? '(제목 없음)';
+}
+
 /// 학기 시간표의 단일 수업 항목입니다.
 final class KlasTimetableEntry {
   final String? subjectName;

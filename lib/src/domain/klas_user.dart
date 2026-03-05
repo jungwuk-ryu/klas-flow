@@ -567,6 +567,17 @@ final class KlasEClassFeature extends _CourseFeatureBase {
   }) {
     return array('eclass.eClassStdList', payload: withPage(page, query));
   }
+
+  /// e-Class 항목 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasEClassItem>> listEClassItems({
+    int page = 0,
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listItems(page: page, query: query);
+    return List<KlasEClassItem>.unmodifiable(
+      rows.map((row) => KlasEClassItem.fromJson(row.raw)),
+    );
+  }
 }
 
 abstract base class _UserFeatureBase {
