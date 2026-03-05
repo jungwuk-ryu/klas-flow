@@ -739,12 +739,15 @@ void main() {
           case '/api/v1/session/info':
             return _jsonResponse({'authenticated': true});
           case '/std/ads/admst/MySchdulMonthList.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            expect(body.containsKey('schdulYear'), isTrue);
+            expect(body.containsKey('schdulMonth'), isTrue);
             return _jsonResponse([
               {
-                'schdulNo': 'M1',
+                'schdulId': 'M1',
                 'schdulTitle': '중간고사',
-                'schdulDate': '2026-04-20',
-                'status': '예정',
+                'schdulDt': '2026-04-20',
+                'typeNm': '학사일정',
               },
             ]);
           default:
@@ -765,6 +768,7 @@ void main() {
       expect(rows.first.scheduleId, equals('M1'));
       expect(rows.first.displayTitle, equals('중간고사'));
       expect(rows.first.date, equals('2026-04-20'));
+      expect(rows.first.status, equals('학사일정'));
     });
 
     test('attendance month table is mapped to typed model', () async {
@@ -803,12 +807,15 @@ void main() {
           case '/api/v1/session/info':
             return _jsonResponse({'authenticated': true});
           case '/std/ads/admst/MySchdulMonthTableList.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            expect(body.containsKey('schdulYear'), isTrue);
+            expect(body.containsKey('schdulMonth'), isTrue);
             return _jsonResponse([
               {
-                'day': '20',
-                'dayNm': '월',
+                'started': '2026-04-20',
+                'dayname': '1',
                 'schdulTitle': '중간고사',
-                'status': '예정',
+                'typeNm': '학사일정',
               },
             ]);
           default:
@@ -829,7 +836,73 @@ void main() {
       expect(rows.first.dayOfMonth, equals('20'));
       expect(rows.first.weekday, equals('월'));
       expect(rows.first.displayTitle, equals('중간고사'));
+      expect(rows.first.status, equals('학사일정'));
     });
+
+    test(
+      'frame schedule summary injects year/month query by default',
+      () async {
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자료구조 - 김교수',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true});
+            case '/std/cmn/frame/SchdulStdList.do':
+              final body = jsonDecode(request.body) as Map<String, dynamic>;
+              expect(body['schdulYear'], isA<int>());
+              expect(body['schdulMonth'], isA<int>());
+              expect((body['schdulMonth'] as int) >= 1, isTrue);
+              expect((body['schdulMonth'] as int) <= 12, isTrue);
+              return _jsonResponse({
+                'list': <Object>[],
+                'tableList': <Object>[],
+              });
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final result = await user.frame.scheduleSummary();
+        expect(result.raw['list'], isA<List>());
+        expect(result.raw['tableList'], isA<List>());
+      },
+    );
 
     test('academic grades are mapped to typed model', () async {
       final mock = MockClient((request) async {

@@ -310,8 +310,13 @@ class KlasflowDemoController extends ChangeNotifier {
       id: 'user.frame.scheduleSummary',
       title: '일정 요약 조회',
       action: () async {
-        final record = await _requireUser().frame.scheduleSummary();
-        return record;
+        final query = _currentMonthScheduleQuery();
+        final record = await _requireUser().frame.scheduleSummary(query: query);
+        return <String, Object?>{
+          'schdulYear': query['schdulYear'],
+          'schdulMonth': query['schdulMonth'],
+          ...record.raw,
+        };
       },
     );
   }
@@ -347,8 +352,27 @@ class KlasflowDemoController extends ChangeNotifier {
       id: 'user.attendance.monthList',
       title: '월간 일정 목록 조회',
       action: () async {
-        final rows = await _requireUser().attendance.monthList();
-        return _summarizeRecords(rows);
+        final query = _currentMonthScheduleQuery();
+        final rows = await _requireUser().attendance.listMonthlySchedules(
+          query: query,
+        );
+        return <String, Object?>{
+          'schdulYear': query['schdulYear'],
+          'schdulMonth': query['schdulMonth'],
+          'count': rows.length,
+          'sample': rows
+              .take(8)
+              .map(
+                (item) => <String, Object?>{
+                  'title': item.title,
+                  'date': item.date,
+                  'status': item.status,
+                  'scheduleId': item.scheduleId,
+                  'raw': item.raw,
+                },
+              )
+              .toList(growable: false),
+        };
       },
     );
   }
@@ -359,8 +383,26 @@ class KlasflowDemoController extends ChangeNotifier {
       id: 'user.attendance.monthTable',
       title: '월간 일정 테이블 조회',
       action: () async {
-        final rows = await _requireUser().attendance.monthTable();
-        return _summarizeRecords(rows);
+        final query = _currentMonthScheduleQuery();
+        final rows = await _requireUser().attendance
+            .listMonthlyScheduleTableItems(query: query);
+        return <String, Object?>{
+          'schdulYear': query['schdulYear'],
+          'schdulMonth': query['schdulMonth'],
+          'count': rows.length,
+          'sample': rows
+              .take(8)
+              .map(
+                (item) => <String, Object?>{
+                  'dayOfMonth': item.dayOfMonth,
+                  'weekday': item.weekday,
+                  'title': item.title,
+                  'status': item.status,
+                  'raw': item.raw,
+                },
+              )
+              .toList(growable: false),
+        };
       },
     );
   }
@@ -702,6 +744,11 @@ class KlasflowDemoController extends ChangeNotifier {
       'http' => 80,
       _ => 0,
     };
+  }
+
+  Map<String, int> _currentMonthScheduleQuery() {
+    final now = DateTime.now();
+    return <String, int>{'schdulYear': now.year, 'schdulMonth': now.month};
   }
 
   void _setLoading({required bool loading, String? operation}) {

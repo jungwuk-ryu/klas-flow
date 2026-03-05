@@ -142,7 +142,8 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
                   FeatureActionItem(
                     id: 'user.frame.scheduleSummary',
                     title: '일정 요약 조회',
-                    description: 'user.frame.scheduleSummary()',
+                    description:
+                        'user.frame.scheduleSummary(year: now.year, month: now.month)',
                     enabled: true,
                     onPressed: _controller.loadFrameScheduleSummary,
                   ),
@@ -163,14 +164,16 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
                   FeatureActionItem(
                     id: 'user.attendance.monthList',
                     title: '월간 일정 목록',
-                    description: 'user.attendance.monthList()',
+                    description:
+                        'user.attendance.listMonthlySchedules(year: now.year, month: now.month)',
                     enabled: true,
                     onPressed: _controller.loadAttendanceMonthList,
                   ),
                   FeatureActionItem(
                     id: 'user.attendance.monthTable',
                     title: '월간 일정 테이블',
-                    description: 'user.attendance.monthTable()',
+                    description:
+                        'user.attendance.listMonthlyScheduleTableItems(year: now.year, month: now.month)',
                     enabled: true,
                     onPressed: _controller.loadAttendanceMonthTable,
                   ),

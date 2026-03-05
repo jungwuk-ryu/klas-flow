@@ -39,11 +39,7 @@ class ActionResultVisualContent extends StatelessWidget {
           icon: Icons.home_outlined,
         );
       case 'user.frame.scheduleSummary':
-        return _buildRecordSummary(
-          map,
-          title: '일정 요약',
-          icon: Icons.calendar_month_outlined,
-        );
+        return _buildFrameScheduleSummary(map);
       case 'user.enrollment.timetable':
         return _buildSemesterTimetable(map);
       case 'course.overview':
@@ -283,6 +279,90 @@ class ActionResultVisualContent extends StatelessWidget {
     );
   }
 
+  Widget _buildFrameScheduleSummary(Map<String, Object?> payload) {
+    final list = _toMapList(payload['list']);
+    final tableList = _toMapList(payload['tableList']);
+    final year = _pickInt(payload, const ['schdulYear', 'year']);
+    final month = _pickInt(payload, const ['schdulMonth', 'month']);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const _SectionTitle(icon: Icons.calendar_month_outlined, text: '일정 요약'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            _ChipBadge(
+              label: '조회 월',
+              value: year == null || month == null
+                  ? '-'
+                  : '$year-${month.toString().padLeft(2, '0')}',
+            ),
+            _ChipBadge(label: '일자별', value: '${list.length}건'),
+            _ChipBadge(label: '기간형', value: '${tableList.length}건'),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (list.isEmpty && tableList.isEmpty) const Text('표시할 일정 데이터가 없습니다.'),
+        ...list.take(6).map((item) {
+          final title =
+              _pickString(item, const ['schdulTitle', 'title', 'subjNm']) ??
+              '(제목 없음)';
+          final day = _pickString(item, const [
+            'schdulDt',
+            'date',
+            'schdulDate',
+            'chkdate',
+            'started',
+          ]);
+          final time = _pickString(item, const [
+            'schdulTime',
+            'started',
+            'ended',
+          ]);
+          final type =
+              _pickString(item, const ['typeNm', 'status', 'state']) ?? '-';
+          return _ResultTile(
+            icon: Icons.event_note_outlined,
+            title: title,
+            subtitle: _join(<String?>[
+              if (day != null) _friendlyDate(day),
+              time,
+            ]),
+            trailing: _StatusBadge(text: type, tone: _toneFromStatus(type)),
+          );
+        }),
+        if (tableList.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 10),
+          const _SectionTitle(
+            icon: Icons.view_timeline_outlined,
+            text: '기간 일정',
+          ),
+          const SizedBox(height: 6),
+          ...tableList.take(4).map((item) {
+            final title =
+                _pickString(item, const ['title', 'schdulTitle']) ?? '(제목 없음)';
+            final started = _pickString(item, const ['started', 'startDate']);
+            final ended = _pickString(item, const ['ended', 'endDate']);
+            final type =
+                _pickString(item, const ['typeNm', 'status', 'state']) ?? '-';
+            final range = (started == null && ended == null)
+                ? null
+                : '${started == null ? '-' : _friendlyDate(started)} ~ ${ended == null ? '-' : _friendlyDate(ended)}';
+            return _ResultTile(
+              icon: Icons.date_range_outlined,
+              title: title,
+              subtitle: range,
+              trailing: _StatusBadge(text: type, tone: _toneFromStatus(type)),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
   Widget _buildCourseChange(Map<String, Object?> payload) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -502,7 +582,10 @@ class ActionResultVisualContent extends StatelessWidget {
         final day = _pickString(item, const [
           'date',
           'schdulDate',
+          'schdulDt',
           'attendDate',
+          'chkdate',
+          'started',
           'startDate',
           'day',
         ]);
@@ -512,6 +595,8 @@ class ActionResultVisualContent extends StatelessWidget {
           'attendStatus',
           'attendYn',
           'presentYn',
+          'typeNm',
+          'schdulTime',
         ]);
         return _ResultTile(
           icon: Icons.event_note_outlined,
@@ -964,6 +1049,26 @@ String? _join(List<String?> values) {
 }
 
 String _friendlyDate(String raw) {
+  final compactDateTime = RegExp(
+    r'^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$',
+  ).firstMatch(raw);
+  if (compactDateTime != null) {
+    final year = compactDateTime.group(1)!;
+    final month = compactDateTime.group(2)!;
+    final day = compactDateTime.group(3)!;
+    final hour = compactDateTime.group(4)!;
+    final minute = compactDateTime.group(5)!;
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  final compactDate = RegExp(r'^(\d{4})(\d{2})(\d{2})$').firstMatch(raw);
+  if (compactDate != null) {
+    final year = compactDate.group(1)!;
+    final month = compactDate.group(2)!;
+    final day = compactDate.group(3)!;
+    return '$year-$month-$day';
+  }
+
   final parsed = DateTime.tryParse(raw);
   if (parsed == null) {
     return raw;

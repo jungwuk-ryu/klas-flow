@@ -808,29 +808,63 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     );
   }
 
-  Future<List<KlasRecord>> monthList({Map<String, dynamic>? query}) {
-    return array('attendance.mySchdulMonthList', payload: query);
+  /// 월간 일정 원본 목록을 조회합니다.
+  ///
+  /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
+  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  Future<List<KlasRecord>> monthList({
+    int? year,
+    int? month,
+    Map<String, dynamic>? query,
+  }) {
+    return array(
+      'attendance.mySchdulMonthList',
+      payload: _resolveMonthlyScheduleQuery(
+        year: year,
+        month: month,
+        query: query,
+      ),
+    );
   }
 
   /// 월간 일정 목록을 고수준 모델로 조회합니다.
   Future<List<KlasMonthlyScheduleItem>> listMonthlySchedules({
+    int? year,
+    int? month,
     Map<String, dynamic>? query,
   }) async {
-    final rows = await monthList(query: query);
+    final rows = await monthList(year: year, month: month, query: query);
     return List<KlasMonthlyScheduleItem>.unmodifiable(
       rows.map((row) => KlasMonthlyScheduleItem.fromJson(row.raw)),
     );
   }
 
-  Future<List<KlasRecord>> monthTable({Map<String, dynamic>? query}) {
-    return array('attendance.mySchdulMonthTableList', payload: query);
+  /// 월간 일정 테이블 원본 목록을 조회합니다.
+  ///
+  /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
+  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  Future<List<KlasRecord>> monthTable({
+    int? year,
+    int? month,
+    Map<String, dynamic>? query,
+  }) {
+    return array(
+      'attendance.mySchdulMonthTableList',
+      payload: _resolveMonthlyScheduleQuery(
+        year: year,
+        month: month,
+        query: query,
+      ),
+    );
   }
 
   /// 월간 일정 테이블을 고수준 모델로 조회합니다.
   Future<List<KlasMonthlyScheduleTableItem>> listMonthlyScheduleTableItems({
+    int? year,
+    int? month,
     Map<String, dynamic>? query,
   }) async {
-    final rows = await monthTable(query: query);
+    final rows = await monthTable(year: year, month: month, query: query);
     return List<KlasMonthlyScheduleTableItem>.unmodifiable(
       rows.map((row) => KlasMonthlyScheduleTableItem.fromJson(row.raw)),
     );
@@ -938,8 +972,23 @@ final class KlasFrameFeature extends _UserFeatureBase {
     return object('frame.stdHome', payload: query);
   }
 
-  Future<KlasRecord> scheduleSummary({Map<String, dynamic>? query}) {
-    return object('frame.schdulStdList', payload: query);
+  /// 월별 일정 요약을 조회합니다.
+  ///
+  /// 최근 배포에서는 `schdulYear`, `schdulMonth`를 요구하는 경우가 있어
+  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  Future<KlasRecord> scheduleSummary({
+    int? year,
+    int? month,
+    Map<String, dynamic>? query,
+  }) {
+    return object(
+      'frame.schdulStdList',
+      payload: _resolveMonthlyScheduleQuery(
+        year: year,
+        month: month,
+        query: query,
+      ),
+    );
   }
 
   Future<KlasRecord> gyojikExamCheck({Map<String, dynamic>? query}) {
@@ -960,6 +1009,25 @@ Map<String, dynamic> _recordMap(Object? value) {
     return value.cast<String, dynamic>();
   }
   return <String, dynamic>{'value': value};
+}
+
+Map<String, dynamic> _resolveMonthlyScheduleQuery({
+  required int? year,
+  required int? month,
+  required Map<String, dynamic>? query,
+}) {
+  final payload = <String, dynamic>{if (query != null) ...query};
+  if (year != null) {
+    payload['schdulYear'] = year;
+  }
+  if (month != null) {
+    payload['schdulMonth'] = month;
+  }
+
+  final now = DateTime.now();
+  payload.putIfAbsent('schdulYear', () => now.year);
+  payload.putIfAbsent('schdulMonth', () => now.month);
+  return payload;
 }
 
 (String?, String?) _parseCourseLabel(String? source) {

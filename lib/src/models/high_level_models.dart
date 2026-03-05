@@ -745,6 +745,7 @@ final class KlasMonthlyScheduleItem {
       raw: json,
       scheduleId: _readNormalizedString(json, const <String>[
         'schdulNo',
+        'schdulId',
         'scheduleId',
         'id',
       ]),
@@ -758,12 +759,17 @@ final class KlasMonthlyScheduleItem {
       date: _readNormalizedString(json, const <String>[
         'date',
         'schdulDate',
+        'schdulDt',
+        'chkdate',
+        'started',
         'startDate',
       ]),
       status: _readNormalizedString(json, const <String>[
         'status',
         'state',
         'attendStatus',
+        'typeNm',
+        'schdulTime',
       ]),
     );
   }
@@ -788,19 +794,27 @@ final class KlasMonthlyScheduleTableItem {
   });
 
   factory KlasMonthlyScheduleTableItem.fromJson(Map<String, dynamic> json) {
+    final dayRaw = _readNormalizedString(json, const <String>[
+      'day',
+      'dayNo',
+      'dayOfMonth',
+      'daynum',
+      'schdulDt',
+      'chkdate',
+      'started',
+    ]);
+    final weekdayRaw = _readNormalizedString(json, const <String>[
+      'weekday',
+      'dayNm',
+      'yoil',
+      'yoilNm',
+      'dayname',
+    ]);
+
     return KlasMonthlyScheduleTableItem(
       raw: json,
-      dayOfMonth: _readNormalizedString(json, const <String>[
-        'day',
-        'dayNo',
-        'dayOfMonth',
-      ]),
-      weekday: _readNormalizedString(json, const <String>[
-        'weekday',
-        'dayNm',
-        'yoil',
-        'yoilNm',
-      ]),
+      dayOfMonth: _normalizeDayOfMonth(dayRaw),
+      weekday: _toWeekdayLabel(weekdayRaw),
       title: _readNormalizedString(json, const <String>[
         'title',
         'schdulTitle',
@@ -812,6 +826,8 @@ final class KlasMonthlyScheduleTableItem {
         'status',
         'state',
         'attendStatus',
+        'typeNm',
+        'schdulTime',
       ]),
     );
   }
@@ -1519,6 +1535,34 @@ String? _joinScheduleRange(String? startTime, String? endTime) {
     return null;
   }
   return '$start-$end';
+}
+
+String? _normalizeDayOfMonth(String? value) {
+  if (value == null) {
+    return null;
+  }
+
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+
+  final compactMatch = RegExp(r'^\d{8,14}$').firstMatch(trimmed);
+  if (compactMatch != null) {
+    return trimmed.substring(6, 8);
+  }
+
+  final isoMatch = RegExp(r'^\d{4}-\d{2}-(\d{2})').firstMatch(trimmed);
+  if (isoMatch != null) {
+    return isoMatch.group(1);
+  }
+
+  final dayOnly = int.tryParse(trimmed);
+  if (dayOnly != null) {
+    return dayOnly.toString().padLeft(2, '0');
+  }
+
+  return trimmed;
 }
 
 int _compareWeekdayLabels(String a, String b) {

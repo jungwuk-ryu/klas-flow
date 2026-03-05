@@ -19,7 +19,11 @@ print(status.raw);
 
 ```dart
 final home = await user.frame.homeOverview();
-final schdul = await user.frame.scheduleSummary();
+final now = DateTime.now();
+final schdul = await user.frame.scheduleSummary(
+  year: now.year,
+  month: now.month,
+);
 final examCheck = await user.frame.gyojikExamCheck();
 ```
 
@@ -54,4 +58,3 @@ print(captcha.bytes.length);
 로그인 UX를 직접 제어해야 하는 앱에서 활용합니다.
 
 다음: [13. 오류 처리와 운영 패턴](13-error-handling-patterns.md)
-
