@@ -232,6 +232,9 @@ void main() {
         await user.enrollment.listDepartments();
         await user.enrollment.lecturePlanStopFlag();
         await user.enrollment.listTimetable();
+        await user.enrollment.listTimetableEntries();
+        await user.enrollment.timetable();
+        await user.timetable();
 
         await user.attendance.listSubjects();
         await user.attendance.monthList();

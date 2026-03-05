@@ -112,6 +112,11 @@ final class KlasUser {
     return items.first;
   }
 
+  /// 학기 시간표를 조회합니다.
+  Future<KlasTimetable> timetable({Map<String, dynamic>? query}) {
+    return enrollment.timetable(query: query);
+  }
+
   /// 내부 캐시를 초기화합니다.
   void clearCache() {
     _cachedPersonalInfo = null;
@@ -667,6 +672,22 @@ final class KlasEnrollmentFeature extends _UserFeatureBase {
 
   Future<List<KlasRecord>> listTimetable({Map<String, dynamic>? query}) {
     return array('enrollment.timetableStdList', payload: query);
+  }
+
+  /// 학기 시간표 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasTimetableEntry>> listTimetableEntries({
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listTimetable(query: query);
+    return List<KlasTimetableEntry>.unmodifiable(
+      rows.map((row) => KlasTimetableEntry.fromJson(row.raw)),
+    );
+  }
+
+  /// 학기 시간표를 조회합니다.
+  Future<KlasTimetable> timetable({Map<String, dynamic>? query}) async {
+    final rows = await listTimetable(query: query);
+    return KlasTimetable.fromRows(rows.map((row) => row.raw));
   }
 }
 

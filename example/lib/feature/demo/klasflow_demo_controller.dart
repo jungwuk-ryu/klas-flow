@@ -61,6 +61,7 @@ class KlasflowDemoController extends ChangeNotifier {
   String? _courseScheduleText;
   KlasBoardList? _noticeBoard;
   KlasBoardList? _materialBoard;
+  KlasTimetable? _semesterTimetable;
   KlasHealthReport? _healthReport;
 
   final Map<String, DemoActionResult> _actionResultById =
@@ -85,6 +86,7 @@ class KlasflowDemoController extends ChangeNotifier {
   String? get courseScheduleText => _courseScheduleText;
   KlasBoardList? get noticeBoard => _noticeBoard;
   KlasBoardList? get materialBoard => _materialBoard;
+  KlasTimetable? get semesterTimetable => _semesterTimetable;
   KlasHealthReport? get healthReport => _healthReport;
   String? get runningActionId => _runningActionId;
 
@@ -310,6 +312,19 @@ class KlasflowDemoController extends ChangeNotifier {
       action: () async {
         final record = await _requireUser().frame.scheduleSummary();
         return record;
+      },
+    );
+  }
+
+  /// `user.timetable()`를 실행한다.
+  Future<void> loadEnrollmentTimetable() async {
+    await _runAction(
+      id: 'user.enrollment.timetable',
+      title: '학기 시간표 조회',
+      action: () async {
+        final timetable = await _requireUser().timetable();
+        _semesterTimetable = timetable;
+        return timetable;
       },
     );
   }
@@ -706,6 +721,7 @@ class KlasflowDemoController extends ChangeNotifier {
     _courseScheduleText = null;
     _noticeBoard = null;
     _materialBoard = null;
+    _semesterTimetable = null;
     _healthReport = null;
     _actionResultById.clear();
     _runningActionId = null;
@@ -753,6 +769,35 @@ class KlasflowDemoController extends ChangeNotifier {
             .take(5)
             .map((post) => post.raw)
             .toList(growable: false),
+      };
+    }
+    if (value is KlasTimetable) {
+      return <String, Object?>{
+        'count': value.entries.length,
+        'items': value.entries
+            .map(
+              (entry) => <String, Object?>{
+                'subjectName': entry.subjectName,
+                'professorName': entry.professorName,
+                'dayOfWeek': entry.dayOfWeek,
+                'startTime': entry.startTime,
+                'endTime': entry.endTime,
+                'periodText': entry.periodText,
+                'classroom': entry.classroom,
+              },
+            )
+            .toList(growable: false),
+      };
+    }
+    if (value is KlasTimetableEntry) {
+      return <String, Object?>{
+        'subjectName': value.subjectName,
+        'professorName': value.professorName,
+        'dayOfWeek': value.dayOfWeek,
+        'startTime': value.startTime,
+        'endTime': value.endTime,
+        'periodText': value.periodText,
+        'classroom': value.classroom,
       };
     }
     if (value is KlasTask) {

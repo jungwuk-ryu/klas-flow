@@ -57,6 +57,10 @@ final class KlasRepository {
     }
     return course.listTasks(page: 0);
   }
+
+  Future<KlasTimetable> loadTimetable(KlasUser user) {
+    return user.timetable();
+  }
 }
 ```
 

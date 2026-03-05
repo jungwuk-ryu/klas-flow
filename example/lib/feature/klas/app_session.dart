@@ -10,6 +10,7 @@ class KlasAppSession {
   KlasUserProfile profile;
   KlasPersonalInfo personalInfo;
   List<KlasCourse> courses;
+  KlasTimetable? _cachedTimetable;
 
   KlasAppSession({
     required this.client,
@@ -24,6 +25,20 @@ class KlasAppSession {
     profile = await user.profile(refresh: true);
     personalInfo = await user.personalInfo(refresh: true);
     courses = await user.courses(refresh: true);
+    if (_cachedTimetable != null) {
+      _cachedTimetable = await user.timetable();
+    }
+  }
+
+  /// 학기 시간표를 조회한다.
+  Future<KlasTimetable> loadTimetable({bool refresh = false}) async {
+    if (!refresh && _cachedTimetable != null) {
+      return _cachedTimetable!;
+    }
+
+    final loaded = await user.timetable();
+    _cachedTimetable = loaded;
+    return loaded;
   }
 
   /// 앱 로그아웃 시 클라이언트를 정리한다.

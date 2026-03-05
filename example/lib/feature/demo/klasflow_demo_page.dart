@@ -147,6 +147,13 @@ class _KlasflowDemoPageState extends State<KlasflowDemoPage> {
                     onPressed: _controller.loadFrameScheduleSummary,
                   ),
                   FeatureActionItem(
+                    id: 'user.enrollment.timetable',
+                    title: '학기 시간표 조회',
+                    description: 'user.timetable()',
+                    enabled: true,
+                    onPressed: _controller.loadEnrollmentTimetable,
+                  ),
+                  FeatureActionItem(
                     id: 'user.attendance.listSubjects',
                     title: '출석 과목 목록',
                     description: 'user.attendance.listSubjects()',

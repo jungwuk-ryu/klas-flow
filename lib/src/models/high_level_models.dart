@@ -277,6 +277,156 @@ final class KlasTask {
   }
 }
 
+/// 학기 시간표의 단일 수업 항목입니다.
+final class KlasTimetableEntry {
+  final String? subjectName;
+  final String? professorName;
+  final String? classroom;
+  final String? dayOfWeek;
+  final String? periodText;
+  final String? startTime;
+  final String? endTime;
+  final Map<String, dynamic> raw;
+
+  const KlasTimetableEntry({
+    required this.raw,
+    this.subjectName,
+    this.professorName,
+    this.classroom,
+    this.dayOfWeek,
+    this.periodText,
+    this.startTime,
+    this.endTime,
+  });
+
+  factory KlasTimetableEntry.fromJson(Map<String, dynamic> json) {
+    final periodText = _readNormalizedString(json, const <String>[
+      'lctreTime',
+      'classTime',
+      'periodText',
+      'period',
+      'timeText',
+      'time',
+    ]);
+    final extractedDay = _extractWeekdayFromText(periodText);
+    final extractedRange = _extractTimeRange(periodText);
+
+    final rawDay = _readNormalizedString(json, const <String>[
+      'dayNm',
+      'weekDay',
+      'yoilNm',
+      'yoil',
+      'day',
+    ]);
+
+    return KlasTimetableEntry(
+      raw: json,
+      subjectName: _readNormalizedString(json, const <String>[
+        'subjNm',
+        'subjectName',
+        'gwamokNm',
+        'courseName',
+        'title',
+        'lctreNm',
+        'sbjt',
+      ]),
+      professorName: _readNormalizedString(json, const <String>[
+        'professorName',
+        'prfsrNm',
+        'teacherName',
+        'userNm',
+        'staffNm',
+      ]),
+      classroom: _readNormalizedString(json, const <String>[
+        'room',
+        'classroom',
+        'lecRoom',
+        'lctreRoom',
+        'ganguiSil',
+        'loc',
+      ]),
+      dayOfWeek: _toWeekdayLabel(rawDay ?? extractedDay),
+      periodText: periodText,
+      startTime:
+          _readNormalizedString(json, const <String>[
+            'startTime',
+            'beginTime',
+            'stTime',
+            'startTm',
+            'frTm',
+          ]) ??
+          extractedRange.$1,
+      endTime:
+          _readNormalizedString(json, const <String>[
+            'endTime',
+            'finishTime',
+            'edTime',
+            'endTm',
+            'toTm',
+          ]) ??
+          extractedRange.$2,
+    );
+  }
+
+  /// 표시용 과목명입니다.
+  String get title => subjectName ?? '(과목명 없음)';
+
+  /// 표시용 시간 문자열입니다.
+  String? get scheduleText {
+    final range = _joinScheduleRange(startTime, endTime);
+    final parts = <String?>[
+      if (dayOfWeek?.isNotEmpty == true) dayOfWeek,
+      range,
+      if (range == null && periodText?.isNotEmpty == true) periodText,
+    ].whereType<String>().toList(growable: false);
+    if (parts.isEmpty) {
+      return null;
+    }
+    return parts.join(' ');
+  }
+}
+
+/// 학기 시간표 묶음입니다.
+final class KlasTimetable {
+  final List<KlasTimetableEntry> entries;
+  final List<Map<String, dynamic>> rawRows;
+
+  const KlasTimetable({required this.entries, required this.rawRows});
+
+  factory KlasTimetable.fromRows(Iterable<Map<String, dynamic>> rows) {
+    final copiedRows = rows.map(_copyMap).toList(growable: false);
+    final parsedEntries = copiedRows
+        .map(KlasTimetableEntry.fromJson)
+        .toList(growable: false);
+    return KlasTimetable(
+      entries: List<KlasTimetableEntry>.unmodifiable(parsedEntries),
+      rawRows: List<Map<String, dynamic>>.unmodifiable(copiedRows),
+    );
+  }
+
+  /// 시간표가 비어있는지 여부입니다.
+  bool get isEmpty => entries.isEmpty;
+
+  /// 요일 기준으로 시간표를 그룹화합니다.
+  Map<String, List<KlasTimetableEntry>> get groupedByWeekday {
+    final grouped = <String, List<KlasTimetableEntry>>{};
+    for (final entry in entries) {
+      final day = entry.dayOfWeek ?? '기타';
+      grouped.putIfAbsent(day, () => <KlasTimetableEntry>[]).add(entry);
+    }
+
+    final sortedKeys = grouped.keys.toList(growable: false)
+      ..sort(_compareWeekdayLabels);
+
+    final result = <String, List<KlasTimetableEntry>>{};
+    for (final key in sortedKeys) {
+      final dayEntries = grouped[key]!..sort(_compareTimetableEntry);
+      result[key] = List<KlasTimetableEntry>.unmodifiable(dayEntries);
+    }
+    return Map<String, List<KlasTimetableEntry>>.unmodifiable(result);
+  }
+}
+
 typedef KlasBoardPostDetailResolver =
     Future<KlasBoardPostDetail> Function({
       required int boardNo,
@@ -662,4 +812,149 @@ Map<String, dynamic>? _firstMapByKeys(
 
 String _normalizeFieldKey(String value) {
   return value.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toLowerCase();
+}
+
+Map<String, dynamic> _copyMap(Map<String, dynamic> source) {
+  return Map<String, dynamic>.from(source);
+}
+
+String? _readNormalizedString(Map<String, dynamic> source, List<String> keys) {
+  final normalizedSource = <String, Object?>{};
+  source.forEach((key, value) {
+    normalizedSource[_normalizeFieldKey(key)] = value;
+  });
+
+  for (final key in keys) {
+    final normalizedKey = _normalizeFieldKey(key);
+    final value = normalizedSource[normalizedKey];
+    final text = _toString(value);
+    if (text != null) {
+      return text;
+    }
+  }
+  return null;
+}
+
+String? _extractWeekdayFromText(String? text) {
+  if (text == null) {
+    return null;
+  }
+
+  const weekdays = <String>['월', '화', '수', '목', '금', '토', '일'];
+  for (final day in weekdays) {
+    if (text.contains(day)) {
+      return day;
+    }
+  }
+  return null;
+}
+
+(String?, String?) _extractTimeRange(String? text) {
+  if (text == null) {
+    return (null, null);
+  }
+
+  final pattern = RegExp(r'(\d{1,2}:\d{2})\s*[~-]\s*(\d{1,2}:\d{2})');
+  final match = pattern.firstMatch(text);
+  if (match == null) {
+    return (null, null);
+  }
+  return (match.group(1), match.group(2));
+}
+
+String? _toWeekdayLabel(String? source) {
+  if (source == null) {
+    return null;
+  }
+
+  final trimmed = source.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+
+  final lowered = trimmed.toLowerCase();
+  if (lowered.contains('월') || lowered.contains('mon')) {
+    return '월';
+  }
+  if (lowered.contains('화') || lowered.contains('tue')) {
+    return '화';
+  }
+  if (lowered.contains('수') || lowered.contains('wed')) {
+    return '수';
+  }
+  if (lowered.contains('목') || lowered.contains('thu')) {
+    return '목';
+  }
+  if (lowered.contains('금') || lowered.contains('fri')) {
+    return '금';
+  }
+  if (lowered.contains('토') || lowered.contains('sat')) {
+    return '토';
+  }
+  if (lowered.contains('일') || lowered.contains('sun')) {
+    return '일';
+  }
+
+  final number = int.tryParse(trimmed);
+  if (number != null) {
+    return switch (number) {
+      1 => '월',
+      2 => '화',
+      3 => '수',
+      4 => '목',
+      5 => '금',
+      6 => '토',
+      7 => '일',
+      _ => trimmed,
+    };
+  }
+
+  return trimmed;
+}
+
+String? _joinScheduleRange(String? startTime, String? endTime) {
+  final start = startTime?.trim();
+  final end = endTime?.trim();
+  if (start == null || start.isEmpty || end == null || end.isEmpty) {
+    return null;
+  }
+  return '$start-$end';
+}
+
+int _compareWeekdayLabels(String a, String b) {
+  final orderA = _weekdayOrder(a);
+  final orderB = _weekdayOrder(b);
+  if (orderA != orderB) {
+    return orderA.compareTo(orderB);
+  }
+  return a.compareTo(b);
+}
+
+int _weekdayOrder(String day) {
+  return switch (day) {
+    '월' => 1,
+    '화' => 2,
+    '수' => 3,
+    '목' => 4,
+    '금' => 5,
+    '토' => 6,
+    '일' => 7,
+    _ => 99,
+  };
+}
+
+int _compareTimetableEntry(KlasTimetableEntry a, KlasTimetableEntry b) {
+  final startA = a.startTime ?? '';
+  final startB = b.startTime ?? '';
+  if (startA != startB) {
+    return startA.compareTo(startB);
+  }
+
+  final periodA = a.periodText ?? '';
+  final periodB = b.periodText ?? '';
+  if (periodA != periodB) {
+    return periodA.compareTo(periodB);
+  }
+
+  return a.title.compareTo(b.title);
 }

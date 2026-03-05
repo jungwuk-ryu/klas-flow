@@ -128,7 +128,21 @@ print('수시퀴즈=${quizzes.length}');
 print('토론=${discussions.length}');
 ```
 
-### 5) 클라이언트 헬스체크/하트비트
+### 5) 학기 시간표 조회 (고수준)
+
+```dart
+final timetable = await user.timetable();
+
+for (final entry in timetable.entries) {
+  print('${entry.title} | ${entry.scheduleText ?? '-'} | ${entry.classroom ?? '-'}');
+}
+
+for (final day in timetable.groupedByWeekday.entries) {
+  print('[${day.key}] ${day.value.length}개 수업');
+}
+```
+
+### 6) 클라이언트 헬스체크/하트비트
 
 ```dart
 client.startSessionHeartbeat(
@@ -155,6 +169,9 @@ print('health passed=${report.allPassed} failed=${report.failedCount}');
 - `KlasBoardPostSummary.getPost(...)`
 - `KlasCourse.materialBoard.*`
 - `KlasCourse.learning.*`
+- `KlasUser.timetable(...)`
+- `KlasEnrollmentFeature.listTimetableEntries(...)`
+- `KlasEnrollmentFeature.timetable(...)`
 - `KlasFileFeature.listByAttachId(...)`
 - `KlasFileFeature.download(...)`
 - `KlasAttachedFile.download(...)`

@@ -44,6 +44,8 @@ class ActionResultVisualContent extends StatelessWidget {
           title: '일정 요약',
           icon: Icons.calendar_month_outlined,
         );
+      case 'user.enrollment.timetable':
+        return _buildSemesterTimetable(map);
       case 'course.overview':
         return _buildRecordSummary(
           map,
@@ -518,6 +520,42 @@ class ActionResultVisualContent extends StatelessWidget {
           trailing: status == null
               ? null
               : _StatusBadge(text: status, tone: _toneFromStatus(status)),
+        );
+      },
+    );
+  }
+
+  Widget _buildSemesterTimetable(Map<String, Object?> payload) {
+    final items = _toMapList(payload['items']);
+    final count = _pickInt(payload, const ['count']) ?? items.length;
+    return _buildCountList(
+      icon: Icons.table_chart_outlined,
+      title: '학기 시간표',
+      count: count,
+      items: items,
+      tileBuilder: (item) {
+        final subject =
+            _pickString(item, const ['subjectName', 'subjNm', 'courseName']) ??
+            '(과목명 없음)';
+        final professor = _pickString(item, const ['professorName', 'prfsrNm']);
+        final day = _pickString(item, const ['dayOfWeek', 'dayNm', 'yoilNm']);
+        final start = _pickString(item, const ['startTime', 'stTime']);
+        final end = _pickString(item, const ['endTime', 'edTime']);
+        final period = _pickString(item, const ['periodText', 'lctreTime']);
+        final classroom = _pickString(item, const ['classroom', 'room']);
+        return _ResultTile(
+          icon: Icons.schedule_outlined,
+          title: subject,
+          subtitle: _join(<String?>[
+            if (day != null || start != null || end != null)
+              [
+                day,
+                if (start != null && end != null) '$start-$end',
+              ].whereType<String>().join(' '),
+            if (day == null && period != null) period,
+            professor,
+            classroom,
+          ]),
         );
       },
     );
