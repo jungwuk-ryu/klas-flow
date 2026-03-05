@@ -764,6 +764,16 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     return array('attendance.kwAttendStdGwakmokList', payload: query);
   }
 
+  /// 출석 관리 과목 목록을 고수준 모델로 조회합니다.
+  Future<List<KlasAttendanceSubject>> listSubjectItems({
+    Map<String, dynamic>? query,
+  }) async {
+    final rows = await listSubjects(query: query);
+    return List<KlasAttendanceSubject>.unmodifiable(
+      rows.map((row) => KlasAttendanceSubject.fromJson(row.raw)),
+    );
+  }
+
   Future<List<KlasRecord>> monthList({Map<String, dynamic>? query}) {
     return array('attendance.mySchdulMonthList', payload: query);
   }
