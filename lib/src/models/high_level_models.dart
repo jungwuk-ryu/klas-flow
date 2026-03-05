@@ -413,6 +413,7 @@ final class KlasAttachedFile {
       ),
       fileSn: _toString(json['fileSn'] ?? json['sn']),
       fileName: _toString(
+        // 파일명 키는 구형/신형 배포가 혼재해서 여러 후보를 함께 본다.
         json['fileName'] ??
             json['orignlFileNm'] ??
             json['originFileNm'] ??

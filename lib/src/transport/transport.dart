@@ -321,6 +321,7 @@ final class KlasTransport {
       return true;
     }
 
+    // 파일 다운로드처럼 바이너리 응답은 텍스트 검사 대상에서 제외한다.
     if (!_isLikelyTextResponse(response)) {
       return false;
     }
@@ -334,6 +335,7 @@ final class KlasTransport {
   }
 
   String _decodeText(http.Response response) {
+    // 일부 응답은 인코딩이 깨져도 본문 키워드 확인은 가능해야 한다.
     return utf8.decode(response.bodyBytes, allowMalformed: true);
   }
 

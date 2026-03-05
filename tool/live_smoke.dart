@@ -73,6 +73,7 @@ Future<void> main() async {
     var discussionCourse = course;
     var discussions = await discussionCourse.learning.listDiscussions(page: 0);
 
+    // 기본 과목에 데이터가 없을 수 있어, 카테고리별로 데이터가 있는 과목을 다시 찾는다.
     if (tasks.isEmpty) {
       final found = await _findCourseWithItems<KlasTask>(
         courses: courses,
@@ -361,6 +362,7 @@ Future<void> _verifyLearning({
   late final List<KlasRecord> onlineTestStatus;
   late final List<KlasRecord> quizStatus;
   if (_sameCourse(onlineTestCourse, quizCourse)) {
+    // 시험/퀴즈 과목이 같으면 학습현황 API를 한 번만 호출해 재사용한다.
     final shared = await _safeRecordList(
       label: '학습현황(testAndQuizStatus:${_courseTag(onlineTestCourse)})',
       loader: () => onlineTestCourse.learning.testAndQuizStatus(),

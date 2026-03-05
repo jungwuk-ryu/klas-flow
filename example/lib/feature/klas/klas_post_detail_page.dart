@@ -61,6 +61,7 @@ class _KlasPostDetailPageState extends State<KlasPostDetailPage> {
       String? fallbackBody;
       final boardRaw = _extractBoardRaw(detail);
       final extracted = _pickBodyText(boardRaw);
+      // JSON 상세 본문이 비어 있으면, 실제 페이지 HTML에서 한 번 더 본문을 추출한다.
       if ((extracted == null || extracted.trim().isEmpty) &&
           widget.pageLoader != null) {
         final pageSource = await widget.pageLoader!(boardNo);
@@ -73,10 +74,12 @@ class _KlasPostDetailPageState extends State<KlasPostDetailPage> {
         detail.raw,
         widget.summary.raw,
       ]);
+      // 게시글/상세/목록 중 어디에 첨부 식별자가 있든 동작하도록 후보를 함께 본다.
       if (attachId != null && widget.attachmentsLoader != null) {
         try {
           attachedFiles = await widget.attachmentsLoader!(attachId);
         } catch (_) {
+          // 첨부 목록 조회가 실패해도 본문 표시는 계속 진행한다.
           attachedFiles = const <KlasAttachedFile>[];
         }
       }

@@ -705,6 +705,7 @@ final class KlasFileFeature extends _UserFeatureBase {
         ? 'CLS_BOARD'
         : storageIdRaw;
 
+    // 서버 배포 버전에 따라 요청 키가 다르게 동작해서, 관측된 조합을 순차 시도한다.
     final attempts = <Map<String, dynamic>>[
       <String, dynamic>{
         ...baseQuery,
@@ -736,6 +737,7 @@ final class KlasFileFeature extends _UserFeatureBase {
       }
     }
 
+    // API는 성공(200)인데 빈 배열을 주는 경우가 있어, 이 경우는 정상 빈 결과로 처리한다.
     if (hadSuccessfulCall) {
       return const <KlasAttachedFile>[];
     }

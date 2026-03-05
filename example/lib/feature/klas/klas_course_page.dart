@@ -474,6 +474,7 @@ class _LearningSection extends StatelessWidget {
               const Text('데이터가 없습니다.')
             else
               ...rows.take(6).map((row) {
+                // KLAS 응답은 화면/기능마다 제목 키가 달라서 후보 키를 순차 탐색한다.
                 final titleText =
                     _pickRecordText(row, const <String>[
                       'title',
@@ -494,6 +495,7 @@ class _LearningSection extends StatelessWidget {
                       'name',
                     ]) ??
                     '(제목 없음)';
+                // 상태값도 submit/progress/examtype 등 다양한 키로 내려올 수 있다.
                 final statusText = _pickRecordText(row, const <String>[
                   'status',
                   'state',
