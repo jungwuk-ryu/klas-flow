@@ -71,6 +71,7 @@ flutter run
 $env:KLAS_ID="<id>"
 $env:KLAS_PASSWORD="<password>"
 dart run tool/live_account_scenarios.dart
+dart run tool/live_smoke.dart
 ```
 
 ## Quality / Safety Commands

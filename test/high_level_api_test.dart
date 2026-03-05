@@ -247,6 +247,108 @@ void main() {
       expect(board.posts.first.title, equals('중간고사 공지'));
       expect(board.page?.totalPages, equals(2));
     });
+
+    test(
+      'noticeBoard getPost preloads page and parses wrapped detail payload',
+      () async {
+        var pageOpened = false;
+
+        final mock = MockClient((request) async {
+          switch (request.url.path) {
+            case '/usr/cmn/login/LoginSecurity.do':
+              return _jsonResponse({
+                'data': {
+                  'publicKeyModulus': _modulus,
+                  'publicKeyExponent': '10001',
+                  'loginToken': 'nonce-1',
+                },
+              });
+            case '/usr/cmn/login/LoginCaptcha.do':
+              return http.Response('OK', 200);
+            case '/usr/cmn/login/LoginConfirm.do':
+              return _jsonResponse({'success': true});
+            case '/std/cmn/frame/KlasStop.do':
+              return _utf8TextResponse(
+                '<html><head><title>KLAS</title></head></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+              return _jsonResponse({
+                'data': [
+                  {
+                    'selectYearhakgi': '20261',
+                    'selectSubj': 'CSE101',
+                    'selectChangeYn': 'Y',
+                    'isDefault': true,
+                    'subjectName': '자료구조 - 김교수',
+                  },
+                ],
+              });
+            case '/api/v1/session/info':
+              return _jsonResponse({'authenticated': true});
+            case '/std/lis/sport/d052b8f845784c639f036b102fdc3023/BoardViewStdPage.do':
+              final body = request.bodyFields;
+              expect(body['cmd'], equals('select'));
+              expect(body['boardNo'], equals('1'));
+              expect(body['selectYearhakgi'], equals('20261'));
+              expect(body['selectSubj'], equals('CSE101'));
+              pageOpened = true;
+              return _utf8TextResponse(
+                '<html><body>ok</body></html>',
+                200,
+                headers: {'content-type': 'text/html; charset=utf-8'},
+              );
+            case '/std/lis/sport/d052b8f845784c639f036b102fdc3023/BoardStdView.do':
+              final body = jsonDecode(request.body) as Map<String, dynamic>;
+              expect(body['cmd'], equals('select'));
+              expect(body['boardNo'], equals('1'));
+              expect(body['searchMasterNo'], equals('1'));
+              expect(body['masterNo'], equals('1'));
+              expect(body['searchCondition'], equals('ALL'));
+              expect(body['searchKeyword'], equals(''));
+              expect(body['currentPage'], equals('1'));
+              expect(body['selectYearhakgi'], equals('20261'));
+              expect(body['selectSubj'], equals('CSE101'));
+              expect(body['selectChangeYn'], equals('Y'));
+              expect(pageOpened, isTrue);
+              return _jsonResponse({
+                'data': {
+                  'detail': {
+                    'boardNo': 1,
+                    'content': '<p>본문 테스트</p>',
+                    'userNm': '김교수',
+                  },
+                  'previous': {'boardNo': 0},
+                  'next': {'boardNo': 2},
+                  'comments': [
+                    {'cn': '댓글 테스트'},
+                  ],
+                },
+              });
+            default:
+              return http.Response('Not Found', 404);
+          }
+        });
+
+        final client = KlasClient(
+          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+          httpClient: mock,
+        );
+        addTearDown(client.close);
+
+        final user = await client.login('test-user', 'test-password');
+        final course = (await user.defaultCourse())!;
+        final detail = await course.noticeBoard.getPost(boardNo: 1);
+
+        expect(pageOpened, isTrue);
+        expect(detail.board?.raw['boardNo'], equals(1));
+        expect(detail.board?.raw['content'], equals('<p>본문 테스트</p>'));
+        expect(detail.previous?.raw['boardNo'], equals(0));
+        expect(detail.next?.raw['boardNo'], equals(2));
+        expect(detail.comments, hasLength(1));
+      },
+    );
   });
 }
 

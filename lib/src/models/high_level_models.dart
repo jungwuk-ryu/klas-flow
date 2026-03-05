@@ -279,6 +279,7 @@ final class KlasTask {
 /// 게시글 목록 요약 항목입니다.
 final class KlasBoardPostSummary {
   final int? boardNo;
+  final int? masterNo;
   final String? title;
   final String? authorName;
   final String? registeredAt;
@@ -288,6 +289,7 @@ final class KlasBoardPostSummary {
   const KlasBoardPostSummary({
     required this.raw,
     this.boardNo,
+    this.masterNo,
     this.title,
     this.authorName,
     this.registeredAt,
@@ -298,6 +300,7 @@ final class KlasBoardPostSummary {
     return KlasBoardPostSummary(
       raw: json,
       boardNo: _toInt(json['boardNo']),
+      masterNo: _toInt(json['masterNo']),
       title: _toString(json['title']),
       authorName: _toString(json['userNm']),
       registeredAt: _toString(json['registDt']),
@@ -353,8 +356,14 @@ final class KlasBoardPostDetail {
   });
 
   factory KlasBoardPostDetail.fromJson(Map<String, dynamic> json) {
+    final envelope = _unwrapBoardDetailEnvelope(json);
+
     final commentItems = <KlasRecord>[];
-    final comments = json['comment'];
+    final comments =
+        envelope['comment'] ??
+        envelope['comments'] ??
+        envelope['reply'] ??
+        envelope['replyList'];
     if (comments is List) {
       for (final item in comments) {
         final mapped = _asMap(item);
@@ -366,15 +375,15 @@ final class KlasBoardPostDetail {
 
     return KlasBoardPostDetail(
       comments: commentItems,
-      board: _asMap(json['board']) == null
+      board: _pickBoardMap(envelope) == null
           ? null
-          : KlasRecord(_asMap(json['board'])!),
-      previous: _asMap(json['boardPre']) == null
+          : KlasRecord(_pickBoardMap(envelope)!),
+      previous: _pickPreviousMap(envelope) == null
           ? null
-          : KlasRecord(_asMap(json['boardPre'])!),
-      next: _asMap(json['boardNex']) == null
+          : KlasRecord(_pickPreviousMap(envelope)!),
+      next: _pickNextMap(envelope) == null
           ? null
-          : KlasRecord(_asMap(json['boardNex'])!),
+          : KlasRecord(_pickNextMap(envelope)!),
       raw: json,
     );
   }
@@ -465,4 +474,88 @@ bool? _toBoolYn(Object? value) {
     }
   }
   return null;
+}
+
+Map<String, dynamic> _unwrapBoardDetailEnvelope(Map<String, dynamic> json) {
+  if (_looksLikeBoardDetailEnvelope(json)) {
+    return json;
+  }
+
+  final candidates = <Object?>[
+    json['data'],
+    json['result'],
+    json['payload'],
+    json['response'],
+  ];
+
+  for (final candidate in candidates) {
+    final mapped = _asMap(candidate);
+    if (mapped == null) {
+      continue;
+    }
+    if (_looksLikeBoardDetailEnvelope(mapped)) {
+      return mapped;
+    }
+  }
+
+  return json;
+}
+
+bool _looksLikeBoardDetailEnvelope(Map<String, dynamic> json) {
+  return json.containsKey('board') ||
+      json.containsKey('boardPre') ||
+      json.containsKey('boardNex') ||
+      json.containsKey('comment') ||
+      json.containsKey('comments') ||
+      json.containsKey('replyList');
+}
+
+Map<String, dynamic>? _pickBoardMap(Map<String, dynamic> envelope) {
+  return _firstMapByKeys(envelope, const <String>[
+    'board',
+    'post',
+    'article',
+    'detail',
+    'detailInfo',
+    'boardInfo',
+    'data',
+  ]);
+}
+
+Map<String, dynamic>? _pickPreviousMap(Map<String, dynamic> envelope) {
+  return _firstMapByKeys(envelope, const <String>[
+    'boardPre',
+    'previous',
+    'prev',
+    'pre',
+  ]);
+}
+
+Map<String, dynamic>? _pickNextMap(Map<String, dynamic> envelope) {
+  return _firstMapByKeys(envelope, const <String>['boardNex', 'next', 'nex']);
+}
+
+Map<String, dynamic>? _firstMapByKeys(
+  Map<String, dynamic> source,
+  List<String> keys,
+) {
+  final normalizedMap = <String, Map<String, dynamic>>{};
+  source.forEach((key, value) {
+    final mapped = _asMap(value);
+    if (mapped != null) {
+      normalizedMap[_normalizeFieldKey(key)] = mapped;
+    }
+  });
+
+  for (final key in keys) {
+    final matched = normalizedMap[_normalizeFieldKey(key)];
+    if (matched != null) {
+      return matched;
+    }
+  }
+  return null;
+}
+
+String _normalizeFieldKey(String value) {
+  return value.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toLowerCase();
 }

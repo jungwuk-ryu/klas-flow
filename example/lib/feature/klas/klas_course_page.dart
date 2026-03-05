@@ -155,8 +155,36 @@ class _KlasCoursePageState extends State<KlasCoursePage> {
                                 builder: (_) => KlasPostDetailPage(
                                   boardTitle: '공지사항',
                                   summary: post,
-                                  loader: (no) => widget.course.noticeBoard
-                                      .getPost(boardNo: no),
+                                  loader: (no) {
+                                    final masterNo = post.masterNo;
+                                    return widget.course.noticeBoard.getPost(
+                                      boardNo: no,
+                                      query: masterNo == null
+                                          ? null
+                                          : <String, dynamic>{
+                                              'searchMasterNo': masterNo
+                                                  .toString(),
+                                            },
+                                    );
+                                  },
+                                  pageLoader: (no) {
+                                    final masterNo = post.masterNo;
+                                    return widget.course.noticeBoard
+                                        .openPostPage(
+                                          boardNo: no,
+                                          query: masterNo == null
+                                              ? null
+                                              : <String, dynamic>{
+                                                  'searchMasterNo': masterNo
+                                                      .toString(),
+                                                },
+                                        );
+                                  },
+                                  attachmentsLoader: (attachId) => widget
+                                      .session
+                                      .user
+                                      .files
+                                      .listByAttachId(attachId: attachId),
                                 ),
                               ),
                             );
@@ -175,8 +203,36 @@ class _KlasCoursePageState extends State<KlasCoursePage> {
                                 builder: (_) => KlasPostDetailPage(
                                   boardTitle: '강의자료실',
                                   summary: post,
-                                  loader: (no) => widget.course.materialBoard
-                                      .getPost(boardNo: no),
+                                  loader: (no) {
+                                    final masterNo = post.masterNo;
+                                    return widget.course.materialBoard.getPost(
+                                      boardNo: no,
+                                      query: masterNo == null
+                                          ? null
+                                          : <String, dynamic>{
+                                              'searchMasterNo': masterNo
+                                                  .toString(),
+                                            },
+                                    );
+                                  },
+                                  pageLoader: (no) {
+                                    final masterNo = post.masterNo;
+                                    return widget.course.materialBoard
+                                        .openPostPage(
+                                          boardNo: no,
+                                          query: masterNo == null
+                                              ? null
+                                              : <String, dynamic>{
+                                                  'searchMasterNo': masterNo
+                                                      .toString(),
+                                                },
+                                        );
+                                  },
+                                  attachmentsLoader: (attachId) => widget
+                                      .session
+                                      .user
+                                      .files
+                                      .listByAttachId(attachId: attachId),
                                 ),
                               ),
                             );

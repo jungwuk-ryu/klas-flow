@@ -368,9 +368,32 @@ abstract base class _BaseBoardFeature extends _CourseFeatureBase {
     String cmd = 'select',
     Map<String, dynamic>? query,
   }) async {
+    // 일부 배포는 상세 JSON 조회 전에 페이지 진입(폼 POST) 히스토리가 필요하다.
+    // preflight 실패는 무시하고 본 조회를 계속 시도한다.
+    try {
+      await executor.callCourseText(
+        pageEndpoint,
+        context: context,
+        payload: _buildBoardPagePayload(
+          boardNo: boardNo,
+          cmd: cmd,
+          query: query,
+        ),
+      );
+    } catch (_) {
+      // no-op
+    }
+
+    final resolvedSearchMasterNo = (query?['searchMasterNo'] ?? searchMasterNo)
+        .toString();
+
     final payload = <String, dynamic>{
       'cmd': cmd,
-      'searchMasterNo': searchMasterNo,
+      'searchMasterNo': resolvedSearchMasterNo,
+      'searchCondition': 'ALL',
+      'searchKeyword': '',
+      'currentPage': '1',
+      'masterNo': resolvedSearchMasterNo,
       'boardNo': boardNo.toString(),
       if (query != null) ...query,
     };
@@ -385,16 +408,43 @@ abstract base class _BaseBoardFeature extends _CourseFeatureBase {
 
   Future<String> openPostPage({
     required int boardNo,
+    String cmd = 'select',
     Map<String, dynamic>? query,
   }) {
     return executor.callCourseText(
       pageEndpoint,
       context: context,
-      payload: <String, dynamic>{
-        'boardNo': boardNo.toString(),
-        if (query != null) ...query,
-      },
+      payload: _buildBoardPagePayload(boardNo: boardNo, cmd: cmd, query: query),
     );
+  }
+
+  Map<String, dynamic> _buildBoardPagePayload({
+    required int boardNo,
+    required String cmd,
+    Map<String, dynamic>? query,
+  }) {
+    final selectedYearhakgi = context.selectYearhakgi;
+    final selectedSubj = context.selectSubj;
+
+    final resolvedSearchMasterNo = (query?['searchMasterNo'] ?? searchMasterNo)
+        .toString();
+
+    return <String, dynamic>{
+      'selectedGrcode': '',
+      'selectedYearhakgi': selectedYearhakgi,
+      'selectedSubj': selectedSubj,
+      'cmd': cmd,
+      'selectYearhakgi': selectedYearhakgi,
+      'selectSubj': selectedSubj,
+      'selectChangeYn': context.selectChangeYn,
+      'searchMasterNo': resolvedSearchMasterNo,
+      'searchCondition': 'ALL',
+      'searchKeyword': '',
+      'currentPage': '1',
+      'masterNo': resolvedSearchMasterNo,
+      'boardNo': boardNo.toString(),
+      if (query != null) ...query,
+    };
   }
 }
 
