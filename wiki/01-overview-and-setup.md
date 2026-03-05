@@ -35,7 +35,7 @@ dependencies:
 dependencies:
   klasflow:
     git:
-      url: https://github.com/<your-org>/klasflow.git
+      url: https://github.com/jungwuk-ryu/klas-flow.git
       ref: main
 ```
 
@@ -63,4 +63,3 @@ Future<void> main() async {
 - 저수준 상세보다 "사용자 -> 과목 -> 기능" 구조를 먼저 익히는 것이 중요합니다.
 
 다음: [02. 로그인과 세션 관리](02-login-and-session.md)
-

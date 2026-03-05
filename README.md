@@ -42,7 +42,7 @@ dependencies:
 dependencies:
   klasflow:
     git:
-      url: https://github.com/<your-org>/klasflow.git
+      url: https://github.com/jungwuk-ryu/klas-flow.git
       ref: main
 ```
 
