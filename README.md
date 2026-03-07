@@ -225,6 +225,7 @@ CI에서도 동일한 규칙으로 커밋 메시지를 검증합니다.
 ## 문서
 
 - [아키텍처](docs/architecture.md)
+- [실 테스트 커버리지](docs/live_feature_coverage.md)
 - [Flutter 연동](docs/flutter_integration.md)
 - [위키 홈 (튜토리얼)](wiki/Home.md)
 - [고수준 API 전체 인덱스](wiki/14-high-level-api-index.md)

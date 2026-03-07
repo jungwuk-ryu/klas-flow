@@ -31,7 +31,11 @@
 - 다룸: `KlasClient`, `KlasUser`, `KlasCourse`, `feature` 객체 기반 고수준 API
 - 간단히만 언급: 내부 저수준 API 매핑/엔드포인트/폼 필드 상세
 
+## 추가 참고
+
+- [고수준 API 전체 인덱스](14-high-level-api-index.md)
+- [실 테스트 커버리지](../docs/live_feature_coverage.md)
+
 ---
 
 질문이 생기면 인덱스 페이지에서 메서드명을 먼저 찾고, 연결된 시나리오 페이지로 이동해 보세요.
-
