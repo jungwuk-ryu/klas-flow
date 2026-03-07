@@ -37,3 +37,12 @@
 - 새 기능을 추가할 때는 이 표에 반드시 행을 추가하고, `자동 테스트`와 `수동 테스트 완료`를 함께 갱신합니다.
 - 수동 테스트를 실제로 완료했다면 날짜, 환경, 계정 범위, 확인 결과를 별도 증빙 문서나 PR 설명에 남긴 뒤 이 표를 `Yes`로 바꿉니다.
 - 증빙 문서가 필요하면 `docs/live_test_evidence_template.md`를 시작점으로 사용합니다.
+
+## Latest Validation Snapshot
+
+| 항목 | 명령 | 결과 | 실행일 |
+|---|---|---|---|
+| Scoped analyze | `dart analyze lib test tool` | Passed | 2026-03-07 |
+| Full unit test suite | `dart test` | Passed | 2026-03-07 |
+| QR attendance targeted tests | `dart test test/high_level_api_test.dart -n 'attendance QR check-in|course.qrCheckIn'` | Passed | 2026-03-07 |
+| High-level coverage | `dart test test/high_level_feature_coverage_test.dart` | Passed | 2026-03-07 |

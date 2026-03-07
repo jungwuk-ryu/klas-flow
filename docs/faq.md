@@ -23,6 +23,13 @@
 
 `docs/live_feature_coverage.md`에서 공개 기능별 자동 테스트/수동 테스트 상태를 확인할 수 있습니다.
 
+## 왜 `dart analyze` 대신 `dart analyze lib test tool`를 쓰나요?
+
+이 저장소에는 Flutter 기반 `example/` 앱이 함께 들어 있습니다.
+라이브러리 품질 게이트는 Dart 라이브러리 본체 기준으로 보는 것이 목적이므로,
+기본 점검은 `dart analyze lib test tool`로 수행합니다.
+Flutter example까지 보고 싶으면 `cd example && flutter analyze`를 별도로 실행합니다.
+
 ## 보안상 주의할 점은?
 
 - 실계정 테스트는 읽기 전용 API만 사용
