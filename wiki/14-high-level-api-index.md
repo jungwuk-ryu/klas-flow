@@ -37,6 +37,8 @@
 | `keepAlive()` | 세션 즉시 연장 | [02](02-login-and-session.md) |
 | `courses(refresh: ...)` | 수강 과목 목록 조회 | [03](03-user-profile-and-courses.md) |
 | `defaultCourse(refresh: ...)` | 기본 과목 선택 | [03](03-user-profile-and-courses.md) |
+| `findCourseById(...)` | 과목 ID로 수강 과목 찾기 | [03](03-user-profile-and-courses.md) |
+| `findCourseByTitle(...)` | 표시 과목명으로 수강 과목 찾기 | [03](03-user-profile-and-courses.md) |
 | `timetable(query: ...)` | 학기 시간표 조회 | [09](09-timetable.md) |
 | `clearCache()` | 사용자 캐시 초기화 | [13](13-error-handling-patterns.md) |
 | `academic` | 학사/성적 기능 진입점 | [10](10-academic-features.md) |

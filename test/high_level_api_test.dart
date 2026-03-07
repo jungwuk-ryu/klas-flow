@@ -907,6 +907,71 @@ void main() {
       expect(result.message, contains('이미 처리되었습니다.'));
     });
 
+    test('user can find course by id and title', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
+                },
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE102',
+                  'selectChangeYn': 'Y',
+                  'isDefault': false,
+                  'subjectName': '운영체제 - 박교수',
+                },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final byId = await user.findCourseById('CSE102');
+      final byTitle = await user.findCourseByTitle('자료구조');
+      final missing = await user.findCourseById('NOPE');
+
+      expect(byId, isNotNull);
+      expect(byId!.title, equals('운영체제'));
+      expect(byTitle, isNotNull);
+      expect(byTitle!.courseId, equals('CSE101'));
+      expect(missing, isNull);
+    });
+
     test('course.qrCheckIn delegates through attendance subject lookup', () async {
       final mock = MockClient((request) async {
         switch (request.url.path) {

@@ -223,6 +223,8 @@ void main() {
 
         await user.sessionStatus();
         await user.keepAlive();
+        await user.findCourseById('CSE101');
+        await user.findCourseByTitle('자료구조');
 
         final courses = await user.courses(refresh: true);
         expect(courses, isNotEmpty);

@@ -112,6 +112,45 @@ final class KlasUser {
     return items.first;
   }
 
+  /// 과목 ID로 수강 과목을 찾습니다.
+  Future<KlasCourse?> findCourseById(
+    String courseId, {
+    bool refresh = false,
+  }) async {
+    final normalized = courseId.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final items = await courses(refresh: refresh);
+    for (final course in items) {
+      if (course.courseId.trim() == normalized) {
+        return course;
+      }
+    }
+    return null;
+  }
+
+  /// 표시 과목명으로 수강 과목을 찾습니다.
+  Future<KlasCourse?> findCourseByTitle(
+    String title, {
+    bool refresh = false,
+  }) async {
+    final normalized = title.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final items = await courses(refresh: refresh);
+    for (final course in items) {
+      final courseTitle = course.title?.trim().toLowerCase();
+      if (courseTitle == normalized) {
+        return course;
+      }
+    }
+    return null;
+  }
+
   /// 학기 시간표를 조회합니다.
   ///
   /// `termId`를 넘기지 않으면 기본 과목의 학기를 사용해

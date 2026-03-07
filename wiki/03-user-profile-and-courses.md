@@ -56,5 +56,17 @@ print(course.courseId);
 - `rawContext`: 원본 컨텍스트
 - `owner`: 이 과목을 소유한 `KlasUser`
 
-다음: [04. 과목 개요와 과제 조회](04-course-overview-and-tasks.md)
+## 6) 과목 ID / 과목명으로 찾기
 
+```dart
+final ds = await user.findCourseById('CSE101');
+final os = await user.findCourseByTitle('운영체제');
+
+print(ds?.title);
+print(os?.courseId);
+```
+
+- 이미 과목 ID를 알고 있을 때는 `findCourseById(...)`
+- 화면 표시용 과목명 기준으로 다시 찾고 싶을 때는 `findCourseByTitle(...)`
+
+다음: [04. 과목 개요와 과제 조회](04-course-overview-and-tasks.md)
