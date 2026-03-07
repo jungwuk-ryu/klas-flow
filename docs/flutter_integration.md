@@ -61,11 +61,17 @@ final class KlasRepository {
   Future<KlasTimetable> loadTimetable(KlasUser user) {
     return user.timetable();
   }
+
+  Future<KlasCourse?> findCourse(KlasUser user, String courseId) {
+    return user.findCourseById(courseId);
+  }
 }
 ```
 
 ## 3) 운영 팁
 
 - 앱 시작 시 로그인 후 `user.courses(refresh: true)`를 호출해 초기 상태를 확정합니다.
+- 특정 과목 화면으로 바로 진입할 때는 `findCourseById(...)`를 먼저 써두면 UI 코드가 단순해집니다.
 - 장시간 화면에서는 `startSessionHeartbeat()`를 사용합니다.
 - 실계정 테스트는 반드시 읽기 전용 API만 사용합니다.
+- `QR 출석`은 상태 변경 기능이므로 일반 demo flow나 실계정 smoke test에 포함하지 않습니다.

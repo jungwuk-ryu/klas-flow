@@ -6,6 +6,7 @@ This folder is a runnable Flutter app that demonstrates:
 - User profile rendering
 - Course list rendering and course switching
 - Task list rendering from `course.listTasks()`
+- Read-only high-level flow examples only
 
 ## Run
 
@@ -46,5 +47,6 @@ flutter run --dart-define=KLAS_BASE_URI=https://your-proxy.example.com
 ## Safety
 
 - Use read-only endpoints only when testing with a real account.
+- State-changing APIs such as QR attendance are intentionally excluded from the demo flow.
 - Never hardcode credentials in source code.
 - Do not log student ID, password, token, or cookie values.
