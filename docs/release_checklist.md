@@ -4,7 +4,10 @@
 
 - 통합 점검: `dart run tool/check_all.dart`
 - `dart pub get`
-- `dart analyze`
+- `dart analyze lib test tool`
+- Flutter example까지 점검할 때만 별도로 실행
+  - `cd example`
+  - `flutter analyze`
 - `dart test`
 - `dart pub outdated`로 주요 의존성 업데이트 가능 여부 점검
 
