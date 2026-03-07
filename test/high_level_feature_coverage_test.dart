@@ -148,6 +148,39 @@ void main() {
                   'content-disposition': 'attachment; filename="demo.pdf"',
                 },
               );
+            case '/std/ads/admst/KwAttendStdGwakmokList.do':
+              return _jsonResponse([
+                {
+                  'thisYear': '2026',
+                  'hakgi': '1',
+                  'openMajorCode': 'CSE',
+                  'openGrade': '3',
+                  'openGwamokNo': '101',
+                  'bunbanNo': '01',
+                  'gwamokKname': '자료구조',
+                  'codeName1': '전공필수',
+                  'hakjumNum': '3',
+                  'sisuNum': '3',
+                  'memberName': '김교수',
+                  'currentNum': '45',
+                  'yoil': '월',
+                  'subj': 'CSE101',
+                  'subjNm': '자료구조',
+                  'prfsrNm': '김교수',
+                  'yearhakgi': '20261',
+                },
+              ]);
+            case '/mst/ads/admst/KwAttendStdAttendList.do':
+              return _jsonResponse([
+                {
+                  'weekNo': '3',
+                  'attendOpenYn': 'Y',
+                },
+              ]);
+            case '/std/lis/evltn/CertiPushSucStd.do':
+              return _jsonResponse({'randomKey': 'rk-1'});
+            case '/mst/ads/admst/KwAttendQRCodeInsert.do':
+              return _jsonResponse({'status': 'ok'});
             default:
               final endpoint = _specByPath(path);
               if (endpoint == null) {
@@ -239,6 +272,15 @@ void main() {
         await user.timetable();
 
         await user.attendance.listSubjects();
+        final attendanceSubjects = await user.attendance.listSubjectItems();
+        await user.attendance.qrCheckInRaw(
+          subject: attendanceSubjects.first,
+          qrCode: 'qr-token',
+        );
+        await user.attendance.qrCheckIn(
+          subject: attendanceSubjects.first,
+          qrCode: 'qr-token',
+        );
         await user.attendance.monthList();
         await user.attendance.monthTable();
 

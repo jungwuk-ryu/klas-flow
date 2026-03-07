@@ -26,7 +26,30 @@ for (final item in monthItems) {
 
 `year`, `month`를 생략하면 현재 연/월이 자동으로 들어갑니다.
 
-## 3) 월간 일정 테이블 (typed)
+## 3) QR 출석 (typed)
+
+```dart
+final subjects = await user.attendance.listSubjectItems();
+if (subjects.isEmpty) return;
+
+final subject = subjects.first;
+final result = await user.attendance.qrCheckIn(
+  subject: subject,
+  qrCode: scannedQrCode,
+);
+
+if (result.accepted) {
+  print('출석 처리 완료');
+} else {
+  print('출석 실패: ${result.message ?? '사유 없음'}');
+}
+```
+
+- `qrCode`는 카메라/스캐너가 읽어낸 문자열입니다.
+- `qrCheckIn(...)`은 초보자용 고수준 API입니다.
+- 고급 사용자가 서버 원본 응답이 필요하면 `qrCheckInRaw(...)`를 사용합니다.
+
+## 4) 월간 일정 테이블 (typed)
 
 ```dart
 final now = DateTime.now();
@@ -39,19 +62,22 @@ for (final row in table) {
 }
 ```
 
-## 4) attendance feature 전체 API
+## 5) attendance feature 전체 API
 
 - `listSubjects()`
 - `listSubjectItems()`
+- `qrCheckIn()`
+- `qrCheckInRaw()`
 - `monthList()`
 - `listMonthlySchedules()`
 - `monthTable()`
 - `listMonthlyScheduleTableItems()`
 
-## 5) UI 구성 추천
+## 6) UI 구성 추천
 
 1. 상단 과목 탭: `listSubjectItems()`
-2. 월 캘린더 점 목록: `listMonthlyScheduleTableItems()`
-3. 하단 상세 리스트: `listMonthlySchedules()`
+2. QR 출석 버튼: `qrCheckIn()`
+3. 월 캘린더 점 목록: `listMonthlyScheduleTableItems()`
+4. 하단 상세 리스트: `listMonthlySchedules()`
 
 다음: [12. 학적/프레임/헬스체크](12-student-record-frame-healthcheck.md)

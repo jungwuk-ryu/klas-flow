@@ -703,25 +703,72 @@ final class KlasAttendanceSubject {
       subjectName: _readNormalizedString(json, const <String>[
         'subjNm',
         'subjectName',
+        'gwamokKname',
         'gwamokNm',
         'courseName',
         'title',
       ]),
       professorName: _readNormalizedString(json, const <String>[
         'prfsrNm',
+        'memberName',
         'professorName',
         'teacherName',
         'userNm',
       ]),
-      termId: _readNormalizedString(json, const <String>[
-        'yearhakgi',
-        'selectYearhakgi',
-        'termId',
-      ]),
+      termId:
+          _readNormalizedString(json, const <String>[
+            'yearhakgi',
+            'selectYearhakgi',
+            'termId',
+          ]) ??
+          _composeAttendanceTermId(json),
     );
   }
 
   String get displayName => subjectName ?? '(과목명 없음)';
+}
+
+/// QR 출석 처리 결과입니다.
+final class KlasQrAttendanceResult {
+  final bool accepted;
+  final List<String> messages;
+  final String? message;
+  final Map<String, dynamic> raw;
+
+  const KlasQrAttendanceResult({
+    required this.accepted,
+    required this.messages,
+    required this.raw,
+    this.message,
+  });
+
+  factory KlasQrAttendanceResult.fromJson(Map<String, dynamic> json) {
+    final messages = <String>[];
+    final fieldErrors = json['fieldErrors'];
+    if (fieldErrors is List) {
+      for (final item in fieldErrors) {
+        if (item is Map) {
+          final rawItem = item.cast<String, dynamic>();
+          final message = _readNormalizedString(rawItem, const <String>[
+            'message',
+            'defaultMessage',
+            'msg',
+          ]);
+          if (message != null && message.trim().isNotEmpty) {
+            messages.add(message.trim());
+          }
+        }
+      }
+    }
+
+    final joined = messages.isEmpty ? null : messages.join(' ').trim();
+    return KlasQrAttendanceResult(
+      accepted: messages.isEmpty,
+      messages: List<String>.unmodifiable(messages),
+      message: joined == null || joined.isEmpty ? null : joined,
+      raw: json,
+    );
+  }
 }
 
 /// 월간 일정 항목입니다.
@@ -1449,6 +1496,15 @@ String? _readNormalizedString(Map<String, dynamic> source, List<String> keys) {
     }
   }
   return null;
+}
+
+String? _composeAttendanceTermId(Map<String, dynamic> source) {
+  final year = _readNormalizedString(source, const <String>['thisYear']);
+  final hakgi = _readNormalizedString(source, const <String>['hakgi']);
+  if (year == null || year.isEmpty || hakgi == null || hakgi.isEmpty) {
+    return null;
+  }
+  return '$year$hakgi';
 }
 
 String? _extractWeekdayFromText(String? text) {

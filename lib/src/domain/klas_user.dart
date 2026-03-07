@@ -828,6 +828,49 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     );
   }
 
+  /// QR 출석 원본 응답을 조회합니다.
+  Future<KlasRecord> qrCheckInRaw({
+    required KlasAttendanceSubject subject,
+    required String qrCode,
+  }) async {
+    final normalizedQrCode = qrCode.trim();
+    if (normalizedQrCode.isEmpty) {
+      throw ArgumentError('qrCode must not be empty.');
+    }
+
+    final payload = await _resolveQrAttendancePayload(subject);
+    final attendanceRows = await array(
+      'attendance.kwAttendStdAttendList',
+      payload: payload,
+    );
+    final attendancePayload = Map<String, dynamic>.from(payload)
+      ..['list'] = attendanceRows.map((row) => row.raw).toList(growable: false);
+
+    final randomKeyResponse = await object(
+      'attendance.certiPushSucStd',
+      payload: attendancePayload,
+    );
+    final randomKey = _requireQrAttendanceString(
+      randomKeyResponse.raw,
+      const <String>['randomKey'],
+      'QR attendance preparation did not return randomKey.',
+    );
+
+    final submitPayload = Map<String, dynamic>.from(attendancePayload)
+      ..['randomKey'] = randomKey
+      ..['encrypt'] = normalizedQrCode;
+    return object('attendance.kwAttendQRCodeInsert', payload: submitPayload);
+  }
+
+  /// QR 출석 처리 결과를 고수준 모델로 조회합니다.
+  Future<KlasQrAttendanceResult> qrCheckIn({
+    required KlasAttendanceSubject subject,
+    required String qrCode,
+  }) async {
+    final result = await qrCheckInRaw(subject: subject, qrCode: qrCode);
+    return KlasQrAttendanceResult.fromJson(result.raw);
+  }
+
   /// 월간 일정 원본 목록을 조회합니다.
   ///
   /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
@@ -889,6 +932,261 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
       rows.map((row) => KlasMonthlyScheduleTableItem.fromJson(row.raw)),
     );
   }
+
+  Future<Map<String, dynamic>> _resolveQrAttendancePayload(
+    KlasAttendanceSubject subject,
+  ) async {
+    final initial = _buildQrAttendancePayload(
+      source: subject.raw,
+      subjectId: subject.subjectId,
+      subjectName: subject.subjectName,
+      termId: subject.termId,
+    );
+    if (initial != null) {
+      return initial;
+    }
+
+    final fallbackRows = await listSubjects(
+      query: _defaultQrAttendanceSubjectQuery(subject.termId),
+    );
+    final matched = _findQrAttendanceSubjectRow(fallbackRows, subject);
+    if (matched == null) {
+      throw QrAttendanceUnavailableException(
+        'QR attendance is not available for ${subject.displayName}.',
+      );
+    }
+
+    final fallback = _buildQrAttendancePayload(
+      source: matched.raw,
+      subjectId: subject.subjectId,
+      subjectName: subject.subjectName,
+      termId: subject.termId,
+    );
+    if (fallback == null) {
+      throw QrAttendanceUnavailableException(
+        'QR attendance payload is incomplete for ${subject.displayName}.',
+      );
+    }
+    return fallback;
+  }
+
+  Map<String, dynamic>? _buildQrAttendancePayload({
+    required Map<String, dynamic> source,
+    required String? subjectId,
+    required String? subjectName,
+    required String? termId,
+  }) {
+    final resolvedSubjectId =
+        _readQrAttendanceValue(source, const <String>[
+          'subj',
+          'subjectId',
+          'selectSubj',
+        ]) ??
+        subjectId;
+    final resolvedSubjectName =
+        _readQrAttendanceValue(source, const <String>[
+          'gwamokKname',
+          'subjNm',
+          'subjectName',
+          'title',
+        ]) ??
+        subjectName;
+    final resolvedYear =
+        _readQrAttendanceValue(source, const <String>[
+          'selectYear',
+          'thisYear',
+        ]) ??
+        _yearFromTermId(termId);
+    final resolvedHakgi =
+        _readQrAttendanceValue(source, const <String>[
+          'selectHakgi',
+          'hakgi',
+        ]) ??
+        _hakgiFromTermId(termId);
+
+    final payload = <String, dynamic>{
+      'list': const <dynamic>[],
+      'selectYear': resolvedYear ?? '',
+      'selectHakgi': resolvedHakgi ?? '',
+      'openMajorCode': _readQrAttendanceValue(
+        source,
+        const <String>['openMajorCode'],
+      ),
+      'openGrade': _readQrAttendanceValue(source, const <String>['openGrade']),
+      'openGwamokNo': _readQrAttendanceValue(
+        source,
+        const <String>['openGwamokNo'],
+      ),
+      'bunbanNo': _readQrAttendanceValue(source, const <String>['bunbanNo']),
+      'gwamokKname': resolvedSubjectName ?? '',
+      'codeName1': _readQrAttendanceValue(source, const <String>['codeName1']),
+      'hakjumNum': _readQrAttendanceValue(source, const <String>['hakjumNum']),
+      'sisuNum': _readQrAttendanceValue(source, const <String>['sisuNum']),
+      'memberName': _readQrAttendanceValue(
+        source,
+        const <String>['memberName', 'prfsrNm'],
+      ),
+      'currentNum': _readQrAttendanceValue(
+        source,
+        const <String>['currentNum'],
+      ),
+      'yoil': _readQrAttendanceValue(source, const <String>['yoil']),
+      'subj': resolvedSubjectId ?? '',
+    };
+
+    for (final key in const <String>[
+      'selectYear',
+      'selectHakgi',
+      'openMajorCode',
+      'openGrade',
+      'openGwamokNo',
+      'bunbanNo',
+      'gwamokKname',
+      'codeName1',
+      'hakjumNum',
+      'sisuNum',
+      'memberName',
+      'currentNum',
+      'yoil',
+      'subj',
+    ]) {
+      final value = payload[key];
+      if (value is! String || value.trim().isEmpty) {
+        return null;
+      }
+    }
+
+    return payload;
+  }
+
+  KlasRecord? _findQrAttendanceSubjectRow(
+    List<KlasRecord> rows,
+    KlasAttendanceSubject subject,
+  ) {
+    for (final row in rows) {
+      final rowSubjectId = _readQrAttendanceValue(row.raw, const <String>[
+        'subj',
+        'subjectId',
+        'selectSubj',
+      ]);
+      final rowSubjectName = _readQrAttendanceValue(row.raw, const <String>[
+        'gwamokKname',
+        'subjNm',
+        'subjectName',
+      ]);
+      final rowTermId =
+          _readQrAttendanceValue(row.raw, const <String>[
+            'yearhakgi',
+            'selectYearhakgi',
+          ]) ??
+          _composeQrAttendanceTermId(row.raw);
+
+      if (_isSameQrAttendanceValue(rowSubjectId, subject.subjectId) &&
+          (subject.termId == null ||
+              rowTermId == null ||
+              _isSameQrAttendanceValue(rowTermId, subject.termId))) {
+        return row;
+      }
+
+      if (_isSameQrAttendanceValue(rowSubjectName, subject.subjectName) &&
+          (subject.termId == null ||
+              rowTermId == null ||
+              _isSameQrAttendanceValue(rowTermId, subject.termId))) {
+        return row;
+      }
+    }
+    return null;
+  }
+}
+
+Map<String, dynamic> _defaultQrAttendanceSubjectQuery(String? termId) {
+  final now = DateTime.now();
+  final year = _yearFromTermId(termId) ?? now.year.toString();
+  final hakgi = _hakgiFromTermId(termId) ?? (now.month <= 6 ? '1' : '2');
+  return <String, dynamic>{
+    'list': const <dynamic>[],
+    'selectYear': year,
+    'selectHakgi': hakgi,
+    'openMajorCode': '',
+    'openGrade': '',
+    'openGwamokNo': '',
+    'bunbanNo': '',
+    'gwamokKname': '',
+    'codeName1': '',
+    'hakjumNum': '',
+    'sisuNum': '',
+    'memberName': '',
+    'currentNum': '',
+    'yoil': '',
+  };
+}
+
+String? _readQrAttendanceValue(
+  Map<String, dynamic> source,
+  List<String> candidateKeys,
+) {
+  for (final key in candidateKeys) {
+    final value = source[key];
+    if (value == null) {
+      continue;
+    }
+    final normalized = value.toString().trim();
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+String _requireQrAttendanceString(
+  Map<String, dynamic> source,
+  List<String> candidateKeys,
+  String message,
+) {
+  final value = _readQrAttendanceValue(source, candidateKeys);
+  if (value == null) {
+    throw ParsingException(message);
+  }
+  return value;
+}
+
+String? _composeQrAttendanceTermId(Map<String, dynamic> source) {
+  final year = _readQrAttendanceValue(source, const <String>['thisYear']);
+  final hakgi = _readQrAttendanceValue(source, const <String>['hakgi']);
+  if (year == null || hakgi == null) {
+    return null;
+  }
+  return '$year$hakgi';
+}
+
+String? _yearFromTermId(String? termId) {
+  if (termId == null) {
+    return null;
+  }
+  final normalized = termId.trim();
+  if (normalized.length < 4) {
+    return null;
+  }
+  return normalized.substring(0, 4);
+}
+
+String? _hakgiFromTermId(String? termId) {
+  if (termId == null) {
+    return null;
+  }
+  final normalized = termId.trim();
+  if (normalized.length < 5) {
+    return null;
+  }
+  final suffix = normalized.substring(4);
+  return suffix.isEmpty ? null : suffix;
+}
+
+bool _isSameQrAttendanceValue(String? left, String? right) {
+  if (left == null || right == null) {
+    return false;
+  }
+  return left.trim() == right.trim();
 }
 
 /// 학적 feature입니다.

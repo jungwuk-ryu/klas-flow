@@ -61,3 +61,12 @@ final class NetworkException extends KlasException {
 final class ParsingException extends KlasException {
   const ParsingException(super.message, {super.cause, super.stackTrace});
 }
+
+/// QR 출석을 지원하지 않거나 필요한 준비 데이터가 부족할 때 발생합니다.
+final class QrAttendanceUnavailableException extends KlasException {
+  const QrAttendanceUnavailableException(
+    super.message, {
+    super.cause,
+    super.stackTrace,
+  });
+}

@@ -171,6 +171,8 @@
 |---|---|---|
 | `listSubjects(...)` | 출석 과목 목록(원형) | `List<KlasRecord>` |
 | `listSubjectItems(...)` | 출석 과목 목록(typed) | `List<KlasAttendanceSubject>` |
+| `qrCheckIn(...)` | QR 출석 처리(typed) | `KlasQrAttendanceResult` |
+| `qrCheckInRaw(...)` | QR 출석 처리(원형) | `KlasRecord` |
 | `monthList(...)` | 월간 일정 목록(원형) | `List<KlasRecord>` |
 | `listMonthlySchedules(...)` | 월간 일정 목록(typed) | `List<KlasMonthlyScheduleItem>` |
 | `monthTable(...)` | 월간 일정 테이블(원형) | `List<KlasRecord>` |
@@ -209,4 +211,3 @@
 ---
 
 필요한 기능을 찾았다면, 해당 튜토리얼 페이지의 예제를 그대로 실행해 보고 화면에 붙이는 순서로 진행하세요.
-
