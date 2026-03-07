@@ -58,6 +58,7 @@
 | `overview()` | 과목 홈 개요 조회 | [04](04-course-overview-and-tasks.md) |
 | `scheduleText()` | 과목 시간표 텍스트 조회 | [04](04-course-overview-and-tasks.md) |
 | `listTasks(page: ...)` | 과제 목록 조회 (`List<KlasTask>`) | [04](04-course-overview-and-tasks.md) |
+| `qrCheckIn(qrCode)` | 현재 과목에 대해 QR 출석 처리 | [11](11-attendance-features.md) |
 | `learning` | 학습 기능 진입점 | [07](07-learning-features.md) |
 | `noticeBoard` | 공지사항 보드 기능 | [05](05-board-list-and-detail.md) |
 | `materialBoard` | 강의자료실 보드 기능 | [05](05-board-list-and-detail.md) |

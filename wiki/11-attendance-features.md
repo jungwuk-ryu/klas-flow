@@ -49,6 +49,13 @@ if (result.accepted) {
 - `qrCheckIn(...)`은 초보자용 고수준 API입니다.
 - 고급 사용자가 서버 원본 응답이 필요하면 `qrCheckInRaw(...)`를 사용합니다.
 
+과목 화면에서 이미 `KlasCourse`를 가지고 있다면 더 짧게 쓸 수 있습니다.
+
+```dart
+final result = await course.qrCheckIn(scannedQrCode);
+print(result.accepted);
+```
+
 ## 4) 월간 일정 테이블 (typed)
 
 ```dart

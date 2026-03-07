@@ -214,6 +214,12 @@ final class KlasCourse {
 
     return rows.map(_recordMap).map(KlasTask.fromJson).toList(growable: false);
   }
+
+  /// 현재 과목에 대해 QR 출석을 처리합니다.
+  Future<KlasQrAttendanceResult> qrCheckIn(String qrCode) async {
+    final subject = await _owner.attendance.findSubjectItemByCourse(this);
+    return _owner.attendance.qrCheckIn(subject: subject, qrCode: qrCode);
+  }
 }
 
 abstract base class _CourseFeatureBase {
@@ -869,6 +875,33 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
   }) async {
     final result = await qrCheckInRaw(subject: subject, qrCode: qrCode);
     return KlasQrAttendanceResult.fromJson(result.raw);
+  }
+
+  /// 과목 객체에 대응하는 출석 과목 항목을 조회합니다.
+  Future<KlasAttendanceSubject> findSubjectItemByCourse(
+    KlasCourse course, {
+    bool refresh = false,
+  }) async {
+    final items = await listSubjectItems(
+      query: refresh ? _defaultQrAttendanceSubjectQuery(course.termId) : null,
+    );
+
+    for (final item in items) {
+      if (_isSameQrAttendanceValue(item.subjectId, course.courseId)) {
+        return item;
+      }
+    }
+
+    for (final item in items) {
+      if (_isSameQrAttendanceValue(item.termId, course.termId) &&
+          _isSameQrAttendanceValue(item.subjectName, course.title)) {
+        return item;
+      }
+    }
+
+    throw QrAttendanceUnavailableException(
+      'QR attendance subject was not found for ${course.title ?? course.courseId}.',
+    );
   }
 
   /// 월간 일정 원본 목록을 조회합니다.

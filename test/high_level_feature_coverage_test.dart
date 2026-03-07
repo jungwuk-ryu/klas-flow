@@ -281,6 +281,7 @@ void main() {
           subject: attendanceSubjects.first,
           qrCode: 'qr-token',
         );
+        await course.qrCheckIn('qr-token');
         await user.attendance.monthList();
         await user.attendance.monthTable();
 
