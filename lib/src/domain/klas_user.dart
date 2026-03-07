@@ -873,6 +873,45 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     );
   }
 
+  /// 과목 ID로 출석 과목 항목을 찾습니다.
+  Future<KlasAttendanceSubject?> findSubjectItemById(
+    String subjectId, {
+    Map<String, dynamic>? query,
+  }) async {
+    final normalized = subjectId.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final items = await listSubjectItems(query: query);
+    for (final item in items) {
+      if (_isSameQrAttendanceValue(item.subjectId, normalized)) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  /// 표시 과목명으로 출석 과목 항목을 찾습니다.
+  Future<KlasAttendanceSubject?> findSubjectItemByTitle(
+    String title, {
+    Map<String, dynamic>? query,
+  }) async {
+    final normalized = title.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return null;
+    }
+
+    final items = await listSubjectItems(query: query);
+    for (final item in items) {
+      final subjectTitle = item.subjectName?.trim().toLowerCase();
+      if (subjectTitle == normalized) {
+        return item;
+      }
+    }
+    return null;
+  }
+
   /// QR 출석 원본 응답을 조회합니다.
   Future<KlasRecord> qrCheckInRaw({
     required KlasAttendanceSubject subject,

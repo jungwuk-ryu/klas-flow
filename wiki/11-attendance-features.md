@@ -49,6 +49,13 @@ if (result.accepted) {
 - `qrCheckIn(...)`은 초보자용 고수준 API입니다.
 - 고급 사용자가 서버 원본 응답이 필요하면 `qrCheckInRaw(...)`를 사용합니다.
 
+출석 과목 항목을 먼저 찾고 싶다면 helper를 사용할 수 있습니다.
+
+```dart
+final subject = await user.attendance.findSubjectItemById('CSE101');
+final same = await user.attendance.findSubjectItemByTitle('자료구조');
+```
+
 과목 화면에서 이미 `KlasCourse`를 가지고 있다면 더 짧게 쓸 수 있습니다.
 
 ```dart
@@ -73,6 +80,8 @@ for (final row in table) {
 
 - `listSubjects()`
 - `listSubjectItems()`
+- `findSubjectItemById()`
+- `findSubjectItemByTitle()`
 - `qrCheckIn()`
 - `qrCheckInRaw()`
 - `monthList()`

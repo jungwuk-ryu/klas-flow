@@ -18,7 +18,7 @@
 | 온라인 학습 | `learning.listOnlineContentItems`, `listOnlineTestItems`, `listAnytimeQuizItems`, `listDiscussionItems` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 읽기 전용 | Yes | Yes | No | typed 모델 매핑 테스트 존재 |
 | 설문 / e-Class | `surveys.listSurveyItems`, `surveys.openPage`, `eclass.listEClassItems` | [08. 설문과 e-Class](../wiki/08-survey-and-eclass.md) | 읽기 전용 | Yes | Yes | No | 조회 중심 |
 | 시간표 / 수강 | `enrollment.listTimetableEntries`, `enrollment.timetable`, `user.timetable` | [09. 학기 시간표](../wiki/09-timetable.md) | 읽기 전용 | Yes | Yes | No | typed timetable 테스트 존재 |
-| 출석 / 월간 일정 | `attendance.listSubjectItems`, `listMonthlySchedules`, `listMonthlyScheduleTableItems` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 읽기 전용 | Yes | Yes | No | 출석 과목 / 일정 조회 |
+| 출석 / 월간 일정 | `attendance.listSubjectItems`, `findSubjectItemById`, `findSubjectItemByTitle`, `listMonthlySchedules`, `listMonthlyScheduleTableItems` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 읽기 전용 | Yes | Yes | No | 출석 과목 조회, lookup helper, 일정 조회 |
 | QR 출석 | `attendance.qrCheckIn`, `attendance.qrCheckInRaw`, `course.qrCheckIn` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 상태 변경 | Yes | No | No | 실제 출석 상태를 바꾸므로 실계정 수동 테스트 금지 |
 | 학사 / 성적 | `academic.*` | [10. 학사/성적 기능](../wiki/10-academic-features.md) | 읽기 전용 | Yes | Yes | No | 성적/장학/어학/강의평가 조회 |
 | 학적 | `studentRecord.temporaryLeaveHakjuk`, `temporaryLeaveStatus` | [12. 학적/프레임/헬스체크](../wiki/12-student-record-frame-healthcheck.md) | 읽기 전용 | Yes | Yes | No | 현재는 조회만 포함 |
@@ -46,3 +46,4 @@
 | Full unit test suite | `dart test` | Passed | 2026-03-07 |
 | QR attendance targeted tests | `dart test test/high_level_api_test.dart -n 'attendance QR check-in|course.qrCheckIn'` | Passed | 2026-03-07 |
 | High-level coverage | `dart test test/high_level_feature_coverage_test.dart` | Passed | 2026-03-07 |
+| Integrated check | `dart run tool/check_all.dart` | Passed | 2026-03-07 |

@@ -174,6 +174,8 @@
 |---|---|---|
 | `listSubjects(...)` | 출석 과목 목록(원형) | `List<KlasRecord>` |
 | `listSubjectItems(...)` | 출석 과목 목록(typed) | `List<KlasAttendanceSubject>` |
+| `findSubjectItemById(...)` | 과목 ID로 출석 과목 찾기 | `KlasAttendanceSubject?` |
+| `findSubjectItemByTitle(...)` | 표시 과목명으로 출석 과목 찾기 | `KlasAttendanceSubject?` |
 | `qrCheckIn(...)` | QR 출석 처리(typed) | `KlasQrAttendanceResult` |
 | `qrCheckInRaw(...)` | QR 출석 처리(원형) | `KlasRecord` |
 | `monthList(...)` | 월간 일정 목록(원형) | `List<KlasRecord>` |

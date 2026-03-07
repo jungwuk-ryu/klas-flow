@@ -275,6 +275,8 @@ void main() {
 
         await user.attendance.listSubjects();
         final attendanceSubjects = await user.attendance.listSubjectItems();
+        await user.attendance.findSubjectItemById('CSE101');
+        await user.attendance.findSubjectItemByTitle('자료구조');
         await user.attendance.qrCheckInRaw(
           subject: attendanceSubjects.first,
           qrCode: 'qr-token',
