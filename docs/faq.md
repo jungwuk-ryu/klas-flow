@@ -19,6 +19,10 @@
 
 `client.runHealthCheck()`와 `tool/live_account_scenarios.dart`를 사용합니다.
 
+## 실 테스트 상태는 어디서 확인하나요?
+
+`docs/live_feature_coverage.md`에서 공개 기능별 자동 테스트/수동 테스트 상태를 확인할 수 있습니다.
+
 ## 보안상 주의할 점은?
 
 - 실계정 테스트는 읽기 전용 API만 사용
