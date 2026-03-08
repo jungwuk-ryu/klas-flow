@@ -2,6 +2,24 @@
 
 - (none)
 
+## 1.2.0 - 2026-03-08
+
+- QR 출석 고수준 API 추가
+  - `KlasAttendanceFeature.qrCheckIn(...)`
+  - `KlasAttendanceFeature.qrCheckInRaw(...)`
+  - `KlasCourse.qrCheckIn(...)`
+- 과목/출석 조회 helper 추가
+  - `KlasUser.findCourseById(...)`
+  - `KlasUser.findCourseByTitle(...)`
+  - `KlasAttendanceFeature.findSubjectItemById(...)`
+  - `KlasAttendanceFeature.findSubjectItemByTitle(...)`
+- QR 출석 대상 매칭을 보수적으로 변경해 모호한 과목 선택을 차단
+- JSON API 오류 응답이 세션 만료 heuristic에 잘못 걸리지 않도록 transport 보정
+- 문서/운영 가이드 정리
+  - live feature coverage 문서 추가
+  - AGENTS/PLANS/CONTRIBUTING 문서 추가
+  - README, wiki, Flutter integration, testing/release 문서 업데이트
+
 ## 1.1.0 - 2026-03-05
 
 - BREAKING: 공개 API를 도메인 객체 중심으로 재구성

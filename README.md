@@ -178,6 +178,14 @@ print('health passed=${report.allPassed} failed=${report.failedCount}');
 - `KlasClient.startSessionHeartbeat(...)`
 - `KlasClient.runHealthCheck(...)`
 
+## 문서
+
+- [AGENTS.md](AGENTS.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [PLANS.md](PLANS.md)
+- [wiki/14-high-level-api-index.md](wiki/14-high-level-api-index.md)
+- [docs/live_feature_coverage.md](docs/live_feature_coverage.md)
+
 ## Flutter 데모 앱
 
 ```bash

@@ -1,6 +1,6 @@
 name: klasflow
 description: Flutter에서 KLAS를 user/course 객체로 다루기 위한 고수준 Dart SDK
-version: 1.1.0
+version: 1.2.0
 homepage: https://github.com/jungwuk-ryu/klas-flow
 repository: https://github.com/jungwuk-ryu/klas-flow
 issue_tracker: https://github.com/jungwuk-ryu/klas-flow/issues

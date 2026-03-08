@@ -22,6 +22,15 @@
 - Keep `lib/src` internal. Public API additions should be surfaced through `lib/klasflow.dart` and/or `lib/klas_client.dart`.
 - Write comments and docs in natural sentences. Use English when Korean terminology becomes awkward.
 
+## Branch strategy
+
+- Keep `master` releasable. Do not develop directly on `master`.
+- Use short-lived branches named by work type, for example `feat/...`, `fix/...`, `docs/...`, `chore/...`, `refactor/...`, or `test/...`.
+- Split unrelated work into separate branches. Do not mix public API work, transport/auth fixes, release policy updates, and docs unless they must ship together.
+- Treat transport, auth, session, and state-changing API changes as higher-risk work. Keep those changes isolated and validate them before merge.
+- Reverse-engineering and private research stay outside the repository. Only merge the resulting SDK behavior, tests, and public docs.
+- See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the human workflow.
+
 ## Canonical commands
 
 ### Root bootstrap
