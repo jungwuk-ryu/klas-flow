@@ -6,6 +6,22 @@ const _privateSpecFiles = <String>[
   'klasflow_LLM_RFP_with_API_Spec.md',
 ];
 
+const _blockedFileSuffixes = <String>{
+  '.apk',
+  '.xapk',
+  '.apks',
+  '.dex',
+};
+
+const _blockedPathFragments = <String>{
+  'private-research/',
+  'local-private/',
+  'local-notes/',
+  'working-raw-',
+  'proved-curated-',
+  'proved-archive-',
+};
+
 const _ignoredDirs = <String>{
   '.git',
   '.dart_tool',
@@ -54,6 +70,8 @@ Future<void> main(List<String> args) async {
       );
     }
   }
+
+  hasFailure = await _checkBlockedPaths() || hasFailure;
 
   if (blockedLiterals.isEmpty) {
     stdout.writeln(
@@ -156,6 +174,49 @@ Future<bool> _checkBlockedLiteral({required String literal}) async {
   return hasFailure;
 }
 
+Future<bool> _checkBlockedPaths() async {
+  var hasFailure = false;
+
+  final tracked = await _runGit(['ls-files']);
+  if (tracked.exitCode != 0) {
+    stderr.writeln('[fail] git ls-files failed while checking blocked paths.');
+    stderr.writeln(tracked.stderr.toString().trim());
+    hasFailure = true;
+  } else {
+    final trackedMatches = tracked.stdout
+        .toString()
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .where(_matchesBlockedPath)
+        .toList()
+      ..sort();
+
+    if (trackedMatches.isNotEmpty) {
+      stderr.writeln('[fail] Found blocked path patterns in tracked files.');
+      for (final path in trackedMatches) {
+        stderr.writeln('  - $path');
+      }
+      hasFailure = true;
+    } else {
+      stdout.writeln('[ok] No blocked path patterns in tracked files.');
+    }
+  }
+
+  final workingTreeMatches = await _scanWorkingTreeForBlockedPaths();
+  if (workingTreeMatches.isNotEmpty) {
+    stderr.writeln('[fail] Found blocked path patterns in working tree files.');
+    for (final path in workingTreeMatches) {
+      stderr.writeln('  - $path');
+    }
+    hasFailure = true;
+  } else {
+    stdout.writeln('[ok] No blocked path patterns in working tree files.');
+  }
+
+  return hasFailure;
+}
+
 Future<List<String>> _scanWorkingTreeForLiteral(String literal) async {
   final matches = <String>[];
   final root = Directory.current;
@@ -184,6 +245,29 @@ Future<List<String>> _scanWorkingTreeForLiteral(String literal) async {
   return matches;
 }
 
+Future<List<String>> _scanWorkingTreeForBlockedPaths() async {
+  final matches = <String>[];
+  final root = Directory.current;
+
+  await for (final entity in root.list(recursive: true, followLinks: false)) {
+    if (entity is! File) {
+      continue;
+    }
+
+    final relativePath = _toRelativePath(root.path, entity.path);
+    if (_shouldIgnorePath(relativePath)) {
+      continue;
+    }
+
+    if (_matchesBlockedPath(relativePath)) {
+      matches.add(relativePath);
+    }
+  }
+
+  matches.sort();
+  return matches;
+}
+
 String _toRelativePath(String root, String absolutePath) {
   final rootWithSlash = root.endsWith(Platform.pathSeparator)
       ? root
@@ -192,6 +276,24 @@ String _toRelativePath(String root, String absolutePath) {
     return absolutePath.substring(rootWithSlash.length).replaceAll('\\', '/');
   }
   return absolutePath.replaceAll('\\', '/');
+}
+
+bool _matchesBlockedPath(String relativePath) {
+  final normalized = relativePath.replaceAll('\\', '/').toLowerCase();
+
+  for (final suffix in _blockedFileSuffixes) {
+    if (normalized.endsWith(suffix)) {
+      return true;
+    }
+  }
+
+  for (final fragment in _blockedPathFragments) {
+    if (normalized.contains(fragment)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 bool _shouldIgnorePath(String relativePath) {
