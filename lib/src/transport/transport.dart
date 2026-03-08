@@ -321,6 +321,11 @@ final class KlasTransport {
       return true;
     }
 
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    if (contentType.contains('json')) {
+      return false;
+    }
+
     // 파일 다운로드처럼 바이너리 응답은 텍스트 검사 대상에서 제외한다.
     if (!_isLikelyTextResponse(response)) {
       return false;
