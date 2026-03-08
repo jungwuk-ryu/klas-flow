@@ -60,7 +60,7 @@
 | `overview()` | 과목 홈 개요 조회 | [04](04-course-overview-and-tasks.md) |
 | `scheduleText()` | 과목 시간표 텍스트 조회 | [04](04-course-overview-and-tasks.md) |
 | `listTasks(page: ...)` | 과제 목록 조회 (`List<KlasTask>`) | [04](04-course-overview-and-tasks.md) |
-| `qrCheckIn(qrCode)` | 현재 과목에 대해 QR 출석 처리 | [11](11-attendance-features.md) |
+| `qrCheckIn(qrCode)` | 현재 과목에 대해 QR 출석 처리 (상태 변경) | [11](11-attendance-features.md) |
 | `learning` | 학습 기능 진입점 | [07](07-learning-features.md) |
 | `noticeBoard` | 공지사항 보드 기능 | [05](05-board-list-and-detail.md) |
 | `materialBoard` | 강의자료실 보드 기능 | [05](05-board-list-and-detail.md) |
@@ -176,8 +176,8 @@
 | `listSubjectItems(...)` | 출석 과목 목록(typed) | `List<KlasAttendanceSubject>` |
 | `findSubjectItemById(...)` | 과목 ID로 출석 과목 찾기 | `KlasAttendanceSubject?` |
 | `findSubjectItemByTitle(...)` | 표시 과목명으로 출석 과목 찾기 | `KlasAttendanceSubject?` |
-| `qrCheckIn(...)` | QR 출석 처리(typed) | `KlasQrAttendanceResult` |
-| `qrCheckInRaw(...)` | QR 출석 처리(원형) | `KlasRecord` |
+| `qrCheckIn(...)` | QR 출석 처리(typed, 상태 변경) | `KlasQrAttendanceResult` |
+| `qrCheckInRaw(...)` | QR 출석 처리(원형, 상태 변경) | `KlasRecord` |
 | `monthList(...)` | 월간 일정 목록(원형) | `List<KlasRecord>` |
 | `listMonthlySchedules(...)` | 월간 일정 목록(typed) | `List<KlasMonthlyScheduleItem>` |
 | `monthTable(...)` | 월간 일정 테이블(원형) | `List<KlasRecord>` |

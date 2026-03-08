@@ -156,32 +156,6 @@ final report = await client.runHealthCheck();
 print('health passed=${report.allPassed} failed=${report.failedCount}');
 ```
 
-### 7) QR 출석 처리 (고수준)
-
-```dart
-final user = await client.login(id, password);
-final subject = (await user.attendance.listSubjectItems()).first;
-
-final result = await user.attendance.qrCheckIn(
-  subject: subject,
-  qrCode: scannedQrCode,
-);
-
-if (result.accepted) {
-  print('QR 출석 성공');
-} else {
-  print('QR 출석 실패: ${result.message ?? '-'}');
-}
-```
-
-이미 `KlasCourse`를 들고 있다면 더 짧게 사용할 수 있습니다.
-
-```dart
-final course = (await user.defaultCourse())!;
-final result = await course.qrCheckIn(scannedQrCode);
-print(result.accepted);
-```
-
 ## 주요 API
 
 - `KlasClient.login(...) -> KlasUser`

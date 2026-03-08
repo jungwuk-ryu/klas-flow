@@ -952,7 +952,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     required String qrCode,
   }) async {
     final result = await qrCheckInRaw(subject: subject, qrCode: qrCode);
-    return KlasQrAttendanceResult.fromJson(result.raw);
+    return _parseQrAttendanceResult(result.raw);
   }
 
   /// 과목 객체에 대응하는 출석 과목 항목을 조회합니다.
@@ -961,20 +961,19 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     bool refresh = false,
   }) async {
     final items = await listSubjectItems(
-      query: refresh ? _defaultQrAttendanceSubjectQuery(course.termId) : null,
+      query: _defaultQrAttendanceSubjectQuery(course.termId),
     );
-
-    for (final item in items) {
-      if (_isSameQrAttendanceValue(item.subjectId, course.courseId)) {
-        return item;
-      }
-    }
-
-    for (final item in items) {
-      if (_isSameQrAttendanceValue(item.termId, course.termId) &&
-          _isSameQrAttendanceValue(item.subjectName, course.title)) {
-        return item;
-      }
+    final matched = _findUniqueQrAttendanceSubject(
+      items,
+      termId: course.termId,
+      subjectId: course.courseId,
+      subjectName: course.title,
+      professorName: course.professorName,
+      ambiguousMessage:
+          'QR attendance subject match is ambiguous for ${course.title ?? course.courseId}.',
+    );
+    if (matched != null) {
+      return matched;
     }
 
     throw QrAttendanceUnavailableException(
@@ -1060,7 +1059,12 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     final fallbackRows = await listSubjects(
       query: _defaultQrAttendanceSubjectQuery(subject.termId),
     );
-    final matched = _findQrAttendanceSubjectRow(fallbackRows, subject);
+    final matched = _findUniqueQrAttendanceSubjectRow(
+      fallbackRows,
+      subject,
+      ambiguousMessage:
+          'QR attendance subject match is ambiguous for ${subject.displayName}.',
+    );
     if (matched == null) {
       throw QrAttendanceUnavailableException(
         'QR attendance is not available for ${subject.displayName}.',
@@ -1170,43 +1174,70 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     return payload;
   }
 
-  KlasRecord? _findQrAttendanceSubjectRow(
+  KlasAttendanceSubject? _findUniqueQrAttendanceSubject(
+    List<KlasAttendanceSubject> items, {
+    required String? termId,
+    required String? subjectId,
+    required String? subjectName,
+    required String? professorName,
+    required String ambiguousMessage,
+  }) {
+    return _findUniqueQrAttendanceMatch<KlasAttendanceSubject>(
+      items: items,
+      ambiguousMessage: ambiguousMessage,
+      stageOne: (item) =>
+          _isSameQrAttendanceValue(item.termId, termId) &&
+          _isSameQrAttendanceValue(item.subjectId, subjectId) &&
+          _isSameQrAttendanceValue(item.professorName, professorName),
+      stageTwo: (item) =>
+          _isSameQrAttendanceValue(item.termId, termId) &&
+          _isSameQrAttendanceValue(item.subjectId, subjectId),
+      stageThree: (item) =>
+          _isSameQrAttendanceValue(item.termId, termId) &&
+          _isSameQrAttendanceValue(item.subjectName, subjectName) &&
+          _isSameQrAttendanceValue(item.professorName, professorName),
+      stageFour: (item) =>
+          _isSameQrAttendanceValue(item.termId, termId) &&
+          _isSameQrAttendanceValue(item.subjectName, subjectName),
+    );
+  }
+
+  KlasRecord? _findUniqueQrAttendanceSubjectRow(
     List<KlasRecord> rows,
-    KlasAttendanceSubject subject,
+    KlasAttendanceSubject subject, {
+    required String ambiguousMessage,
+  }
   ) {
-    for (final row in rows) {
-      final rowSubjectId = _readQrAttendanceValue(row.raw, const <String>[
-        'subj',
-        'subjectId',
-        'selectSubj',
-      ]);
-      final rowSubjectName = _readQrAttendanceValue(row.raw, const <String>[
-        'gwamokKname',
-        'subjNm',
-        'subjectName',
-      ]);
-      final rowTermId =
-          _readQrAttendanceValue(row.raw, const <String>[
-            'yearhakgi',
-            'selectYearhakgi',
-          ]) ??
-          _composeQrAttendanceTermId(row.raw);
-
-      if (_isSameQrAttendanceValue(rowSubjectId, subject.subjectId) &&
-          (subject.termId == null ||
-              rowTermId == null ||
-              _isSameQrAttendanceValue(rowTermId, subject.termId))) {
-        return row;
-      }
-
-      if (_isSameQrAttendanceValue(rowSubjectName, subject.subjectName) &&
-          (subject.termId == null ||
-              rowTermId == null ||
-              _isSameQrAttendanceValue(rowTermId, subject.termId))) {
-        return row;
-      }
-    }
-    return null;
+    return _findUniqueQrAttendanceMatch<KlasRecord>(
+      items: rows,
+      ambiguousMessage: ambiguousMessage,
+      stageOne: (row) =>
+          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
+          _isSameQrAttendanceValue(_qrAttendanceRowSubjectId(row), subject.subjectId) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowProfessorName(row),
+            subject.professorName,
+          ),
+      stageTwo: (row) =>
+          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
+          _isSameQrAttendanceValue(_qrAttendanceRowSubjectId(row), subject.subjectId),
+      stageThree: (row) =>
+          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowSubjectName(row),
+            subject.subjectName,
+          ) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowProfessorName(row),
+            subject.professorName,
+          ),
+      stageFour: (row) =>
+          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowSubjectName(row),
+            subject.subjectName,
+          ),
+    );
   }
 }
 
@@ -1298,6 +1329,200 @@ bool _isSameQrAttendanceValue(String? left, String? right) {
     return false;
   }
   return left.trim() == right.trim();
+}
+
+T? _findUniqueQrAttendanceMatch<T>({
+  required List<T> items,
+  required String ambiguousMessage,
+  required bool Function(T item) stageOne,
+  required bool Function(T item) stageTwo,
+  required bool Function(T item) stageThree,
+  required bool Function(T item) stageFour,
+}) {
+  for (final matcher in <bool Function(T item)>[
+    stageOne,
+    stageTwo,
+    stageThree,
+    stageFour,
+  ]) {
+    final matches = items.where(matcher).toList(growable: false);
+    if (matches.length == 1) {
+      return matches.first;
+    }
+    if (matches.length > 1) {
+      throw QrAttendanceUnavailableException(ambiguousMessage);
+    }
+  }
+  return null;
+}
+
+String? _qrAttendanceRowSubjectId(KlasRecord row) {
+  return _readQrAttendanceValue(row.raw, const <String>[
+    'subj',
+    'subjectId',
+    'selectSubj',
+  ]);
+}
+
+String? _qrAttendanceRowSubjectName(KlasRecord row) {
+  return _readQrAttendanceValue(row.raw, const <String>[
+    'gwamokKname',
+    'subjNm',
+    'subjectName',
+  ]);
+}
+
+String? _qrAttendanceRowProfessorName(KlasRecord row) {
+  return _readQrAttendanceValue(row.raw, const <String>[
+    'memberName',
+    'prfsrNm',
+  ]);
+}
+
+String? _qrAttendanceRowTermId(KlasRecord row) {
+  return _readQrAttendanceValue(row.raw, const <String>[
+        'yearhakgi',
+        'selectYearhakgi',
+      ]) ??
+      _composeQrAttendanceTermId(row.raw);
+}
+
+KlasQrAttendanceResult _parseQrAttendanceResult(Map<String, dynamic> source) {
+  final fieldErrorMessages = _collectQrAttendanceFieldErrorMessages(source);
+  if (fieldErrorMessages.isNotEmpty) {
+    final message = fieldErrorMessages.join(' ').trim();
+    return KlasQrAttendanceResult(
+      accepted: false,
+      messages: List<String>.unmodifiable(fieldErrorMessages),
+      message: message.isEmpty ? null : message,
+      raw: source,
+    );
+  }
+
+  final outcomeToken =
+      _readQrAttendanceValue(source, const <String>[
+        'success',
+        'isSuccess',
+        'authenticated',
+      ]) ??
+      _readQrAttendanceValue(source, const <String>[
+        'result',
+        'status',
+        'code',
+      ]);
+  final message = _readQrAttendanceValue(source, const <String>[
+    'message',
+    'msg',
+    'errorMessage',
+    'errorMsg',
+    'defaultMessage',
+  ]);
+  final successState = _parseQrAttendanceOutcomeToken(outcomeToken);
+
+  if (successState == false) {
+    final failureMessage = message ?? 'QR attendance request failed.';
+    return KlasQrAttendanceResult(
+      accepted: false,
+      messages: List<String>.unmodifiable(<String>[failureMessage]),
+      message: failureMessage,
+      raw: source,
+    );
+  }
+
+  if (successState == true) {
+    return KlasQrAttendanceResult(
+      accepted: true,
+      messages: const <String>[],
+      message: message,
+      raw: source,
+    );
+  }
+
+  if (_isEffectivelyEmptyQrAttendanceResponse(source)) {
+    throw ParsingException('QR attendance response was empty.');
+  }
+
+  return KlasQrAttendanceResult(
+    accepted: true,
+    messages: const <String>[],
+    message: message,
+    raw: source,
+  );
+}
+
+List<String> _collectQrAttendanceFieldErrorMessages(Map<String, dynamic> source) {
+  final messages = <String>[];
+  final fieldErrors = source['fieldErrors'];
+  if (fieldErrors is! List) {
+    return messages;
+  }
+
+  for (final item in fieldErrors) {
+    if (item is! Map) {
+      continue;
+    }
+    final rawItem = item.cast<String, dynamic>();
+    final message = _readQrAttendanceValue(rawItem, const <String>[
+      'message',
+      'defaultMessage',
+      'msg',
+    ]);
+    if (message != null && message.trim().isNotEmpty) {
+      messages.add(message.trim());
+    }
+  }
+  return messages;
+}
+
+bool? _parseQrAttendanceOutcomeToken(String? token) {
+  if (token == null) {
+    return null;
+  }
+
+  final normalized = token.trim().toLowerCase();
+  if (normalized.isEmpty) {
+    return null;
+  }
+
+  if (const <String>{'ok', 'success', 's', '0', '200', 'y', 'true'}.contains(
+    normalized,
+  )) {
+    return true;
+  }
+  if (const <String>{
+    'fail',
+    'failed',
+    'error',
+    '401',
+    'n',
+    'false',
+  }.contains(normalized)) {
+    return false;
+  }
+  return null;
+}
+
+bool _isEffectivelyEmptyQrAttendanceResponse(Map<String, dynamic> source) {
+  if (source.isEmpty) {
+    return true;
+  }
+  return source.values.every(_isEffectivelyEmptyQrAttendanceValue);
+}
+
+bool _isEffectivelyEmptyQrAttendanceValue(Object? value) {
+  if (value == null) {
+    return true;
+  }
+  if (value is String) {
+    return value.trim().isEmpty;
+  }
+  if (value is List) {
+    return value.isEmpty || value.every(_isEffectivelyEmptyQrAttendanceValue);
+  }
+  if (value is Map) {
+    return value.isEmpty || value.values.every(_isEffectivelyEmptyQrAttendanceValue);
+  }
+  return false;
 }
 
 /// 학적 feature입니다.

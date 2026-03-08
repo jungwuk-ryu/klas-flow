@@ -28,6 +28,8 @@ for (final item in monthItems) {
 
 ## 3) QR 출석 (typed)
 
+> 주의: QR 출석은 상태 변경 기능입니다. 실계정 smoke test나 README 기본 예제 흐름에는 포함하지 마세요.
+
 ```dart
 final subjects = await user.attendance.listSubjectItems();
 if (subjects.isEmpty) return;
