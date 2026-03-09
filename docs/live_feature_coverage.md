@@ -2,19 +2,19 @@
 
 `klasflow`의 공개 고수준 API를 기능 단위로 정리한 실 테스트 커버리지 문서입니다.
 
-- 기준일: 2026-03-07
+- 기준일: 2026-03-09
 - `자동 테스트`는 mock HTTP 기반 단위 테스트 존재 여부를 뜻합니다.
 - `실계정 수동 테스트 허용`은 저장소 정책상 사람 손으로 실계정에 대해 테스트해도 되는지 여부를 뜻합니다.
 - `수동 테스트 완료`는 사람이 직접 실제 환경에서 확인한 기록이 문서화되어 있는지 여부를 뜻합니다.
 
 | 영역 | 대표 공개 API | 대표 시나리오 | 성격 | 자동 테스트 | 실계정 수동 테스트 허용 | 수동 테스트 완료 | 정책 / 제약 |
 |---|---|---|---|---|---|---|---|
-| 로그인 / 세션 | `KlasClient.login`, `requestCaptchaImage`, `startSessionHeartbeat`, `runHealthCheck` | [02. 로그인과 세션 관리](../wiki/02-login-and-session.md) | 읽기 전용 | Yes | Yes | No | 캡차/세션 만료/헬스체크는 mock 테스트 존재 |
-| 사용자 프로필 | `KlasUser.profile`, `sessionStatus`, `personalInfo`, `keepAlive` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | No | 기본 사용자 식별/세션 조회 |
-| 수강 과목 컨텍스트 | `KlasUser.courses`, `defaultCourse`, `findCourseById`, `findCourseByTitle` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | No | 과목 컨텍스트 바인딩 및 course lookup helper 포함 |
-| 과제 / 강의 개요 | `KlasCourse.overview`, `scheduleText`, `listTasks`, `learning.getTaskDetail` | [04. 과목 개요와 과제 조회](../wiki/04-course-overview-and-tasks.md) | 읽기 전용 | Yes | Yes | No | course context 주입 테스트 존재 |
-| 공지 / 자료실 | `noticeBoard.*`, `materialBoard.*`, `KlasBoardPostSummary.getPost` | [05. 공지사항/자료실 조회](../wiki/05-board-list-and-detail.md) | 읽기 전용 | Yes | Yes | No | 목록/상세/원문 페이지 |
-| 첨부파일 | `files.listByAttachId`, `KlasAttachedFile.download`, `files.download` | [06. 첨부파일 다운로드](../wiki/06-attachments-download.md) | 읽기 전용 | Yes | Yes | No | 다운로드는 mock binary 테스트 존재 |
+| 로그인 / 세션 | `KlasClient.login`, `requestCaptchaImage`, `startSessionHeartbeat`, `runHealthCheck` | [02. 로그인과 세션 관리](../wiki/02-login-and-session.md) | 읽기 전용 | Yes | Yes | Yes | 캡차/세션 만료/헬스체크는 mock 테스트 존재 |
+| 사용자 프로필 | `KlasUser.profile`, `sessionStatus`, `personalInfo`, `keepAlive` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 기본 사용자 식별/세션 조회 |
+| 수강 과목 컨텍스트 | `KlasUser.courses`, `defaultCourse`, `findCourseById`, `findCourseByTitle` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 과목 컨텍스트 바인딩 및 course lookup helper 포함 |
+| 과제 / 강의 개요 | `KlasCourse.overview`, `scheduleText`, `listTasks`, `learning.getTaskDetail` | [04. 과목 개요와 과제 조회](../wiki/04-course-overview-and-tasks.md) | 읽기 전용 | Yes | Yes | Yes | course context 주입 테스트 존재 |
+| 공지 / 자료실 | `noticeBoard.*`, `materialBoard.*`, `KlasBoardPostSummary.getPost` | [05. 공지사항/자료실 조회](../wiki/05-board-list-and-detail.md) | 읽기 전용 | Yes | Yes | Yes | 목록/상세/원문 페이지 |
+| 첨부파일 | `files.listByAttachId`, `KlasAttachedFile.download`, `files.download` | [06. 첨부파일 다운로드](../wiki/06-attachments-download.md) | 읽기 전용 | Yes | Yes | Yes | 다운로드는 mock binary 테스트 존재 |
 | 온라인 학습 | `learning.listOnlineContentItems`, `listOnlineTestItems`, `listAnytimeQuizItems`, `listDiscussionItems` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 읽기 전용 | Yes | Yes | No | typed 모델 매핑 테스트 존재 |
 | 설문 / e-Class | `surveys.listSurveyItems`, `surveys.openPage`, `eclass.listEClassItems` | [08. 설문과 e-Class](../wiki/08-survey-and-eclass.md) | 읽기 전용 | Yes | Yes | No | 조회 중심 |
 | 시간표 / 수강 | `enrollment.listTimetableEntries`, `enrollment.timetable`, `user.timetable` | [09. 학기 시간표](../wiki/09-timetable.md) | 읽기 전용 | Yes | Yes | No | typed timetable 테스트 존재 |

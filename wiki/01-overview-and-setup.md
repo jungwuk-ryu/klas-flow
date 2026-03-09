@@ -36,7 +36,7 @@ dependencies:
   klasflow:
     git:
       url: https://github.com/jungwuk-ryu/klas-flow.git
-      ref: main
+      ref: master
 ```
 
 ## 3) 가장 작은 실행 코드

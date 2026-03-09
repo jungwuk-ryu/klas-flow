@@ -43,7 +43,7 @@ dependencies:
   klasflow:
     git:
       url: https://github.com/jungwuk-ryu/klas-flow.git
-      ref: main
+      ref: master
 ```
 
 ## 빠른 시작
