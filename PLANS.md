@@ -6,7 +6,7 @@ Use a written plan for work that can easily drift across code, tests, docs, and 
 
 - the task changes a public API or typed model
 - the task affects auth, session renewal, transport, or parsing behavior
-- the task touches more than one of `lib/src`, `test`, `wiki/docs`, `example`, or `tool`
+- the task touches more than one of `lib/src`, `test`, `wiki/doc`, `example`, or `tool`
 - the task changes release, safety, or publishing policy
 - the task has migration risk, rollback concerns, or behavior ambiguity
 
@@ -32,7 +32,7 @@ Every plan should be decision-complete and include:
 - update `test/high_level_api_test.dart`
 - update `test/high_level_feature_coverage_test.dart` if the feature is public
 - update the matching wiki page and `wiki/14-high-level-api-index.md`
-- update `docs/live_feature_coverage.md` when the public capability matrix changes
+- update `doc/live_feature_coverage.md` when the public capability matrix changes
 
 ### Auth/session/transport work
 

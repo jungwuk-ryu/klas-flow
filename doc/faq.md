@@ -21,7 +21,7 @@
 
 ## 실 테스트 상태는 어디서 확인하나요?
 
-`docs/live_feature_coverage.md`에서 공개 기능별 자동 테스트/수동 테스트 상태를 확인할 수 있습니다.
+`doc/live_feature_coverage.md`에서 공개 기능별 자동 테스트/수동 테스트 상태를 확인할 수 있습니다.
 
 ## 왜 `dart analyze` 대신 `dart analyze lib test tool`를 쓰나요?
 

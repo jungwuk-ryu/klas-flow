@@ -5,8 +5,8 @@
 
 ## 먼저 읽기
 
-- 이 프로젝트는 **개발 단계(Work in Progress)** 입니다.
-- 아직 **pub.dev 미배포** 상태입니다.
+- 이 프로젝트는 **pub.dev에 공개 배포된 패키지**입니다.
+- 설치는 pub.dev 의존성(`klasflow`)을 우선 권장합니다.
 - 실계정 테스트 시에는 반드시 **읽기 전용 시나리오**만 사용하세요.
 
 ## 학습 순서 (권장)
@@ -34,7 +34,7 @@
 ## 추가 참고
 
 - [고수준 API 전체 인덱스](14-high-level-api-index.md)
-- [실 테스트 커버리지](../docs/live_feature_coverage.md)
+- [실 테스트 커버리지](../doc/live_feature_coverage.md)
 
 ---
 

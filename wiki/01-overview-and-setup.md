@@ -19,7 +19,16 @@
 
 ## 2) 설치
 
-아직 pub.dev 배포 전이므로 `path` 또는 `git` 의존성을 사용합니다.
+pub.dev 배포 패키지 기준으로 설치하는 것을 권장합니다.
+
+`pubspec.yaml` (`pub.dev` 예시):
+
+```yaml
+dependencies:
+  klasflow: ^1.2.0
+```
+
+로컬 개발이나 특정 브랜치 추적이 필요하면 `path` 또는 `git` 의존성을 사용할 수 있습니다.
 
 `pubspec.yaml` (`path` 예시):
 

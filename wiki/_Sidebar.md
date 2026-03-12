@@ -13,4 +13,4 @@
 - [12. 학적/프레임/헬스체크](12-student-record-frame-healthcheck.md)
 - [13. 오류 처리와 운영 패턴](13-error-handling-patterns.md)
 - [14. 고수준 API 전체 인덱스](14-high-level-api-index.md)
-- [실 테스트 커버리지](../docs/live_feature_coverage.md)
+- [실 테스트 커버리지](../doc/live_feature_coverage.md)

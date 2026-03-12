@@ -4,9 +4,9 @@
 
 ## 프로젝트 상태
 
-- 현재 **개발 단계(Work in Progress)** 입니다.
-- 아직 **pub.dev에 배포하지 않았습니다**.
-- API/모델/동작은 다음 버전에서 변경될 수 있습니다.
+- 현재 **pub.dev에 배포된 공개 패키지**입니다.
+- pub.dev에서 `klasflow`를 바로 설치해 사용할 수 있습니다.
+- API/모델/동작은 시맨틱 버저닝에 따라 버전별로 관리됩니다.
 
 ## 이 SDK가 해결하는 문제
 
@@ -26,7 +26,14 @@
 
 ## 설치
 
-아직 pub.dev 미배포 상태이므로 `path` 또는 `git` 의존성으로 사용해 주세요.
+pub.dev 배포 패키지로 설치:
+
+```yaml
+dependencies:
+  klasflow: ^1.2.0
+```
+
+로컬 개발/메인 브랜치 추적이 필요할 때는 `path` 또는 `git` 의존성도 사용할 수 있습니다.
 
 `pubspec.yaml` 예시 (`path`):
 
@@ -184,7 +191,7 @@ print('health passed=${report.allPassed} failed=${report.failedCount}');
 - [CONTRIBUTING.md](CONTRIBUTING.md)
 - [PLANS.md](PLANS.md)
 - [wiki/14-high-level-api-index.md](wiki/14-high-level-api-index.md)
-- [docs/live_feature_coverage.md](docs/live_feature_coverage.md)
+- [doc/live_feature_coverage.md](doc/live_feature_coverage.md)
 
 ## Flutter 데모 앱
 
@@ -232,10 +239,10 @@ CI에서도 동일한 규칙으로 커밋 메시지를 검증합니다.
 
 ## 문서
 
-- [아키텍처](docs/architecture.md)
+- [아키텍처](doc/architecture.md)
 - [에이전트 작업 가이드](AGENTS.md)
 - [작업 계획 가이드](PLANS.md)
-- [실 테스트 커버리지](docs/live_feature_coverage.md)
-- [Flutter 연동](docs/flutter_integration.md)
+- [실 테스트 커버리지](doc/live_feature_coverage.md)
+- [Flutter 연동](doc/flutter_integration.md)
 - [위키 홈 (튜토리얼)](wiki/Home.md)
 - [고수준 API 전체 인덱스](wiki/14-high-level-api-index.md)

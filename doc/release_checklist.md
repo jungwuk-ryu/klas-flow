@@ -23,9 +23,9 @@
 ## 3) 문서/예제
 
 - README 예제 코드가 최신 API 시그니처와 일치하는지 확인
-- `docs/live_feature_coverage.md`가 현재 공개 API 상태와 일치하는지 확인
+- `doc/live_feature_coverage.md`가 현재 공개 API 상태와 일치하는지 확인
 - 사람이 직접 테스트한 기능이 있다면 증빙 문서/PR 설명을 남기고
-  `docs/live_feature_coverage.md`의 `수동 테스트 완료` 상태를 갱신
+  `doc/live_feature_coverage.md`의 `수동 테스트 완료` 상태를 갱신
 - `example/` Flutter 데모 앱이 실제로 실행되는지 확인
   - `cd example`
   - `flutter pub get`

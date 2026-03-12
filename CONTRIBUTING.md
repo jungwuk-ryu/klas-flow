@@ -84,7 +84,7 @@ dart run tool/prepublish_check.dart
   - Update `test/high_level_feature_coverage_test.dart` when the public surface changes.
   - Update the matching wiki page.
   - Update `wiki/14-high-level-api-index.md`.
-  - Update `docs/live_feature_coverage.md` when the feature matrix changes.
+- Update `doc/live_feature_coverage.md` when the feature matrix changes.
 - Transport, auth, or session changes
   - Treat as higher-risk.
   - Validate the directly affected tests before merge.
