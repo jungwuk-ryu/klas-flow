@@ -1006,9 +1006,35 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     int? month,
     Map<String, dynamic>? query,
   }) async {
-    final rows = await monthList(year: year, month: month, query: query);
+    final payload = _resolveMonthlyScheduleQuery(
+      year: year,
+      month: month,
+      query: query,
+    );
+    late final List<KlasRecord> rows;
+    try {
+      rows = await array('attendance.mySchdulMonthList', payload: payload);
+    } on ServiceUnavailableException {
+      rows = await _fallbackMonthlyScheduleRows(payload);
+    }
     return List<KlasMonthlyScheduleItem>.unmodifiable(
       rows.map((row) => KlasMonthlyScheduleItem.fromJson(row.raw)),
+    );
+  }
+
+  Future<List<KlasRecord>> _fallbackMonthlyScheduleRows(
+    Map<String, dynamic> payload,
+  ) async {
+    final summary = await object('frame.schdulStdList', payload: payload);
+    final list = summary.raw['list'];
+    if (list is! List) {
+      throw ParsingException(
+        'Frame schedule summary fallback did not return a list payload.',
+      );
+    }
+
+    return List<KlasRecord>.unmodifiable(
+      list.map<KlasRecord>((item) => _recordFromDynamic(item)),
     );
   }
 
