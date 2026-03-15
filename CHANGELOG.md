@@ -1,6 +1,6 @@
 ## Unreleased
 
-- (none)
+- Added an explicit engineering quality baseline document covering CI gates, test policy, and release criteria.
 
 ## 1.2.0 - 2026-03-08
 

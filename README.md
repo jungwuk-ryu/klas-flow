@@ -192,6 +192,7 @@ print('health passed=${report.allPassed} failed=${report.failedCount}');
 - [PLANS.md](PLANS.md)
 - [wiki/14-high-level-api-index.md](wiki/14-high-level-api-index.md)
 - [doc/live_feature_coverage.md](doc/live_feature_coverage.md)
+- [doc/engineering_quality_baseline.md](doc/engineering_quality_baseline.md)
 
 ## Flutter 데모 앱
 
@@ -216,6 +217,8 @@ dart run tool/live_smoke.dart
 dart run tool/check_all.dart
 dart run tool/prepublish_check.dart
 ```
+
+출시 전 기준은 [doc/engineering_quality_baseline.md](doc/engineering_quality_baseline.md)와 [doc/release_checklist.md](doc/release_checklist.md)를 따릅니다.
 
 ## 커밋 메시지 컨벤션
 
