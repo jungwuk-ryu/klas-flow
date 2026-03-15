@@ -50,6 +50,7 @@ dart run tool/prepublish_check.dart
 
 - `dart run tool/check_all.dart` is the CI-aligned gate.
 - Prefer `dart analyze lib test tool` instead of root `dart analyze`. The root repository includes a Flutter example app, so the library gate is intentionally scoped.
+- Quality and release baseline is documented in [`doc/engineering_quality_baseline.md`](doc/engineering_quality_baseline.md).
 
 ### Live account checks
 
