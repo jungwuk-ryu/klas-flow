@@ -1,6 +1,7 @@
 ## Unreleased
 
 - Added an explicit engineering quality baseline document covering CI gates, test policy, and release criteria.
+- Added an operations readiness guide covering release dashboards, telemetry signals, and incident response.
 
 ## 1.2.0 - 2026-03-08
 
