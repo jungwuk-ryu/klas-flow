@@ -35,3 +35,4 @@ Before release:
 3. `doc/release_checklist.md` has been completed.
 4. Public-facing docs (`README.md`, wiki, coverage docs) match shipped behavior.
 5. `pubspec.yaml` metadata and `CHANGELOG.md` entries are updated together.
+6. Dashboards and alerts described in `doc/operations_readiness.md` are ready before release.
