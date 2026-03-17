@@ -219,6 +219,7 @@ dart run tool/prepublish_check.dart
 ```
 
 출시 전 기준은 [doc/engineering_quality_baseline.md](doc/engineering_quality_baseline.md)와 [doc/release_checklist.md](doc/release_checklist.md)를 따릅니다.
+운영 지표, 대시보드, 장애 대응 기준은 [doc/operations_readiness.md](doc/operations_readiness.md)에 정리되어 있습니다.
 
 ## 커밋 메시지 컨벤션
 
@@ -246,6 +247,7 @@ CI에서도 동일한 규칙으로 커밋 메시지를 검증합니다.
 - [에이전트 작업 가이드](AGENTS.md)
 - [작업 계획 가이드](PLANS.md)
 - [실 테스트 커버리지](doc/live_feature_coverage.md)
+- [운영 준비 / 관측성](doc/operations_readiness.md)
 - [Flutter 연동](doc/flutter_integration.md)
 - [위키 홈 (튜토리얼)](wiki/Home.md)
 - [고수준 API 전체 인덱스](wiki/14-high-level-api-index.md)
