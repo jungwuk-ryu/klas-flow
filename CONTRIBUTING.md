@@ -6,17 +6,20 @@
 
 ## Workflow
 
-1. Start from the latest `master`.
+1. Start from the latest `develop` for normal development work.
 2. Create a short-lived branch for one focused change.
 3. Implement the change in `lib/src` and expose public API only through `lib/klasflow.dart` and `lib/klas_client.dart` when needed.
 4. Update tests and docs that match the scope of the change.
 5. Validate the change with the appropriate commands.
-6. Merge only when the branch is in a releasable state.
+6. Open pull requests to `develop` for normal work, and promote tested release candidates from `develop` to `master`.
 
 ## Branch strategy
 
+- `develop`
+  - Use it as the default integration branch.
+  - Branch short-lived work from `develop` and merge back through pull requests.
 - `master`
-  - Keep it releasable.
+  - Keep it release-only and releasable.
   - Do not commit directly to `master` for normal development.
 - Branch prefixes
   - `feat/...`: new public capability, new typed model, or additive SDK behavior
@@ -28,6 +31,7 @@
 - Keep branches small and short-lived.
 - Split unrelated work into separate branches instead of batching broad edits together.
 - Treat transport, auth, session, and state-changing API changes as isolated work even when the code diff is small.
+- Use `develop` as the default PR target unless the change is part of an explicit release promotion.
 
 ## Commit guidance
 
@@ -114,4 +118,5 @@ dart run tool/prepublish_check.dart
 
 - Merge only releasable branches.
 - Prefer keeping one branch aligned with one change theme.
+- Treat merges from `develop` to `master` as release events, not day-to-day integration.
 - If a branch adds a public capability, make sure code, tests, wiki, and coverage docs stay aligned before merge.
