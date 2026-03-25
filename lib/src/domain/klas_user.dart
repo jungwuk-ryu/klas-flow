@@ -1040,8 +1040,8 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
 
   /// 월간 일정 테이블 원본 목록을 조회합니다.
   ///
-  /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
-  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  /// 실서버의 테이블 API는 브라우저와 같은 `start`/`end` 날짜 범위를 기대합니다.
+  /// 값이 비어있으면 현재 연/월 기준 6주 달력 범위를 계산해 요청합니다.
   Future<List<KlasRecord>> monthTable({
     int? year,
     int? month,
@@ -1049,7 +1049,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
   }) {
     return array(
       'attendance.mySchdulMonthTableList',
-      payload: _resolveMonthlyScheduleQuery(
+      payload: _resolveMonthlyScheduleTableQuery(
         year: year,
         month: month,
         query: query,
@@ -1149,28 +1149,25 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
       'list': const <dynamic>[],
       'selectYear': resolvedYear ?? '',
       'selectHakgi': resolvedHakgi ?? '',
-      'openMajorCode': _readQrAttendanceValue(
-        source,
-        const <String>['openMajorCode'],
-      ),
+      'openMajorCode': _readQrAttendanceValue(source, const <String>[
+        'openMajorCode',
+      ]),
       'openGrade': _readQrAttendanceValue(source, const <String>['openGrade']),
-      'openGwamokNo': _readQrAttendanceValue(
-        source,
-        const <String>['openGwamokNo'],
-      ),
+      'openGwamokNo': _readQrAttendanceValue(source, const <String>[
+        'openGwamokNo',
+      ]),
       'bunbanNo': _readQrAttendanceValue(source, const <String>['bunbanNo']),
       'gwamokKname': resolvedSubjectName ?? '',
       'codeName1': _readQrAttendanceValue(source, const <String>['codeName1']),
       'hakjumNum': _readQrAttendanceValue(source, const <String>['hakjumNum']),
       'sisuNum': _readQrAttendanceValue(source, const <String>['sisuNum']),
-      'memberName': _readQrAttendanceValue(
-        source,
-        const <String>['memberName', 'prfsrNm'],
-      ),
-      'currentNum': _readQrAttendanceValue(
-        source,
-        const <String>['currentNum'],
-      ),
+      'memberName': _readQrAttendanceValue(source, const <String>[
+        'memberName',
+        'prfsrNm',
+      ]),
+      'currentNum': _readQrAttendanceValue(source, const <String>[
+        'currentNum',
+      ]),
       'yoil': _readQrAttendanceValue(source, const <String>['yoil']),
       'subj': resolvedSubjectId ?? '',
     };
@@ -1232,23 +1229,37 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
     List<KlasRecord> rows,
     KlasAttendanceSubject subject, {
     required String ambiguousMessage,
-  }
-  ) {
+  }) {
     return _findUniqueQrAttendanceMatch<KlasRecord>(
       items: rows,
       ambiguousMessage: ambiguousMessage,
       stageOne: (row) =>
-          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
-          _isSameQrAttendanceValue(_qrAttendanceRowSubjectId(row), subject.subjectId) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowTermId(row),
+            subject.termId,
+          ) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowSubjectId(row),
+            subject.subjectId,
+          ) &&
           _isSameQrAttendanceValue(
             _qrAttendanceRowProfessorName(row),
             subject.professorName,
           ),
       stageTwo: (row) =>
-          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
-          _isSameQrAttendanceValue(_qrAttendanceRowSubjectId(row), subject.subjectId),
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowTermId(row),
+            subject.termId,
+          ) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowSubjectId(row),
+            subject.subjectId,
+          ),
       stageThree: (row) =>
-          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowTermId(row),
+            subject.termId,
+          ) &&
           _isSameQrAttendanceValue(
             _qrAttendanceRowSubjectName(row),
             subject.subjectName,
@@ -1258,7 +1269,10 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
             subject.professorName,
           ),
       stageFour: (row) =>
-          _isSameQrAttendanceValue(_qrAttendanceRowTermId(row), subject.termId) &&
+          _isSameQrAttendanceValue(
+            _qrAttendanceRowTermId(row),
+            subject.termId,
+          ) &&
           _isSameQrAttendanceValue(
             _qrAttendanceRowSubjectName(row),
             subject.subjectName,
@@ -1476,7 +1490,9 @@ KlasQrAttendanceResult _parseQrAttendanceResult(Map<String, dynamic> source) {
   );
 }
 
-List<String> _collectQrAttendanceFieldErrorMessages(Map<String, dynamic> source) {
+List<String> _collectQrAttendanceFieldErrorMessages(
+  Map<String, dynamic> source,
+) {
   final messages = <String>[];
   final fieldErrors = source['fieldErrors'];
   if (fieldErrors is! List) {
@@ -1510,9 +1526,15 @@ bool? _parseQrAttendanceOutcomeToken(String? token) {
     return null;
   }
 
-  if (const <String>{'ok', 'success', 's', '0', '200', 'y', 'true'}.contains(
-    normalized,
-  )) {
+  if (const <String>{
+    'ok',
+    'success',
+    's',
+    '0',
+    '200',
+    'y',
+    'true',
+  }.contains(normalized)) {
     return true;
   }
   if (const <String>{
@@ -1546,7 +1568,8 @@ bool _isEffectivelyEmptyQrAttendanceValue(Object? value) {
     return value.isEmpty || value.every(_isEffectivelyEmptyQrAttendanceValue);
   }
   if (value is Map) {
-    return value.isEmpty || value.values.every(_isEffectivelyEmptyQrAttendanceValue);
+    return value.isEmpty ||
+        value.values.every(_isEffectivelyEmptyQrAttendanceValue);
   }
   return false;
 }
@@ -1708,6 +1731,62 @@ Map<String, dynamic> _resolveMonthlyScheduleQuery({
   payload.putIfAbsent('schdulYear', () => now.year);
   payload.putIfAbsent('schdulMonth', () => now.month);
   return payload;
+}
+
+Map<String, dynamic> _resolveMonthlyScheduleTableQuery({
+  required int? year,
+  required int? month,
+  required Map<String, dynamic>? query,
+}) {
+  final payload = <String, dynamic>{if (query != null) ...query};
+  final explicitStart = _asTrimmedString(payload['start']);
+  final explicitEnd = _asTrimmedString(payload['end']);
+  if (explicitStart != null && explicitEnd != null) {
+    return payload;
+  }
+
+  final resolvedYear =
+      year ?? _readInt(payload['schdulYear']) ?? DateTime.now().year;
+  final resolvedMonth =
+      month ?? _readInt(payload['schdulMonth']) ?? DateTime.now().month;
+  final range = _resolveMonthlyScheduleTableRange(
+    year: resolvedYear,
+    month: resolvedMonth,
+  );
+
+  payload
+    ..remove('schdulYear')
+    ..remove('schdulMonth')
+    ..['start'] = range.$1
+    ..['end'] = range.$2;
+  return payload;
+}
+
+(String, String) _resolveMonthlyScheduleTableRange({
+  required int year,
+  required int month,
+}) {
+  final firstDayOfMonth = DateTime(year, month, 1);
+  final start = firstDayOfMonth.subtract(
+    Duration(days: firstDayOfMonth.weekday % DateTime.daysPerWeek),
+  );
+  final end = start.add(const Duration(days: 42));
+  return (_formatIsoDate(start), _formatIsoDate(end));
+}
+
+int? _readInt(Object? value) {
+  final text = _asTrimmedString(value);
+  if (text == null) {
+    return null;
+  }
+  return int.tryParse(text);
+}
+
+String _formatIsoDate(DateTime value) {
+  final year = value.year.toString().padLeft(4, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final day = value.day.toString().padLeft(2, '0');
+  return '$year-$month-$day';
 }
 
 Map<String, dynamic> _resolveTimetableQuery({
