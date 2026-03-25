@@ -33,7 +33,7 @@ dependencies:
   klasflow: ^1.2.0
 ```
 
-로컬 개발/메인 브랜치 추적이 필요할 때는 `path` 또는 `git` 의존성도 사용할 수 있습니다.
+로컬 개발이나 `develop` 브랜치 추적이 필요할 때는 `path` 또는 `git` 의존성도 사용할 수 있습니다.
 
 `pubspec.yaml` 예시 (`path`):
 
@@ -50,7 +50,7 @@ dependencies:
   klasflow:
     git:
       url: https://github.com/jungwuk-ryu/klas-flow.git
-      ref: master
+      ref: develop
 ```
 
 ## 빠른 시작
