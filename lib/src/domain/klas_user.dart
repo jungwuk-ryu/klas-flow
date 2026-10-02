@@ -5,6 +5,11 @@ import '../models/file_payload.dart';
 import '../models/high_level_models.dart';
 import '../models/qr_attendance_verification.dart';
 import '../models/qr_check_in_session.dart';
+import '../models/video_lecture.dart';
+import '../models/eclass_recording.dart';
+import '../api/eclass_video_api.dart';
+import '../api/video_lecture_api.dart';
+import 'video_playback.dart';
 
 /// 로그인된 사용자 도메인 객체입니다.
 final class KlasUser {
@@ -484,6 +489,83 @@ final class KlasLearningFeature extends _CourseFeatureBase {
       rows.map((row) => KlasOnlineContent.fromJson(row.raw)),
     );
   }
+
+  /// 온라인 영상만 조회합니다. 과제, 외부 링크, 실시간 회의는 포함하지 않습니다.
+  Future<List<KlasVideoLecture>> listVideoLectures({int page = 0}) async {
+    final rows = await onlineContents(page: page);
+    final targets = rows.map((row) => VideoLectureTarget(row.raw, context));
+    return List.unmodifiable(
+      targets.where((target) => target.isVideo).map((target) => target.lecture),
+    );
+  }
+
+  /// 직접 재생할 미디어와 실제 시청 진도 저장 세션을 준비합니다.
+  /// 플레이어 UI는 열지 않습니다. 인증이 필요한 강의는 콜백으로 입력받습니다.
+  Future<KlasVideoPlaybackSession> openVideo(
+    KlasVideoLecture lecture, {
+    KlasVideoVerificationHandler? onVerification,
+    int maxVerificationAttempts = 3,
+  }) async {
+    if (maxVerificationAttempts < 1) {
+      throw ArgumentError.value(
+        maxVerificationAttempts,
+        'maxVerificationAttempts',
+        'Must be positive.',
+      );
+    }
+    if (lecture.courseId != context.selectSubj ||
+        lecture.termId != context.selectYearhakgi) {
+      throw ArgumentError('The video lecture belongs to another course.');
+    }
+    final rows = await onlineContents();
+    final targets = rows
+        .map((row) => VideoLectureTarget(row.raw, context))
+        .where((target) => target.isVideo && target.id == lecture.id)
+        .toList();
+    if (targets.length != 1) {
+      throw const VideoLectureUnavailableException(
+        'Video lecture was not found uniquely in this course.',
+      );
+    }
+    final target = targets.single;
+    target.validate();
+    final revision = executor.sessionRevision;
+    void assertSession() {
+      if (revision != executor.sessionRevision) {
+        throw const SessionExpiredException(
+          'Login changed while preparing the video.',
+        );
+      }
+    }
+
+    await verifyVideoLecture(
+      executor.videos,
+      target,
+      onVerification: onVerification,
+      maxAttempts: maxVerificationAttempts,
+      assertSession: assertSession,
+    );
+    assertSession();
+    final bootstrap = await executor.videos.prepare(target);
+    final media = await executor.videos.media(bootstrap);
+    if (revision != executor.sessionRevision) {
+      throw const SessionExpiredException(
+        'Login changed while preparing the video.',
+      );
+    }
+    if (bootstrap.generation != executor.videos.generation) {
+      throw const VideoPlaybackInterruptedException(
+        'Another video replaced this preparation.',
+      );
+    }
+    return VideoPlaybackSession(
+      api: executor.videos,
+      target: target,
+      bootstrap: bootstrap,
+      media: media,
+      sessionRevision: () => executor.sessionRevision,
+    );
+  }
 }
 
 abstract base class _BaseBoardFeature extends _CourseFeatureBase {
@@ -668,6 +750,34 @@ final class KlasSurveyFeature extends _CourseFeatureBase {
 /// eClass feature입니다.
 final class KlasEClassFeature extends _CourseFeatureBase {
   KlasEClassFeature(super.executor, super.context);
+
+  /// E-class 강의실 녹화 영상의 복습 목록을 조회합니다.
+  Future<List<KlasEClassRecording>> listRecordings({int page = 0}) async {
+    final rows = await listItems(page: page);
+    return List.unmodifiable(
+      rows
+          .map((row) => EClassVideoTarget(row.raw, context).recording)
+          .where((recording) => recording.id.isNotEmpty),
+    );
+  }
+
+  /// 복습 영상의 미디어 주소를 반환합니다. E-class 복습에는 온라인 학습 진도 저장이 없습니다.
+  Future<KlasVideoMedia> openVideo(KlasEClassRecording recording) async {
+    if (recording.courseId != context.selectSubj ||
+        recording.termId != context.selectYearhakgi) {
+      throw ArgumentError('The recording belongs to another course.');
+    }
+    final matches = (await listItems())
+        .map((row) => EClassVideoTarget(row.raw, context))
+        .where((target) => target.recording.id == recording.id)
+        .toList();
+    if (matches.length != 1) {
+      throw const VideoLectureUnavailableException(
+        'E-class recording is no longer available.',
+      );
+    }
+    return executor.eclassVideos.open(matches.single);
+  }
 
   Future<List<KlasRecord>> listItems({
     int page = 0,

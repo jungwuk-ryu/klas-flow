@@ -2,7 +2,7 @@
 
 `klasflow`의 공개 고수준 API를 기능 단위로 정리한 실 테스트 커버리지 문서입니다.
 
-- 기준일: 2026-10-02
+- 기준일: 2026-10-03
 - `자동 테스트`는 mock HTTP 기반 단위 테스트 존재 여부를 뜻합니다.
 - `실계정 수동 테스트 허용`은 저장소 정책상 사람 손으로 실계정에 대해 테스트해도 되는지 여부를 뜻합니다.
 - `수동 테스트 완료`는 사람이 직접 실제 환경에서 확인한 기록이 문서화되어 있는지 여부를 뜻합니다.
@@ -17,6 +17,9 @@
 | 공지 / 자료실 | `noticeBoard.*`, `materialBoard.*`, `KlasBoardPostSummary.getPost` | [05. 공지사항/자료실 조회](../wiki/05-board-list-and-detail.md) | 읽기 전용 | Yes | Yes | Yes | 목록/상세/원문 페이지 |
 | 첨부파일 | `files.listByAttachId`, `KlasAttachedFile.download`, `files.download` | [06. 첨부파일 다운로드](../wiki/06-attachments-download.md) | 읽기 전용 | Yes | Yes | Yes | 다운로드는 mock binary 테스트 존재 |
 | 온라인 학습 | `learning.listOnlineContentItems`, `listOnlineTestItems`, `listAnytimeQuizItems`, `listDiscussionItems` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 읽기 전용 | Yes | Yes | No | typed 모델 매핑 테스트 존재 |
+| 온라인 영상 재생 정보 | `learning.listVideoLectures`, `learning.openVideo`, `KlasVideoMedia` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 조회 / 재생 준비 | Yes | Yes | No | 공식 뷰어와 미디어 설명, 실제 MP4 메타데이터는 읽기 확인. 추가 인증과 재생 준비 실패는 mock 검증 |
+| 실제 시청 진도 저장 | `KlasVideoPlaybackSession.recordPlayback`, `checkStatus`, `close` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 상태 변경 | Yes | No | No | 실제 플레이어 이벤트, 60초 저장 주기, 정지·버퍼링·탐색·이벤트 공백, 학습 기간 외 복습, 세션 교체, 모호한 저장 실패와 재전송 방지를 mock 검증. 실계정 진도 쓰기 금지 |
+| E-class 녹화 복습 | `eclass.listRecordings`, `eclass.openVideo` | [08. 설문과 e-Class](../wiki/08-survey-and-eclass.md) | 조회 / 재생 준비 | Yes | Yes | No | 온라인 학습과 별도 재생 경로. 최근 녹화와 구형 녹화, 직접 재생 정보, 쿠키 격리와 온라인 진도 요청이 없음을 mock 검증 |
 | 설문 / e-Class | `surveys.listSurveyItems`, `surveys.openPage`, `eclass.listEClassItems` | [08. 설문과 e-Class](../wiki/08-survey-and-eclass.md) | 읽기 전용 | Yes | Yes | No | 조회 중심 |
 | 시간표 / 수강 | `enrollment.listTimetableEntries`, `enrollment.timetable`, `user.timetable` | [09. 학기 시간표](../wiki/09-timetable.md) | 읽기 전용 | Yes | Yes | No | typed timetable 테스트 존재 |
 | 출석 / 월간 일정 | `attendance.listSubjectItems`, `findSubjectItemById`, `findSubjectItemByTitle`, `listMonthlySchedules`, `listMonthlyScheduleTableItems` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 읽기 전용 | Yes | Yes | No | 출석 과목 조회, lookup helper, 월 조회 범위와 전체 시작·종료 일시, 월 경계/윤년/잘못된 날짜 mock 검증 |
@@ -41,6 +44,20 @@
 
 ## Latest Validation Snapshot
 
+2026-10-03 동영상 작업에서는 로그인된 Chrome의 온라인 학습과 E-class 복습
+목록을 각각 확인하고, 뷰어를 실행하지 않은 상태에서 재생 정보와 미디어 설명을
+읽었습니다. 두 종류의 실제 MP4 HEAD 응답은 200, `video/mp4`, 바이트 범위
+탐색 지원을 반환했습니다. E-class 복습에는 온라인 진도 저장 연결이 없습니다.
+인증번호 발송, 영상 재생, 학습 진도 저장은 실계정에서 실행하지 않았습니다.
+진도 저장과 인증은 합성 HTTP 데이터로 검증합니다. 응답 원본과 미디어 주소,
+개인 식별자와 재생 키는 저장소에 기록하지 않았습니다.
+
+같은 날 수정된 SDK의 공개 API도 저장된 CLI 인증 세션으로 확인했습니다.
+`learning.openVideo`와 `eclass.openVideo`가 각각 미디어를 반환하고 직접 재생
+주소의 HEAD 응답이 `200 / video/mp4`임을 확인했습니다. 검증 클라이언트에서
+인증번호 발송·확인과 진도 저장 요청을 차단했고, 차단 대상 요청은 0건입니다.
+실제 재생이나 출석·학습 인정 진도의 변경을 검증한 기록은 아닙니다.
+
 2026-10-02 월별 일정 확인에서는 로그인된 Chrome의 2026년 10월 목록과
 읽기 전용 월 범위 조회의 일정 10건이 일치했습니다. 기존 요청은 500을
 반환했고, 월의 시작일부터 다음 월의 시작일까지 지정한 요청은 200을
@@ -55,10 +72,11 @@ QR 출석 버튼이 표시되는 것까지 읽기 전용으로 확인했습니�
 
 | 항목 | 명령 | 결과 | 실행일 |
 |---|---|---|---|
-| Scoped analyze | `dart analyze lib test tool` | Passed | 2026-10-02 |
-| Full unit test suite | `dart test` | Passed (128 tests, 월간 일정 모델 회귀 10개와 CI 커밋 범위 회귀 3개 포함) | 2026-10-02 |
+| Scoped analyze | `dart analyze lib test tool` | Passed | 2026-10-03 |
+| Full unit test suite | `dart test` | Passed (160 tests, 동영상 재생·진도·인증·E-class 회귀와 고수준 API 32개 포함) | 2026-10-03 |
+| Video playback / E-class review | `dart test test/video_playback_test.dart` (full suite에 포함) | Passed (30 tests) | 2026-10-03 |
 | Mobile QR attendance | `dart test test/mobile_qr_attendance_test.dart` (full suite에 포함) | Passed (34 tests) | 2026-10-02 |
-| High-level coverage | `dart test test/high_level_feature_coverage_test.dart` (full suite에 포함) | Passed | 2026-10-02 |
+| High-level coverage | `dart test test/high_level_feature_coverage_test.dart` (full suite에 포함) | Passed | 2026-10-03 |
 | Captcha login and parser | `dart test test/captcha_login_test.dart test/login_parser_test.dart` | Passed (21 tests) | 2026-10-02 |
-| Integrated check | `dart run tool/check_all.dart` | Passed | 2026-10-02 |
+| Integrated check | `dart run tool/check_all.dart` | Passed | 2026-10-03 |
 | CLI compatibility | 로컬 SDK를 사용하는 `klas-cli`의 `dart analyze`, `dart test`, `dart compile exe bin/klas.dart -o build/klas.exe` | Passed (87 tests), executable built | 2026-10-02 |

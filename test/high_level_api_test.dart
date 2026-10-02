@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 
 import 'support/captcha_login_mock.dart';
 import 'support/mobile_qr_fixture.dart';
+import 'support/video_fixture.dart';
 
 void main() {
   test(
@@ -29,6 +30,49 @@ void main() {
     },
   );
   group('High-level domain API', () {
+    test(
+      'custom clients can obtain typed online and E-class video media',
+      () async {
+        final fixture = VideoFixture();
+        addTearDown(fixture.close);
+        final course = (await (await fixture.login()).defaultCourse())!;
+        final List<KlasVideoLecture> lectures = await course.learning
+            .listVideoLectures();
+        expect(lectures, hasLength(1));
+        expect(lectures.single.week, 2);
+        expect(lectures.single.availableFrom, DateTime(2026, 1, 1));
+        expect(
+          lectures.single.progress.requiredDuration,
+          const Duration(minutes: 20),
+        );
+        final KlasVideoPlaybackSession playback = await course.learning
+            .openVideo(lectures.single);
+        expect(playback.media.sources.single.format, KlasVideoSourceFormat.mp4);
+        expect(playback.media.duration, const Duration(milliseconds: 1800250));
+        expect(playback.canRecordProgress, isTrue);
+        final form = fixture.calls(videoViewerPath).single.bodyFields;
+        expect(form['weeklyseq'], '2');
+        expect(form['weeklysubseq'], '7');
+        expect(form['totalTime'], '0');
+        expect(form['profYN'], 'N');
+        expect(form['previewYN'], 'N');
+        expect(form['late'], 'N');
+        final List<KlasEClassRecording> recordings = await course.eclass
+            .listRecordings();
+        final KlasVideoMedia review = await course.eclass.openVideo(
+          recordings.single,
+        );
+        expect(review.sources.single.format, KlasVideoSourceFormat.mp4);
+        expect(
+          (await course.eclass.listEClassItems()).single.itemId,
+          'synthetic-recording',
+        );
+        expect(playback.isOpen, isTrue);
+        expect(fixture.calls(videoSavePath), isEmpty);
+        await playback.close();
+      },
+    );
+
     test('course prepares QR attendance before accepting external string input', () async {
       final fixture = MobileQrFixture();
       addTearDown(fixture.client.close);

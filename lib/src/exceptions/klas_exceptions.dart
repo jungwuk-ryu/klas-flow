@@ -85,3 +85,23 @@ final class QrAttendanceVerificationException extends KlasException {
 final class QrAttendanceCancelledException extends KlasException {
   const QrAttendanceCancelledException(super.message);
 }
+
+/// 동영상이 준비되지 않았거나 지원하지 않는 형식/학습 기간일 때 발생합니다.
+final class VideoLectureUnavailableException extends KlasException {
+  const VideoLectureUnavailableException(super.message);
+}
+
+/// 동영상 시청을 시작하기 전에 추가 인증이 필요할 때 발생합니다.
+final class VideoVerificationRequiredException extends KlasException {
+  const VideoVerificationRequiredException(super.message);
+}
+
+/// 동영상 추가 인증이 취소되거나 거절되었을 때 발생합니다.
+final class VideoVerificationException extends KlasException {
+  const VideoVerificationException(super.message);
+}
+
+/// 다른 재생 창이 현재 동영상 세션을 대체했을 때 발생합니다.
+final class VideoPlaybackInterruptedException extends KlasException {
+  const VideoPlaybackInterruptedException(super.message);
+}

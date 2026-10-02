@@ -98,6 +98,18 @@ final class RequestExecutor {
     });
   }
 
+  /// 재생 키 생성과 진행률 저장은 세션 갱신으로 다시 실행하지 않습니다.
+  Future<String> postFormTextOnce(
+    String path, {
+    required Map<String, String> form,
+  }) async {
+    final response = await _transport.postFormText(path, form: form);
+    return response.body;
+  }
+
+  /// 미디어 메타데이터를 KLAS 세션 쿠키 없이 조회합니다.
+  Future<String> getPublicText(Uri uri) => _transport.getPublicText(uri);
+
   Future<Map<String, dynamic>> getJsonObject(
     String path, {
     Map<String, String>? query,

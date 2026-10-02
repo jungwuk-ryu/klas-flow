@@ -1,5 +1,10 @@
 ## 1.3.0 (Unreleased)
 
+- Added typed online video lecture listing, playable MP4/HLS media, and player event integration through `learning.listVideoLectures()`, `learning.openVideo()`, and `KlasVideoPlaybackSession`.
+- Persist server-reported progress during observed playback, exclude paused and unobserved gaps, handle email or registered OTP verification, and invalidate replaced sessions without replaying uncertain writes.
+- Added E-class recording review through `eclass.listRecordings()` and `eclass.openVideo()`, using its separate playback flow without online learning progress writes.
+- Keep players and resume positions in consumer applications, and isolate KLAS cookies from external media metadata requests.
+
 - Automatically apply the mobile app User-Agent to KW attendance requests with ordinary `KlasClient()` configuration.
 - Added QR attendance verification callbacks for email and registered OTP, with direct decoded-string submission or separate preparation through `prepareQrCheckIn()` and `KlasQrCheckInSession.submit()`.
 - Keep QR input in the calling program, allow local cancellation, and prevent reuse of a prepared submission or use after a login session change.

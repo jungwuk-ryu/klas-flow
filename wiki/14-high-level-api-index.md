@@ -95,6 +95,16 @@
 | `listOnlineTestItems(...)` | 온라인 시험 목록(typed) | `List<KlasOnlineTest>` |
 | `onlineContents(...)` | 온라인 콘텐츠 목록(원형) | `List<KlasRecord>` |
 | `listOnlineContentItems(...)` | 온라인 콘텐츠 목록(typed) | `List<KlasOnlineContent>` |
+| `listVideoLectures(page: ...)` | 온라인 동영상 강의와 학습 인정 진도 | `List<KlasVideoLecture>` |
+| `openVideo(lecture, onVerification: ..., maxVerificationAttempts: 3)` | 영상 미디어와 실제 시청 진도 저장 세션 준비 | `KlasVideoPlaybackSession` |
+
+`KlasVideoPlaybackSession`은 `lecture`, `media`, `progress`, `isOpen`,
+`canRecordProgress`를 제공합니다. `recordPlayback(position: ..., state: ...)`에
+실제 플레이어 이벤트를 1~5초마다 순서대로 전달하면 KLAS 응답으로 진도를
+갱신합니다. `checkStatus()`는 세션 상태를 확인하며 `close()`는 세션을 정리합니다.
+`KlasVideoMedia`에는 영상 길이와 MP4/HLS 재생 주소가 있으며, 이어보기 위치는
+앱에서 관리합니다. `KlasVideoVerificationChallenge` 콜백으로 이메일 발송과
+기존 OTP 입력을 연결합니다. 자세한 계약은 [07](07-learning-features.md)을 참고하세요.
 
 시나리오: [07](07-learning-features.md)
 
@@ -123,6 +133,10 @@
 | `surveys.listSurveyItems(...)` | 설문 목록(typed) | `List<KlasSurveyEntry>` |
 | `eclass.listItems(...)` | e-Class 목록(원형) | `List<KlasRecord>` |
 | `eclass.listEClassItems(...)` | e-Class 목록(typed) | `List<KlasEClassItem>` |
+| `eclass.listRecordings(page: ...)` | E-class 녹화 강의 복습 목록 | `List<KlasEClassRecording>` |
+| `eclass.openVideo(recording)` | E-class 복습 영상의 직접 재생 정보 | `KlasVideoMedia` |
+
+E-class 복습은 별도 재생 경로를 사용하며 온라인 학습 진도를 저장하지 않습니다.
 
 시나리오: [08](08-survey-and-eclass.md)
 

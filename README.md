@@ -82,6 +82,11 @@ KW출첵 QR 출석은 개발 버전 `1.3.0`에서 일반 `KlasClient()`로 로�
 
 숫자 캡차가 필요한 로그인은 개발 버전 `1.3.0`의 `login(..., onCaptcha: ...)`로 이어갈 수 있습니다. 콜백에서 `KlasCaptchaChallenge.image.bytes`를 표시하고 사용자가 입력한 숫자 문자열을 반환하세요. 입력 취소는 `null`입니다. 자세한 예시는 [로그인과 세션 관리](wiki/02-login-and-session.md)를 참고하세요. 배포 전에는 로컬 SDK 의존성을 사용합니다.
 
+개발 버전 `1.3.0`은 온라인 동영상 강의의 재생 정보와 실제 시청 진도 저장,
+E-class 녹화 강의의 복습 재생도 제공합니다. 앱이나 CLI가 원하는 플레이어를
+사용하고 SDK에는 재생 이벤트를 전달합니다. [온라인 동영상 가이드](wiki/07-learning-features.md)와
+[E-class 복습 가이드](wiki/08-survey-and-eclass.md)에 연동 예시가 있습니다.
+
 ### 1) 기본 과목에서 과제 조회
 
 ```dart
@@ -167,6 +172,29 @@ final report = await client.runHealthCheck();
 print('health passed=${report.allPassed} failed=${report.failedCount}');
 ```
 
+### 7) 동영상 강의와 E-class 복습
+
+```dart
+final lectures = await course.learning.listVideoLectures();
+final playback = await course.learning.openVideo(lectures.first);
+final source = playback.media.sources.first;
+// 앱의 플레이어에 source.uri를 전달하고 실제 재생 상태를 연결합니다.
+await playback.recordPlayback(
+  position: playerPosition,
+  state: KlasVideoPlaybackState.playing,
+);
+// 재생 중에는 1~5초마다 호출하고, 정지/버퍼링/탐색도 즉시 전달합니다.
+// 플레이어가 종료되면 await playback.close()로 세션을 정리합니다.
+
+final recordings = await course.eclass.listRecordings();
+final reviewMedia = await course.eclass.openVideo(recordings.first);
+// E-class는 복습용이며 온라인 학습 진도 저장을 제공하지 않습니다.
+```
+
+학습 인정 진도는 KLAS 응답을 사용하며 영상의 재생 위치와 구분합니다.
+이어보기 위치는 호출하는 앱에서 보관합니다. 영상 주소는 현재 재생에만 사용하고
+로그나 공개 저장소에 남기지 마세요.
+
 ## 주요 API
 
 - `KlasClient.login(...) -> KlasUser`
@@ -180,6 +208,9 @@ print('health passed=${report.allPassed} failed=${report.failedCount}');
 - `KlasBoardPostSummary.getPost(...)`
 - `KlasCourse.materialBoard.*`
 - `KlasCourse.learning.*`
+- `KlasCourse.learning.listVideoLectures(...)`, `openVideo(...)`
+- `KlasVideoPlaybackSession.recordPlayback(...)`, `checkStatus()`, `close()`
+- `KlasCourse.eclass.listRecordings(...)`, `openVideo(...)`
 - `KlasUser.timetable(...)`
 - `KlasEnrollmentFeature.listTimetableEntries(...)`
 - `KlasEnrollmentFeature.timetable(...)`
