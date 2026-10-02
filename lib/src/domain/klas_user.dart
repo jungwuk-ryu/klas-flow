@@ -7,6 +7,7 @@ import '../models/qr_attendance_verification.dart';
 import '../models/qr_check_in_session.dart';
 import '../models/video_lecture.dart';
 import '../models/eclass_recording.dart';
+import '../models/syllabus.dart';
 import '../api/eclass_video_api.dart';
 import '../api/video_lecture_api.dart';
 import 'video_playback.dart';
@@ -236,6 +237,11 @@ final class KlasCourse {
     );
     return KlasCourseOverview(KlasRecord(raw));
   }
+
+  /// 현재 과목의 강의계획서를 조회합니다. 미등록 또는 폐강 과목은 null입니다.
+  ///
+  /// 조회가 일시 제한되면 ServiceUnavailableException이 발생합니다.
+  Future<KlasSyllabus?> syllabus() => _executor.syllabi.fetch(_context);
 
   /// 강의 시간표 문자열을 조회합니다.
   Future<String?> scheduleText() async {

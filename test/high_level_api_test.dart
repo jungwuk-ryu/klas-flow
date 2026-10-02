@@ -8,6 +8,7 @@ import 'package:test/test.dart';
 import 'support/captcha_login_mock.dart';
 import 'support/mobile_qr_fixture.dart';
 import 'support/video_fixture.dart';
+import 'support/syllabus_fixture.dart';
 
 void main() {
   test(
@@ -30,6 +31,29 @@ void main() {
     },
   );
   group('High-level domain API', () {
+    test(
+      'a bound course exposes typed syllabus data without browser setup',
+      () async {
+        final fixture = SyllabusFixture();
+        addTearDown(fixture.close);
+        final course = await fixture.course();
+        final KlasSyllabus? plan = await course.syllabus();
+        expect(plan, isNotNull);
+        final KlasSyllabusInstructor instructor = plan!.instructor;
+        final KlasSyllabusClassTime time = plan.classTimes.first;
+        final KlasSyllabusAssessment assessment = plan.assessments.first;
+        final KlasSyllabusTextbook textbook = plan.textbooks.first;
+        final KlasSyllabusWeek week = plan.weeks.first;
+        final KlasSyllabusLearningOutcome outcome = plan.learningOutcomes.first;
+        expect(instructor.name, '테스트 교수');
+        expect(time.periods, [3, 4]);
+        expect(assessment.category, KlasSyllabusAssessmentCategory.attendance);
+        expect(textbook.title, 'Synthetic Data Structures');
+        expect(week.week, 1);
+        expect(outcome.number, 1);
+      },
+    );
+
     test(
       'custom clients can obtain typed online and E-class video media',
       () async {

@@ -14,6 +14,7 @@
 | 사용자 프로필 | `KlasUser.profile`, `sessionStatus`, `personalInfo`, `keepAlive` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 기본 사용자 식별/세션 조회 |
 | 수강 과목 컨텍스트 | `KlasUser.courses`, `defaultCourse`, `findCourseById`, `findCourseByTitle` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 과목 컨텍스트 바인딩 및 course lookup helper 포함 |
 | 과제 / 강의 개요 | `KlasCourse.overview`, `scheduleText`, `listTasks`, `learning.getTaskDetail` | [04. 과목 개요와 과제 조회](../wiki/04-course-overview-and-tasks.md) | 읽기 전용 | Yes | Yes | Yes | course context 주입 테스트 존재 |
+| 강의계획서 | `KlasCourse.syllabus`, `KlasSyllabus` | [15. 강의계획서 조회](../wiki/15-course-syllabus.md) | 읽기 전용 | Yes | Yes | No | 학부 수강 과목의 본문·평가·교재·주차·연락처·시간표 조회. 일반형과 공통형, 미등록·폐강·조회 제한·응답 오류는 mock 검증. 대학원 및 별도 실험·설계 상세표는 범위 밖 |
 | 공지 / 자료실 | `noticeBoard.*`, `materialBoard.*`, `KlasBoardPostSummary.getPost` | [05. 공지사항/자료실 조회](../wiki/05-board-list-and-detail.md) | 읽기 전용 | Yes | Yes | Yes | 목록/상세/원문 페이지 |
 | 첨부파일 | `files.listByAttachId`, `KlasAttachedFile.download`, `files.download` | [06. 첨부파일 다운로드](../wiki/06-attachments-download.md) | 읽기 전용 | Yes | Yes | Yes | 다운로드는 mock binary 테스트 존재 |
 | 온라인 학습 | `learning.listOnlineContentItems`, `listOnlineTestItems`, `listAnytimeQuizItems`, `listDiscussionItems` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 읽기 전용 | Yes | Yes | No | typed 모델 매핑 테스트 존재 |
@@ -44,6 +45,13 @@
 
 ## Latest Validation Snapshot
 
+2026-10-03 강의계획서 작업에서는 로그인된 Chrome에서 조회 목록과 본문을
+읽고, 수정된 SDK의 `course.syllabus()`로 현재 학기 6과목을 확인했습니다.
+6과목 모두 개요·학습목표·15주차 계획이 반환됐고, 평가 반영 비율 합계는
+각각 100%였습니다. 시간표와 교재도 반환됐습니다. 공통형 계획서는 공식 화면의
+조회 방식을 확인하고 합성 응답으로 테스트했습니다. 실계정에는 읽기 요청만
+수행했으며 계정 식별자, 응답 원본과 담당자 연락처를 저장소에 남기지 않았습니다.
+
 2026-10-03 동영상 작업에서는 로그인된 Chrome의 온라인 학습과 E-class 복습
 목록을 각각 확인하고, 뷰어를 실행하지 않은 상태에서 재생 정보와 미디어 설명을
 읽었습니다. 두 종류의 실제 MP4 HEAD 응답은 200, `video/mp4`, 바이트 범위
@@ -73,7 +81,8 @@ QR 출석 버튼이 표시되는 것까지 읽기 전용으로 확인했습니�
 | 항목 | 명령 | 결과 | 실행일 |
 |---|---|---|---|
 | Scoped analyze | `dart analyze lib test tool` | Passed | 2026-10-03 |
-| Full unit test suite | `dart test` | Passed (160 tests, 동영상 재생·진도·인증·E-class 회귀와 고수준 API 32개 포함) | 2026-10-03 |
+| Full unit test suite | `dart test` | Passed (188 tests, 강의계획서·동영상·QR·로그인 및 고수준 API 회귀 포함) | 2026-10-03 |
+| Course syllabus | `dart test test/syllabus_test.dart` (full suite에 포함) | Passed (26 tests, 일반형·공통형·과목 격리·미등록·제한·응답 오류) | 2026-10-03 |
 | Video playback / E-class review | `dart test test/video_playback_test.dart` (full suite에 포함) | Passed (30 tests) | 2026-10-03 |
 | Mobile QR attendance | `dart test test/mobile_qr_attendance_test.dart` (full suite에 포함) | Passed (34 tests) | 2026-10-02 |
 | High-level coverage | `dart test test/high_level_feature_coverage_test.dart` (full suite에 포함) | Passed | 2026-10-03 |

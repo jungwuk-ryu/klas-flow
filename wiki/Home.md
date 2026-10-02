@@ -25,6 +25,7 @@
 12. [12. 학적/프레임/헬스체크](12-student-record-frame-healthcheck.md)
 13. [13. 오류 처리와 운영 패턴](13-error-handling-patterns.md)
 14. [14. 고수준 API 전체 인덱스](14-high-level-api-index.md)
+15. [15. 강의계획서 조회](15-course-syllabus.md)
 
 ## 이 위키가 다루는 범위
 
