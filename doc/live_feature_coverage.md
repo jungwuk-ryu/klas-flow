@@ -45,6 +45,24 @@
 
 ## Latest Validation Snapshot
 
+2026-10-03에는 요청된 6개 브랜치를 `develop` 기준 통합 브랜치에 병합한 뒤
+SDK 전체 검사와 188개 테스트를 통과했습니다. CLI의 임시 복사본에 통합 SDK를
+연결해 분석·전체 테스트·스키마·dry-run·설치 스크립트·패키지 dry-run 검사를
+수행했고 Windows 실행 파일도 빌드했습니다. CLI 저장소의 의존성이나 브랜치는
+이 SDK 통합 작업에서 변경하지 않았습니다.
+
+저장된 CLI 인증으로 현재 학기 6과목의 강의계획서와 모바일 출석 과목 6개를
+조회했습니다. 모바일 식별값은 SDK가 자동으로 적용했습니다. 2026년 10월 일정
+10건 모두 시작·종료 일시가 있었고, 월 경계를 넘는 5건의 전체 기간도
+유지됐습니다. 컴파일된 CLI의 `calendar month --year 2026 --month 10`도
+같은 건수와 기간을 반환했습니다. 온라인 동영상 목록 67개와 E-class 녹화
+목록 3개를 조회하고 E-class 미디어의 양수 길이와 MP4 HEAD 응답 200을
+확인했습니다. 검증 클라이언트는 읽기 요청 62건을 수행했습니다. 출석 제출,
+학습 진도 저장, 인증번호 발송·확인은 수행하지 않았고 차단 대상 요청도
+없었습니다. 캡차 계속 로그인과 상태 변경 기능은 합성 HTTP 테스트로
+검증합니다. 이 기록은 자동화된 조회 검사이며 사람 수동 테스트 완료 표와
+구분합니다.
+
 2026-10-03 강의계획서 작업에서는 로그인된 Chrome에서 조회 목록과 본문을
 읽고, 수정된 SDK의 `course.syllabus()`로 현재 학기 6과목을 확인했습니다.
 6과목 모두 개요·학습목표·15주차 계획이 반환됐고, 평가 반영 비율 합계는
@@ -87,5 +105,6 @@ QR 출석 버튼이 표시되는 것까지 읽기 전용으로 확인했습니�
 | Mobile QR attendance | `dart test test/mobile_qr_attendance_test.dart` (full suite에 포함) | Passed (34 tests) | 2026-10-02 |
 | High-level coverage | `dart test test/high_level_feature_coverage_test.dart` (full suite에 포함) | Passed | 2026-10-03 |
 | Captcha login and parser | `dart test test/captcha_login_test.dart test/login_parser_test.dart` | Passed (21 tests) | 2026-10-02 |
-| Integrated check | `dart run tool/check_all.dart` | Passed | 2026-10-03 |
-| CLI compatibility | 로컬 SDK를 사용하는 `klas-cli`의 `dart analyze`, `dart test`, `dart compile exe bin/klas.dart -o build/klas.exe` | Passed (87 tests), executable built | 2026-10-02 |
+| Integrated check | `dart run tool/check_all.dart` | Passed (develop 통합 코드) | 2026-10-03 |
+| CLI compatibility | 통합 SDK를 연결한 CLI 임시 복사본의 `dart run tool/check_all.dart`, `dart compile exe bin/klas.dart -o build/klas.exe` | Passed (전체 CLI 검사), executable built | 2026-10-03 |
+| Compiled CLI monthly calendar | `klas --format json calendar month --year 2026 --month 10` | Passed (10건, 전체 기간 10건, 월 경계 일정 5건) | 2026-10-03 |
