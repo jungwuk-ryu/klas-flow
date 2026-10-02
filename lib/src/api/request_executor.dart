@@ -24,22 +24,46 @@ final class RequestExecutor {
     String path, {
     Map<String, dynamic>? payload,
     required bool includeContext,
+    Map<String, String>? headers,
   }) {
     return _sessionCoordinator.withAutoRenewal(() async {
       final merged = _mergePayload(payload, includeContext: includeContext);
-      final response = await _transport.postJsonDynamic(path, json: merged);
+      final response = await _transport.postJsonDynamic(
+        path,
+        json: merged,
+        headers: headers,
+      );
       return response.body;
     });
+  }
+
+  /// 일회용 인증 코드나 상태 변경 요청을 세션 갱신으로 재전송하지 않습니다.
+  Future<Object?> postJsonDynamicOnce(
+    String path, {
+    required Map<String, dynamic> payload,
+    Map<String, String>? headers,
+  }) async {
+    final response = await _transport.postJsonDynamic(
+      path,
+      json: payload,
+      headers: headers,
+    );
+    return response.body;
   }
 
   Future<String> postJsonText(
     String path, {
     Map<String, dynamic>? payload,
     required bool includeContext,
+    Map<String, String>? headers,
   }) {
     return _sessionCoordinator.withAutoRenewal(() async {
       final merged = _mergePayload(payload, includeContext: includeContext);
-      final response = await _transport.postJsonText(path, json: merged);
+      final response = await _transport.postJsonText(
+        path,
+        json: merged,
+        headers: headers,
+      );
       return response.body;
     });
   }

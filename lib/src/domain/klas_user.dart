@@ -3,6 +3,8 @@ import '../models/course_context.dart';
 import '../exceptions/klas_exceptions.dart';
 import '../models/file_payload.dart';
 import '../models/high_level_models.dart';
+import '../models/qr_attendance_verification.dart';
+import '../models/qr_check_in_session.dart';
 
 /// 로그인된 사용자 도메인 객체입니다.
 final class KlasUser {
@@ -255,9 +257,34 @@ final class KlasCourse {
   }
 
   /// 현재 과목에 대해 QR 출석을 처리합니다.
-  Future<KlasQrAttendanceResult> qrCheckIn(String qrCode) async {
+  Future<KlasQrAttendanceResult> qrCheckIn(
+    String qrCode, {
+    KlasQrVerificationHandler? onVerification,
+    int maxVerificationAttempts = 3,
+  }) async {
+    _validateQrCode(qrCode);
+    _validateQrVerificationAttempts(maxVerificationAttempts);
     final subject = await _owner.attendance.findSubjectItemByCourse(this);
-    return _owner.attendance.qrCheckIn(subject: subject, qrCode: qrCode);
+    return _owner.attendance.qrCheckIn(
+      subject: subject,
+      qrCode: qrCode,
+      onVerification: onVerification,
+      maxVerificationAttempts: maxVerificationAttempts,
+    );
+  }
+
+  /// 과목 선택과 추가 인증을 마칩니다. QR 입력과 제출 시점은 호출자가 정합니다.
+  Future<KlasQrCheckInSession> prepareQrCheckIn({
+    KlasQrVerificationHandler? onVerification,
+    int maxVerificationAttempts = 3,
+  }) async {
+    _validateQrVerificationAttempts(maxVerificationAttempts);
+    final subject = await _owner.attendance.findSubjectItemByCourse(this);
+    return _owner.attendance.prepareQrCheckIn(
+      subject: subject,
+      onVerification: onVerification,
+      maxVerificationAttempts: maxVerificationAttempts,
+    );
   }
 }
 
@@ -860,7 +887,10 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
   KlasAttendanceFeature(super.executor);
 
   Future<List<KlasRecord>> listSubjects({Map<String, dynamic>? query}) {
-    return array('attendance.kwAttendStdGwakmokList', payload: query);
+    return array(
+      'attendance.kwAttendStdGwakmokList',
+      payload: query ?? _defaultQrAttendanceSubjectQuery(null),
+    );
   }
 
   /// 출석 관리 과목 목록을 고수준 모델로 조회합니다.
@@ -916,43 +946,185 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
   Future<KlasRecord> qrCheckInRaw({
     required KlasAttendanceSubject subject,
     required String qrCode,
+    KlasQrVerificationHandler? onVerification,
+    int maxVerificationAttempts = 3,
   }) async {
-    final normalizedQrCode = qrCode.trim();
-    if (normalizedQrCode.isEmpty) {
-      throw ArgumentError('qrCode must not be empty.');
-    }
-
-    final payload = await _resolveQrAttendancePayload(subject);
-    final attendanceRows = await array(
-      'attendance.kwAttendStdAttendList',
-      payload: payload,
+    _validateQrCode(qrCode);
+    _validateQrVerificationAttempts(maxVerificationAttempts);
+    final prepared = await _prepareQrAttendance(
+      subject,
+      onVerification: onVerification,
+      maxAttempts: maxVerificationAttempts,
     );
-    final attendancePayload = Map<String, dynamic>.from(payload)
-      ..['list'] = attendanceRows.map((row) => row.raw).toList(growable: false);
-
-    final randomKeyResponse = await object(
-      'attendance.certiPushSucStd',
-      payload: attendancePayload,
-    );
-    final randomKey = _requireQrAttendanceString(
-      randomKeyResponse.raw,
-      const <String>['randomKey'],
-      'QR attendance preparation did not return randomKey.',
-    );
-
-    final submitPayload = Map<String, dynamic>.from(attendancePayload)
-      ..['randomKey'] = randomKey
-      ..['encrypt'] = normalizedQrCode;
-    return object('attendance.kwAttendQRCodeInsert', payload: submitPayload);
+    return prepared.submitRaw(qrCode);
   }
 
   /// QR 출석 처리 결과를 고수준 모델로 조회합니다.
   Future<KlasQrAttendanceResult> qrCheckIn({
     required KlasAttendanceSubject subject,
     required String qrCode,
+    KlasQrVerificationHandler? onVerification,
+    int maxVerificationAttempts = 3,
   }) async {
-    final result = await qrCheckInRaw(subject: subject, qrCode: qrCode);
-    return _parseQrAttendanceResult(result.raw);
+    final result = await qrCheckInRaw(
+      subject: subject,
+      qrCode: qrCode,
+      onVerification: onVerification,
+      maxVerificationAttempts: maxVerificationAttempts,
+    );
+    return KlasQrAttendanceResult.fromJson(result.raw);
+  }
+
+  /// 추가 인증을 마친 뒤 호출자가 QR 문자열을 제출할 수 있는 준비를 반환합니다.
+  Future<KlasQrCheckInSession> prepareQrCheckIn({
+    required KlasAttendanceSubject subject,
+    KlasQrVerificationHandler? onVerification,
+    int maxVerificationAttempts = 3,
+  }) async {
+    _validateQrVerificationAttempts(maxVerificationAttempts);
+    return _prepareQrAttendance(
+      subject,
+      onVerification: onVerification,
+      maxAttempts: maxVerificationAttempts,
+    );
+  }
+
+  Future<_PreparedQrCheckInSession> _prepareQrAttendance(
+    KlasAttendanceSubject subject, {
+    required KlasQrVerificationHandler? onVerification,
+    required int maxAttempts,
+  }) async {
+    final payload = await _resolveQrAttendancePayload(subject);
+    if (await executor.qrAttendance.isClosed(payload)) {
+      throw const QrAttendanceUnavailableException(
+        'QR attendance is closed for this course.',
+      );
+    }
+    final rows = await array(
+      'attendance.kwAttendStdAttendList',
+      payload: payload,
+    );
+    final verificationPayload = <String, dynamic>{
+      'grcode': null,
+      'subj': payload['subj'],
+      'year': payload['selectYear'],
+      'hakgi': payload['selectHakgi'],
+      'weeklyseq': 99,
+      'gubun': 'Q',
+      'certiGubun': '',
+      'inputKey': '',
+    };
+    final verification = await executor.qrAttendance.checkVerification(
+      verificationPayload,
+    );
+    final sessionRevision = executor.sessionRevision;
+    final verified = _qrVerificationStatus(verification['status']);
+    late final String randomKey;
+    if (verified) {
+      final response = await executor.qrAttendance.verifiedAppKey(
+        verificationPayload,
+      );
+      if (!_qrVerificationStatus(response['status'])) {
+        throw const QrAttendanceVerificationException(
+          'QR attendance app verification was rejected.',
+        );
+      }
+      randomKey = _qrVerificationKey(response);
+    } else {
+      if (onVerification == null) {
+        throw const QrAttendanceVerificationRequiredException(
+          'QR attendance requires additional verification. Provide onVerification.',
+        );
+      }
+      if (verification['curEmail'] case final String email) {
+        verificationPayload['curEmail'] = email;
+      }
+      randomKey = await _verifyQrAttendanceCode(
+        verificationPayload,
+        otpAvailable: _qrOtpAvailable(verification['otpIssue']),
+        onVerification: onVerification,
+        maxAttempts: maxAttempts,
+        sessionRevision: sessionRevision,
+      );
+    }
+    _ensureQrSession(executor, sessionRevision);
+    final prepared = <String, dynamic>{
+      ...payload,
+      'list': rows.map((row) => row.raw).toList(growable: false),
+      'randomKey': randomKey,
+    };
+    return _PreparedQrCheckInSession(
+      isSessionCurrent: () => executor.sessionRevision == sessionRevision,
+      submit: (qrCode) => executor.qrAttendance.submit(
+        <String, dynamic>{...prepared, 'encrypt': qrCode},
+      ),
+    );
+  }
+
+  Future<String> _verifyQrAttendanceCode(
+    Map<String, dynamic> payload, {
+    required bool otpAvailable,
+    required KlasQrVerificationHandler onVerification,
+    required int maxAttempts,
+    required int sessionRevision,
+  }) async {
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      _ensureQrSession(executor, sessionRevision);
+      var challengeActive = true;
+      final challenge = KlasQrVerificationChallenge(
+        attempt: attempt,
+        maxAttempts: maxAttempts,
+        otpAvailable: otpAvailable,
+        previousAttemptRejected: attempt > 1,
+        isActive: () => challengeActive,
+        sendEmailCode: () async {
+          _ensureQrSession(executor, sessionRevision);
+          final response = await executor.qrAttendance.sendEmail(
+            <String, dynamic>{...payload, 'certiGubun': 'eml'},
+          );
+          if (!_qrVerificationStatus(response['status'])) {
+            throw const QrAttendanceVerificationException(
+              'Could not send the QR attendance email verification code.',
+            );
+          }
+        },
+      );
+      final KlasQrVerificationAnswer? answer;
+      try {
+        answer = await onVerification(challenge);
+      } finally {
+        challengeActive = false;
+      }
+      if (answer == null) {
+        throw const QrAttendanceCancelledException(
+          'QR attendance verification was cancelled.',
+        );
+      }
+      _ensureQrSession(executor, sessionRevision);
+      if (answer.code.trim().isEmpty) {
+        throw ArgumentError('Verification code must not be empty.');
+      }
+      if (answer.method == KlasQrVerificationMethod.otp && !otpAvailable) {
+        throw const QrAttendanceVerificationException(
+          'OTP must already be registered before it can verify QR attendance.',
+        );
+      }
+      final response = await executor.qrAttendance.verifyCode(
+        <String, dynamic>{
+          ...payload,
+          'certiGubun': answer.method == KlasQrVerificationMethod.email
+              ? 'eml'
+              : 'otp',
+          'inputKey': answer.code.trim(),
+        },
+      );
+      if (_qrVerificationStatus(response['status'])) {
+        return _qrVerificationKey(response);
+      }
+    }
+    throw const QrAttendanceVerificationException(
+      'QR attendance verification attempts were exhausted.',
+    );
   }
 
   /// 과목 객체에 대응하는 출석 과목 항목을 조회합니다.
@@ -1182,13 +1354,6 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
       'openGrade',
       'openGwamokNo',
       'bunbanNo',
-      'gwamokKname',
-      'codeName1',
-      'hakjumNum',
-      'sisuNum',
-      'memberName',
-      'currentNum',
-      'yoil',
       'subj',
     ]) {
       final value = payload[key];
@@ -1269,8 +1434,12 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
 
 Map<String, dynamic> _defaultQrAttendanceSubjectQuery(String? termId) {
   final now = DateTime.now();
-  final year = _yearFromTermId(termId) ?? now.year.toString();
-  final hakgi = _hakgiFromTermId(termId) ?? (now.month <= 6 ? '1' : '2');
+  final year =
+      _yearFromTermId(termId) ??
+      (now.month == 1 ? now.year - 1 : now.year).toString();
+  final hakgi =
+      _hakgiFromTermId(termId) ??
+      (now.month >= 2 && now.month <= 7 ? '1' : '2');
   return <String, dynamic>{
     'list': const <dynamic>[],
     'selectYear': year,
@@ -1318,9 +1487,86 @@ String _requireQrAttendanceString(
   return value;
 }
 
+final class _PreparedQrCheckInSession implements KlasQrCheckInSession {
+  final bool Function() _isSessionCurrent;
+  Future<Map<String, dynamic>> Function(String)? _submit;
+
+  _PreparedQrCheckInSession({
+    required bool Function() isSessionCurrent,
+    required Future<Map<String, dynamic>> Function(String) submit,
+  }) : _isSessionCurrent = isSessionCurrent,
+       _submit = submit;
+
+  @override
+  bool get isPending => _submit != null && _isSessionCurrent();
+
+  @override
+  Future<KlasQrAttendanceResult> submit(String qrCode) async {
+    final response = await submitRaw(qrCode);
+    return KlasQrAttendanceResult.fromJson(response.raw);
+  }
+
+  Future<KlasRecord> submitRaw(String qrCode) async {
+    _validateQrCode(qrCode);
+    final submit = _submit;
+    if (submit == null) {
+      throw StateError('This QR check-in session is no longer pending.');
+    }
+    // Claim the preparation before awaiting so concurrent calls cannot replay it.
+    _submit = null;
+    if (!_isSessionCurrent()) {
+      throw const SessionExpiredException(
+        'The login session changed. Prepare QR attendance again.',
+      );
+    }
+    return KlasRecord(await submit(qrCode));
+  }
+
+  @override
+  void cancel() => _submit = null;
+}
+
+void _ensureQrSession(KlasDomainExecutor executor, int sessionRevision) {
+  if (executor.sessionRevision != sessionRevision) {
+    throw const SessionExpiredException(
+      'The login session changed. Prepare QR attendance again.',
+    );
+  }
+}
+
+void _validateQrCode(String value) {
+  if (value.trim().isEmpty) {
+    throw ArgumentError('qrCode must not be empty.');
+  }
+}
+
+void _validateQrVerificationAttempts(int value) {
+  if (value < 1 || value > 10) {
+    throw ArgumentError('maxVerificationAttempts must be between 1 and 10.');
+  }
+}
+
+bool _qrVerificationStatus(Object? value) {
+  if (value == true || value == 'true') return true;
+  if (value == false || value == 'false') return false;
+  throw const ParsingException('Unrecognized QR verification status.');
+}
+
+bool _qrOtpAvailable(Object? value) {
+  return value == true || value == 1 || value == '1' || value == 'Y';
+}
+
+String _qrVerificationKey(Map<String, dynamic> response) {
+  return _requireQrAttendanceString(
+    response,
+    const <String>['randomKey'],
+    'QR attendance verification did not return a one-time key.',
+  );
+}
+
 String? _composeQrAttendanceTermId(Map<String, dynamic> source) {
-  final year = _readQrAttendanceValue(source, const <String>['thisYear']);
-  final hakgi = _readQrAttendanceValue(source, const <String>['hakgi']);
+  final year = _readQrAttendanceValue(source, const <String>['thisYear', 'selectYear']);
+  final hakgi = _readQrAttendanceValue(source, const <String>['hakgi', 'selectHakgi']);
   if (year == null || hakgi == null) {
     return null;
   }
@@ -1383,11 +1629,7 @@ T? _findUniqueQrAttendanceMatch<T>({
 }
 
 String? _qrAttendanceRowSubjectId(KlasRecord row) {
-  return _readQrAttendanceValue(row.raw, const <String>[
-    'subj',
-    'subjectId',
-    'selectSubj',
-  ]);
+  return KlasAttendanceSubject.fromJson(row.raw).subjectId;
 }
 
 String? _qrAttendanceRowSubjectName(KlasRecord row) {
@@ -1411,144 +1653,6 @@ String? _qrAttendanceRowTermId(KlasRecord row) {
         'selectYearhakgi',
       ]) ??
       _composeQrAttendanceTermId(row.raw);
-}
-
-KlasQrAttendanceResult _parseQrAttendanceResult(Map<String, dynamic> source) {
-  final fieldErrorMessages = _collectQrAttendanceFieldErrorMessages(source);
-  if (fieldErrorMessages.isNotEmpty) {
-    final message = fieldErrorMessages.join(' ').trim();
-    return KlasQrAttendanceResult(
-      accepted: false,
-      messages: List<String>.unmodifiable(fieldErrorMessages),
-      message: message.isEmpty ? null : message,
-      raw: source,
-    );
-  }
-
-  final outcomeToken =
-      _readQrAttendanceValue(source, const <String>[
-        'success',
-        'isSuccess',
-        'authenticated',
-      ]) ??
-      _readQrAttendanceValue(source, const <String>[
-        'result',
-        'status',
-        'code',
-      ]);
-  final message = _readQrAttendanceValue(source, const <String>[
-    'message',
-    'msg',
-    'errorMessage',
-    'errorMsg',
-    'defaultMessage',
-  ]);
-  final successState = _parseQrAttendanceOutcomeToken(outcomeToken);
-
-  if (successState == false) {
-    final failureMessage = message ?? 'QR attendance request failed.';
-    return KlasQrAttendanceResult(
-      accepted: false,
-      messages: List<String>.unmodifiable(<String>[failureMessage]),
-      message: failureMessage,
-      raw: source,
-    );
-  }
-
-  if (successState == true) {
-    return KlasQrAttendanceResult(
-      accepted: true,
-      messages: const <String>[],
-      message: message,
-      raw: source,
-    );
-  }
-
-  if (_isEffectivelyEmptyQrAttendanceResponse(source)) {
-    throw ParsingException('QR attendance response was empty.');
-  }
-
-  return KlasQrAttendanceResult(
-    accepted: true,
-    messages: const <String>[],
-    message: message,
-    raw: source,
-  );
-}
-
-List<String> _collectQrAttendanceFieldErrorMessages(Map<String, dynamic> source) {
-  final messages = <String>[];
-  final fieldErrors = source['fieldErrors'];
-  if (fieldErrors is! List) {
-    return messages;
-  }
-
-  for (final item in fieldErrors) {
-    if (item is! Map) {
-      continue;
-    }
-    final rawItem = item.cast<String, dynamic>();
-    final message = _readQrAttendanceValue(rawItem, const <String>[
-      'message',
-      'defaultMessage',
-      'msg',
-    ]);
-    if (message != null && message.trim().isNotEmpty) {
-      messages.add(message.trim());
-    }
-  }
-  return messages;
-}
-
-bool? _parseQrAttendanceOutcomeToken(String? token) {
-  if (token == null) {
-    return null;
-  }
-
-  final normalized = token.trim().toLowerCase();
-  if (normalized.isEmpty) {
-    return null;
-  }
-
-  if (const <String>{'ok', 'success', 's', '0', '200', 'y', 'true'}.contains(
-    normalized,
-  )) {
-    return true;
-  }
-  if (const <String>{
-    'fail',
-    'failed',
-    'error',
-    '401',
-    'n',
-    'false',
-  }.contains(normalized)) {
-    return false;
-  }
-  return null;
-}
-
-bool _isEffectivelyEmptyQrAttendanceResponse(Map<String, dynamic> source) {
-  if (source.isEmpty) {
-    return true;
-  }
-  return source.values.every(_isEffectivelyEmptyQrAttendanceValue);
-}
-
-bool _isEffectivelyEmptyQrAttendanceValue(Object? value) {
-  if (value == null) {
-    return true;
-  }
-  if (value is String) {
-    return value.trim().isEmpty;
-  }
-  if (value is List) {
-    return value.isEmpty || value.every(_isEffectivelyEmptyQrAttendanceValue);
-  }
-  if (value is Map) {
-    return value.isEmpty || value.values.every(_isEffectivelyEmptyQrAttendanceValue);
-  }
-  return false;
 }
 
 /// 학적 feature입니다.

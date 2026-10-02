@@ -5,8 +5,8 @@ import 'package:http/testing.dart';
 import 'package:klasflow/klasflow.dart';
 import 'package:klasflow/src/api/readonly_api.dart';
 import 'package:test/test.dart';
-
 import 'support/captcha_login_mock.dart';
+import 'support/mobile_qr_fixture.dart';
 
 void main() {
   test(
@@ -41,6 +41,7 @@ void main() {
       'all catalog endpoints are reachable through high-level API',
       () async {
         final calledPaths = <String, int>{};
+        final requests = <http.Request>[];
         final missingCourseContext = <String>[];
 
         const courseContextPaths = <String>{
@@ -71,6 +72,7 @@ void main() {
         };
 
         final mock = MockClient((request) async {
+          requests.add(request);
           final path = request.url.path;
           calledPaths.update(path, (value) => value + 1, ifAbsent: () => 1);
 
@@ -201,13 +203,14 @@ void main() {
               ]);
             case '/mst/ads/admst/KwAttendStdAttendList.do':
               return _jsonResponse([
-                {
-                  'weekNo': '3',
-                  'attendOpenYn': 'Y',
-                },
+                {'weekNo': '3', 'attendOpenYn': 'Y'},
               ]);
+            case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+              return _jsonResponse('N');
+            case '/std/lis/evltn/CertiLctreStdCheck.do':
+              return _jsonResponse({'status': true});
             case '/std/lis/evltn/CertiPushSucStd.do':
-              return _jsonResponse({'randomKey': 'rk-1'});
+              return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
             case '/mst/ads/admst/KwAttendQRCodeInsert.do':
               return _jsonResponse({'status': 'ok'});
             default:
@@ -315,6 +318,17 @@ void main() {
           qrCode: 'qr-token',
         );
         await course.qrCheckIn('qr-token');
+        final courseQr = await course.prepareQrCheckIn();
+        expect(courseQr.isPending, isTrue);
+        await courseQr.submit('qr-token');
+        expect(courseQr.isPending, isFalse);
+        final attendanceQr = await user.attendance.prepareQrCheckIn(
+          subject: attendanceSubjects.first,
+        );
+        await attendanceQr.submit('qr-token');
+        attendanceQr.cancel();
+        expect(attendanceQr.isPending, isFalse);
+        expectAutomaticAttendanceHeaders(requests);
         await user.attendance.monthList();
         await user.attendance.monthTable();
 

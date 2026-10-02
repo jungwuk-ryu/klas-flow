@@ -6,6 +6,7 @@ import 'package:klasflow/klasflow.dart';
 import 'package:test/test.dart';
 
 import 'support/captcha_login_mock.dart';
+import 'support/mobile_qr_fixture.dart';
 
 void main() {
   test(
@@ -28,6 +29,53 @@ void main() {
     },
   );
   group('High-level domain API', () {
+    test('course prepares QR attendance before accepting external string input', () async {
+      final fixture = MobileQrFixture();
+      addTearDown(fixture.client.close);
+      final user = await fixture.login();
+      final course = (await user.defaultCourse())!;
+      const qrText = ' opaque+QR==?value=1&value=2 ';
+      final KlasQrCheckInSession prepared = await course.prepareQrCheckIn(
+        onVerification: (challenge) async {
+          await Future.wait([
+            challenge.requestEmailCode(), challenge.requestEmailCode(),
+          ]);
+          return const KlasQrVerificationAnswer(
+            method: KlasQrVerificationMethod.email, code: '012345');
+        },
+      );
+      expect(prepared.isPending, isTrue);
+      expect(fixture.calls(qrCodePath), hasLength(1));
+      expect(fixture.calls(qrSubmitPath), isEmpty);
+      final result = await prepared.submit(qrText);
+      expect(prepared.isPending, isFalse);
+      expect(result.accepted, isTrue);
+      expect(result.message, '출석 처리 완료');
+      expect(fixture.calls(qrEmailPath), hasLength(1));
+      expect(qrBody(fixture.calls(qrEmailPath).single)['curEmail'], 'qr-test@example.com');
+      expect(fixture.calls(qrAppKeyPath), isEmpty);
+      final verification = qrBody(fixture.calls(qrCodePath).single);
+      expect(verification['subj'], qrSubjectId);
+      expect(verification['year'], '2026');
+      expect(verification['hakgi'], '1');
+      expect(verification['weeklyseq'], 99);
+      expect(verification['gubun'], 'Q');
+      expect(verification['certiGubun'], 'eml');
+      expect(verification['inputKey'], '012345');
+      expect(verification.containsKey('list'), isFalse);
+      final submitted = fixture.calls(qrSubmitPath).single;
+      final body = qrBody(submitted);
+      expect(body['subj'], qrSubjectId);
+      expect(body['randomKey'], 'test-key');
+      expect(body['encrypt'], qrText);
+      expect(body['list'], [{'weekNo': '3', 'attendOpenYn': 'Y'}]);
+      expect(body.containsKey('inputKey'), isFalse);
+      expect(body.containsKey('curEmail'), isFalse);
+      expect(submitted.headers['cookie'], contains('JSESSIONID=synthetic-session'));
+      expectAutomaticAttendanceHeaders(fixture.requests);
+    });
+
+
     test(
       'login returns user and course.listTasks injects bound context',
       () async {
@@ -802,10 +850,16 @@ void main() {
                   'attendOpenYn': 'Y',
                 },
               ]);
+            case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+              return _jsonResponse('N');
+            case '/std/lis/evltn/CertiLctreStdCheck.do':
+              return _jsonResponse({'status': true});
             case '/std/lis/evltn/CertiPushSucStd.do':
               final body = jsonDecode(request.body) as Map<String, dynamic>;
-              expect(body['list'], isA<List<dynamic>>());
-              return _jsonResponse({'randomKey': 'rk-1'});
+              expect(body['gubun'], equals('Q'));
+              expect(body['weeklyseq'], equals(99));
+              expect(body['year'], equals('2026'));
+              return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
             case '/mst/ads/admst/KwAttendQRCodeInsert.do':
               final body = jsonDecode(request.body) as Map<String, dynamic>;
               expect(body['randomKey'], equals('rk-1'));
@@ -823,7 +877,7 @@ void main() {
         addTearDown(client.close);
 
         final user = await client.login('test-user', 'test-password');
-        final subject = (await user.attendance.listSubjectItems()).first;
+        final subject = (await user.attendance.listSubjectItems(query: const {})).first;
         final result = await user.attendance.qrCheckIn(
           subject: subject,
           qrCode: 'qr-token',
@@ -926,7 +980,7 @@ void main() {
       addTearDown(client.close);
 
       final user = await client.login('test-user', 'test-password');
-      final subject = (await user.attendance.listSubjectItems()).first;
+      final subject = (await user.attendance.listSubjectItems(query: const {})).first;
 
       await expectLater(
         () => user.attendance.qrCheckIn(subject: subject, qrCode: 'qr-token'),
@@ -1068,8 +1122,12 @@ void main() {
                 'attendOpenYn': 'Y',
               },
             ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
           case '/std/lis/evltn/CertiPushSucStd.do':
-            return _jsonResponse({'randomKey': 'rk-1'});
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
           case '/mst/ads/admst/KwAttendQRCodeInsert.do':
             return _jsonResponse({
               'fieldErrors': [
@@ -1161,8 +1219,12 @@ void main() {
                 'attendOpenYn': 'Y',
               },
             ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
           case '/std/lis/evltn/CertiPushSucStd.do':
-            return _jsonResponse({'randomKey': 'rk-1'});
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
           case '/mst/ads/admst/KwAttendQRCodeInsert.do':
             return _jsonResponse({
               'success': false,
@@ -1251,8 +1313,12 @@ void main() {
                 'attendOpenYn': 'Y',
               },
             ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
           case '/std/lis/evltn/CertiPushSucStd.do':
-            return _jsonResponse({'randomKey': 'rk-1'});
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
           case '/mst/ads/admst/KwAttendQRCodeInsert.do':
             return _jsonResponse({});
           default:
@@ -1424,8 +1490,12 @@ void main() {
                 'attendOpenYn': 'Y',
               },
             ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
           case '/std/lis/evltn/CertiPushSucStd.do':
-            return _jsonResponse({'randomKey': 'rk-1'});
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
           case '/mst/ads/admst/KwAttendQRCodeInsert.do':
             final body = jsonDecode(request.body) as Map<String, dynamic>;
             expect(body['encrypt'], equals('qr-token'));

@@ -1,5 +1,6 @@
 import '../exceptions/klas_exceptions.dart';
 import '../models/file_payload.dart';
+import '../transport/mobile_attendance_headers.dart';
 
 /// 엔드포인트 HTTP 메서드입니다.
 enum KlasEndpointMethod { get, post }
@@ -24,6 +25,7 @@ final class KlasEndpointSpec {
   final KlasEndpointResponseType responseType;
   final KlasEndpointRequestEncoding requestEncoding;
   final bool includeContextByDefault;
+  final bool requiresMobileAppUserAgent;
 
   const KlasEndpointSpec({
     required this.id,
@@ -32,6 +34,7 @@ final class KlasEndpointSpec {
     required this.responseType,
     required this.requestEncoding,
     required this.includeContextByDefault,
+    this.requiresMobileAppUserAgent = false,
   });
 }
 
@@ -366,6 +369,7 @@ final class KlasEndpointCatalog {
       responseType: KlasEndpointResponseType.jsonArray,
       requestEncoding: KlasEndpointRequestEncoding.json,
       includeContextByDefault: false,
+      requiresMobileAppUserAgent: true,
     ),
     'attendance.kwAttendStdAttendList': KlasEndpointSpec(
       id: 'attendance.kwAttendStdAttendList',
@@ -374,6 +378,7 @@ final class KlasEndpointCatalog {
       responseType: KlasEndpointResponseType.jsonArray,
       requestEncoding: KlasEndpointRequestEncoding.json,
       includeContextByDefault: false,
+      requiresMobileAppUserAgent: true,
     ),
     'attendance.certiPushSucStd': KlasEndpointSpec(
       id: 'attendance.certiPushSucStd',
@@ -382,6 +387,7 @@ final class KlasEndpointCatalog {
       responseType: KlasEndpointResponseType.jsonObject,
       requestEncoding: KlasEndpointRequestEncoding.json,
       includeContextByDefault: false,
+      requiresMobileAppUserAgent: true,
     ),
     'attendance.kwAttendQRCodeInsert': KlasEndpointSpec(
       id: 'attendance.kwAttendQRCodeInsert',
@@ -390,6 +396,7 @@ final class KlasEndpointCatalog {
       responseType: KlasEndpointResponseType.jsonObject,
       requestEncoding: KlasEndpointRequestEncoding.json,
       includeContextByDefault: false,
+      requiresMobileAppUserAgent: true,
     ),
     'attendance.mySchdulMonthList': KlasEndpointSpec(
       id: 'attendance.mySchdulMonthList',
@@ -607,6 +614,7 @@ typedef KlasPostJsonDynamic =
       String path, {
       Map<String, dynamic>? payload,
       required bool includeContext,
+      Map<String, String>? headers,
     });
 
 typedef KlasPostJsonText =
@@ -614,6 +622,7 @@ typedef KlasPostJsonText =
       String path, {
       Map<String, dynamic>? payload,
       required bool includeContext,
+      Map<String, String>? headers,
     });
 
 typedef KlasPostFormDynamic =
@@ -870,11 +879,17 @@ final class KlasReadOnlyApi {
         resolvedPath,
         payload: payload,
         includeContext: includeContext,
+        headers: endpoint.requiresMobileAppUserAgent
+            ? mobileAttendanceHeaders
+            : null,
       ),
       _ => await _postJsonDynamic(
         resolvedPath,
         payload: payload,
         includeContext: includeContext,
+        headers: endpoint.requiresMobileAppUserAgent
+            ? mobileAttendanceHeaders
+            : null,
       ),
     };
   }

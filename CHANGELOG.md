@@ -1,5 +1,11 @@
 ## 1.3.0 (Unreleased)
 
+- Automatically apply the mobile app User-Agent to KW attendance requests with ordinary `KlasClient()` configuration.
+- Added QR attendance verification callbacks for email and registered OTP, with direct decoded-string submission or separate preparation through `prepareQrCheckIn()` and `KlasQrCheckInSession.submit()`.
+- Keep QR input in the calling program, allow local cancellation, and prevent reuse of a prepared submission or use after a login session change.
+- Fixed mobile attendance subject identification, certification context, closed-course checks, and success/failure response parsing.
+- Prevented automatic session renewal or replay of email delivery, one-time verification, and QR attendance submission requests.
+
 - Added numeric captcha continuation through `KlasClient.login(onCaptcha: ..., maxCaptchaAttempts: ...)` and exported `KlasCaptchaChallenge` / `KlasCaptchaHandler`.
 - Preserve the login session when displaying a challenge, refresh rejected challenges within a bounded retry loop, and reuse the handler during automatic session renewal.
 - Keep cancellation and missing handlers as captcha errors, distinct from invalid credentials; preserve leading zeros and avoid storing captcha answers or images.

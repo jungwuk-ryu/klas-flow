@@ -1,4 +1,5 @@
 import 'file_payload.dart';
+import '../exceptions/klas_exceptions.dart';
 import 'session_info.dart';
 
 /// 확장 가능한 고수준 레코드 객체입니다.
@@ -694,12 +695,14 @@ final class KlasAttendanceSubject {
   factory KlasAttendanceSubject.fromJson(Map<String, dynamic> json) {
     return KlasAttendanceSubject(
       raw: json,
-      subjectId: _readNormalizedString(json, const <String>[
-        'subj',
-        'subjId',
-        'subjectId',
-        'selectSubj',
-      ]),
+      subjectId:
+          _readNormalizedString(json, const <String>[
+            'subj',
+            'subjId',
+            'subjectId',
+            'selectSubj',
+          ]) ??
+          _composeAttendanceSubjectId(json),
       subjectName: _readNormalizedString(json, const <String>[
         'subjNm',
         'subjectName',
@@ -761,14 +764,77 @@ final class KlasQrAttendanceResult {
       }
     }
 
-    final joined = messages.isEmpty ? null : messages.join(' ').trim();
+    final responseMessage = _readNormalizedString(json, const <String>[
+      'responseText',
+      'message',
+      'msg',
+      'errorMessage',
+      'errorMsg',
+      'defaultMessage',
+    ]);
+    int? errorCount;
+    if (json.containsKey('errorCount')) {
+      errorCount = int.tryParse(json['errorCount'].toString());
+      if (errorCount == null || errorCount < 0) {
+        throw const ParsingException('Invalid QR attendance error count.');
+      }
+    }
+    final outcomes = <bool>[
+      for (final key in const <String>[
+        'success',
+        'isSuccess',
+        'authenticated',
+        'result',
+        'status',
+        'code',
+      ])
+        if (_qrAttendanceOutcome(json[key]) case final bool outcome) outcome,
+    ];
+    final rejected =
+        (fieldErrors is List && fieldErrors.isNotEmpty) ||
+        (errorCount != null && errorCount > 0) ||
+        outcomes.contains(false);
+    final accepted = !rejected && (errorCount == 0 || outcomes.contains(true));
+    if (!accepted && !rejected) {
+      throw const ParsingException('Unrecognized QR attendance result.');
+    }
+    if (rejected && messages.isEmpty) {
+      messages.add(responseMessage ?? 'QR attendance request failed.');
+    }
     return KlasQrAttendanceResult(
-      accepted: messages.isEmpty,
+      accepted: accepted,
       messages: List<String>.unmodifiable(messages),
-      message: joined == null || joined.isEmpty ? null : joined,
+      message: rejected ? messages.join(' ').trim() : responseMessage,
       raw: json,
     );
   }
+}
+
+bool? _qrAttendanceOutcome(Object? value) {
+  if (value is bool) return value;
+  final token = value?.toString().trim().toLowerCase();
+  if (const <String>{
+    'ok',
+    'success',
+    's',
+    '0',
+    '200',
+    'y',
+    'true',
+  }.contains(token)) {
+    return true;
+  }
+  if (const <String>{
+    'fail',
+    'failed',
+    'error',
+    '401',
+    'n',
+    'false',
+  }.contains(token)) {
+    return false;
+  }
+  return null;
 }
 
 /// 월간 일정 항목입니다.
@@ -1498,9 +1564,28 @@ String? _readNormalizedString(Map<String, dynamic> source, List<String> keys) {
   return null;
 }
 
+String? _composeAttendanceSubjectId(Map<String, dynamic> source) {
+  final values = <String?>[
+    _readNormalizedString(source, const ['thisYear', 'selectYear']),
+    _readNormalizedString(source, const ['hakgi', 'selectHakgi']),
+    _readNormalizedString(source, const ['openGwamokNo']),
+    _readNormalizedString(source, const ['openMajorCode']),
+    _readNormalizedString(source, const ['bunbanNo']),
+    _readNormalizedString(source, const ['openGrade']),
+  ];
+  if (values.any((value) => value == null)) return null;
+  return 'U${values.join()}';
+}
+
 String? _composeAttendanceTermId(Map<String, dynamic> source) {
-  final year = _readNormalizedString(source, const <String>['thisYear']);
-  final hakgi = _readNormalizedString(source, const <String>['hakgi']);
+  final year = _readNormalizedString(source, const <String>[
+    'thisYear',
+    'selectYear',
+  ]);
+  final hakgi = _readNormalizedString(source, const <String>[
+    'hakgi',
+    'selectHakgi',
+  ]);
   if (year == null || year.isEmpty || hakgi == null || hakgi.isEmpty) {
     return null;
   }

@@ -9,3 +9,5 @@ export 'src/models/captcha_challenge.dart';
 export 'src/models/high_level_models.dart';
 export 'src/models/klas_client_config.dart';
 export 'src/models/klas_health_report.dart';
+export 'src/models/qr_attendance_verification.dart';
+export 'src/models/qr_check_in_session.dart';

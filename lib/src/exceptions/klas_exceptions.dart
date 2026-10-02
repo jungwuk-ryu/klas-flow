@@ -70,3 +70,18 @@ final class QrAttendanceUnavailableException extends KlasException {
     super.stackTrace,
   });
 }
+
+/// QR 출석에 추가 인증 입력이 필요할 때 발생합니다.
+final class QrAttendanceVerificationRequiredException extends KlasException {
+  const QrAttendanceVerificationRequiredException(super.message);
+}
+
+/// QR 출석 인증이 거절되거나 인증 응답이 불완전할 때 발생합니다.
+final class QrAttendanceVerificationException extends KlasException {
+  const QrAttendanceVerificationException(super.message);
+}
+
+/// 사용자가 QR 출석의 추가 인증 입력을 취소했을 때 발생합니다.
+final class QrAttendanceCancelledException extends KlasException {
+  const QrAttendanceCancelledException(super.message);
+}
