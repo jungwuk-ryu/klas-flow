@@ -1,6 +1,7 @@
 import '../api/frame_api.dart';
 import '../api/readonly_api.dart';
 import '../api/request_executor.dart';
+import '../api/qr_attendance_api.dart';
 import '../api/session_api.dart';
 import '../auth/session_coordinator.dart';
 import '../context/context_manager.dart';
@@ -18,6 +19,8 @@ final class KlasDomainExecutor {
   final RequestExecutor _requestExecutor;
   final SessionCoordinator _sessionCoordinator;
   final ContextManager _contextManager;
+
+  late final QrAttendanceApi qrAttendance = QrAttendanceApi(_requestExecutor);
 
   KlasDomainExecutor({
     required KlasReadOnlyApi api,
@@ -80,6 +83,8 @@ final class KlasDomainExecutor {
       _contextManager.availableContexts;
 
   CourseContext? get currentContext => _contextManager.currentContext;
+
+  int get sessionRevision => _sessionCoordinator.sessionRevision;
 
   Future<void> keepAlive() async {
     await callObject('loginSession.updateSession', includeContext: false);

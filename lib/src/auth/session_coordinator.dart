@@ -18,6 +18,10 @@ final class SessionCoordinator {
   String? _cachedPassword;
   KlasCaptchaHandler? _cachedCaptchaHandler;
   int _cachedMaxCaptchaAttempts = 3;
+  int _sessionRevision = 0;
+
+  /// 로그인 시도가 시작되거나 로컬 인증 상태가 초기화되면 바뀝니다.
+  int get sessionRevision => _sessionRevision;
 
   SessionCoordinator({
     required AuthFlow authFlow,
@@ -83,6 +87,7 @@ final class SessionCoordinator {
 
   /// 캐시된 로그인 정보를 삭제합니다.
   void clearCachedCredentials() {
+    _sessionRevision++;
     _cachedId = null;
     _cachedPassword = null;
     _cachedCaptchaHandler = null;
@@ -135,6 +140,7 @@ final class SessionCoordinator {
     KlasCaptchaHandler? onCaptcha,
     int maxCaptchaAttempts = 3,
   }) async {
+    _sessionRevision++;
     await _authFlow.login(
       id: id,
       password: password,

@@ -6,6 +6,7 @@ import 'package:klasflow/klasflow.dart';
 import 'package:test/test.dart';
 
 import 'support/captcha_login_mock.dart';
+import 'support/mobile_qr_fixture.dart';
 
 void main() {
   test(
@@ -28,6 +29,53 @@ void main() {
     },
   );
   group('High-level domain API', () {
+    test('course prepares QR attendance before accepting external string input', () async {
+      final fixture = MobileQrFixture();
+      addTearDown(fixture.client.close);
+      final user = await fixture.login();
+      final course = (await user.defaultCourse())!;
+      const qrText = ' opaque+QR==?value=1&value=2 ';
+      final KlasQrCheckInSession prepared = await course.prepareQrCheckIn(
+        onVerification: (challenge) async {
+          await Future.wait([
+            challenge.requestEmailCode(), challenge.requestEmailCode(),
+          ]);
+          return const KlasQrVerificationAnswer(
+            method: KlasQrVerificationMethod.email, code: '012345');
+        },
+      );
+      expect(prepared.isPending, isTrue);
+      expect(fixture.calls(qrCodePath), hasLength(1));
+      expect(fixture.calls(qrSubmitPath), isEmpty);
+      final result = await prepared.submit(qrText);
+      expect(prepared.isPending, isFalse);
+      expect(result.accepted, isTrue);
+      expect(result.message, '출석 처리 완료');
+      expect(fixture.calls(qrEmailPath), hasLength(1));
+      expect(qrBody(fixture.calls(qrEmailPath).single)['curEmail'], 'qr-test@example.com');
+      expect(fixture.calls(qrAppKeyPath), isEmpty);
+      final verification = qrBody(fixture.calls(qrCodePath).single);
+      expect(verification['subj'], qrSubjectId);
+      expect(verification['year'], '2026');
+      expect(verification['hakgi'], '1');
+      expect(verification['weeklyseq'], 99);
+      expect(verification['gubun'], 'Q');
+      expect(verification['certiGubun'], 'eml');
+      expect(verification['inputKey'], '012345');
+      expect(verification.containsKey('list'), isFalse);
+      final submitted = fixture.calls(qrSubmitPath).single;
+      final body = qrBody(submitted);
+      expect(body['subj'], qrSubjectId);
+      expect(body['randomKey'], 'test-key');
+      expect(body['encrypt'], qrText);
+      expect(body['list'], [{'weekNo': '3', 'attendOpenYn': 'Y'}]);
+      expect(body.containsKey('inputKey'), isFalse);
+      expect(body.containsKey('curEmail'), isFalse);
+      expect(submitted.headers['cookie'], contains('JSESSIONID=synthetic-session'));
+      expectAutomaticAttendanceHeaders(fixture.requests);
+    });
+
+
     test(
       'login returns user and course.listTasks injects bound context',
       () async {
@@ -724,9 +772,7 @@ void main() {
       expect(rows.first.termId, equals('20261'));
     });
 
-    test(
-      'attendance QR check-in re-fetches subject payload and maps success result',
-      () async {
+    test('attendance QR check-in re-fetches subject payload and maps success result', () async {
         final mock = MockClient((request) async {
           switch (request.url.path) {
             case '/usr/cmn/login/LoginSecurity.do':
@@ -799,12 +845,21 @@ void main() {
               expect(body['gwamokKname'], equals('자료구조'));
               expect(body['openMajorCode'], equals('CSE'));
               return _jsonResponse([
-                {'weekNo': '3', 'attendOpenYn': 'Y'},
+                {
+                  'weekNo': '3',
+                  'attendOpenYn': 'Y',
+                },
               ]);
+            case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+              return _jsonResponse('N');
+            case '/std/lis/evltn/CertiLctreStdCheck.do':
+              return _jsonResponse({'status': true});
             case '/std/lis/evltn/CertiPushSucStd.do':
               final body = jsonDecode(request.body) as Map<String, dynamic>;
-              expect(body['list'], isA<List<dynamic>>());
-              return _jsonResponse({'randomKey': 'rk-1'});
+              expect(body['gubun'], equals('Q'));
+              expect(body['weeklyseq'], equals(99));
+              expect(body['year'], equals('2026'));
+              return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
             case '/mst/ads/admst/KwAttendQRCodeInsert.do':
               final body = jsonDecode(request.body) as Map<String, dynamic>;
               expect(body['randomKey'], equals('rk-1'));
@@ -822,116 +877,116 @@ void main() {
         addTearDown(client.close);
 
         final user = await client.login('test-user', 'test-password');
-        final subject = (await user.attendance.listSubjectItems()).first;
+        final subject = (await user.attendance.listSubjectItems(query: const {})).first;
         final result = await user.attendance.qrCheckIn(
           subject: subject,
           qrCode: 'qr-token',
         );
 
-        expect(result.accepted, isTrue);
-        expect(result.message, isNull);
-        expect(result.raw['status'], equals('ok'));
-      },
-    );
+      expect(result.accepted, isTrue);
+      expect(result.message, isNull);
+      expect(result.raw['status'], equals('ok'));
+    });
 
-    test(
-      'attendance QR check-in throws when fallback subject payload is ambiguous',
-      () async {
-        final mock = MockClient((request) async {
-          switch (request.url.path) {
-            case '/usr/cmn/login/LoginSecurity.do':
-              return _jsonResponse({
-                'data': {
-                  'publicKeyModulus': _modulus,
-                  'publicKeyExponent': '10001',
-                  'loginToken': 'nonce-1',
+    test('attendance QR check-in throws when fallback subject payload is ambiguous', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
+                {
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
                 },
-              });
-            case '/usr/cmn/login/LoginCaptcha.do':
-              return http.Response('OK', 200);
-            case '/usr/cmn/login/LoginConfirm.do':
-              return _jsonResponse({'success': true});
-            case '/std/cmn/frame/KlasStop.do':
-              return _utf8TextResponse(
-                '<html><head><title>KLAS</title></head></html>',
-                200,
-                headers: {'content-type': 'text/html; charset=utf-8'},
-              );
-            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-              return _jsonResponse({
-                'data': [
-                  {
-                    'selectYearhakgi': '20261',
-                    'selectSubj': 'CSE101',
-                    'selectChangeYn': 'Y',
-                    'isDefault': true,
-                    'subjectName': '자료구조 - 김교수',
-                  },
-                ],
-              });
-            case '/api/v1/session/info':
-              return _jsonResponse({'authenticated': true});
-            case '/std/ads/admst/KwAttendStdGwakmokList.do':
-              final body = jsonDecode(request.body) as Map<String, dynamic>;
-              if (!body.containsKey('selectYear')) {
-                return _jsonResponse([
-                  {'subj': 'CSE101', 'subjNm': '자료구조', 'yearhakgi': '20261'},
-                ]);
-              }
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/ads/admst/KwAttendStdGwakmokList.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            if (!body.containsKey('selectYear')) {
               return _jsonResponse([
                 {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '01',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '김교수',
-                  'currentNum': '45',
-                  'yoil': '월',
                   'subj': 'CSE101',
-                },
-                {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '02',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '박교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
+                  'subjNm': '자료구조',
+                  'yearhakgi': '20261',
                 },
               ]);
-            default:
-              return http.Response('Not Found', 404);
-          }
-        });
+            }
+            return _jsonResponse([
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '01',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '김교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+              },
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '02',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '박교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+              },
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
 
-        final client = KlasClient(
-          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-          httpClient: mock,
-        );
-        addTearDown(client.close);
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
 
-        final user = await client.login('test-user', 'test-password');
-        final subject = (await user.attendance.listSubjectItems()).first;
+      final user = await client.login('test-user', 'test-password');
+      final subject = (await user.attendance.listSubjectItems(query: const {})).first;
 
-        await expectLater(
-          () => user.attendance.qrCheckIn(subject: subject, qrCode: 'qr-token'),
-          throwsA(isA<QrAttendanceUnavailableException>()),
-        );
-      },
-    );
+      await expectLater(
+        () => user.attendance.qrCheckIn(subject: subject, qrCode: 'qr-token'),
+        throwsA(isA<QrAttendanceUnavailableException>()),
+      );
+    });
 
     test('attendance can find subject item by id and title', () async {
       final mock = MockClient((request) async {
@@ -1006,188 +1061,196 @@ void main() {
       expect(missing, isNull);
     });
 
-    test(
-      'attendance QR check-in maps fieldErrors to rejected result',
-      () async {
-        final mock = MockClient((request) async {
-          switch (request.url.path) {
-            case '/usr/cmn/login/LoginSecurity.do':
-              return _jsonResponse({
-                'data': {
-                  'publicKeyModulus': _modulus,
-                  'publicKeyExponent': '10001',
-                  'loginToken': 'nonce-1',
-                },
-              });
-            case '/usr/cmn/login/LoginCaptcha.do':
-              return http.Response('OK', 200);
-            case '/usr/cmn/login/LoginConfirm.do':
-              return _jsonResponse({'success': true});
-            case '/std/cmn/frame/KlasStop.do':
-              return _utf8TextResponse(
-                '<html><head><title>KLAS</title></head></html>',
-                200,
-                headers: {'content-type': 'text/html; charset=utf-8'},
-              );
-            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-              return _jsonResponse({
-                'data': [
-                  {
-                    'selectYearhakgi': '20261',
-                    'selectSubj': 'CSE101',
-                    'selectChangeYn': 'Y',
-                    'isDefault': true,
-                    'subjectName': '자료구조 - 김교수',
-                  },
-                ],
-              });
-            case '/api/v1/session/info':
-              return _jsonResponse({'authenticated': true});
-            case '/std/ads/admst/KwAttendStdGwakmokList.do':
-              return _jsonResponse([
+    test('attendance QR check-in maps fieldErrors to rejected result', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
                 {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '01',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '김교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
                 },
-              ]);
-            case '/mst/ads/admst/KwAttendStdAttendList.do':
-              return _jsonResponse([
-                {'weekNo': '3', 'attendOpenYn': 'Y'},
-              ]);
-            case '/std/lis/evltn/CertiPushSucStd.do':
-              return _jsonResponse({'randomKey': 'rk-1'});
-            case '/mst/ads/admst/KwAttendQRCodeInsert.do':
-              return _jsonResponse({
-                'fieldErrors': [
-                  {'message': '출석 가능한 시간이 아닙니다.'},
-                  {'message': '이미 처리되었습니다.'},
-                ],
-              });
-            default:
-              return http.Response('Not Found', 404);
-          }
-        });
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/ads/admst/KwAttendStdGwakmokList.do':
+            return _jsonResponse([
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '01',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '김교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+              },
+            ]);
+          case '/mst/ads/admst/KwAttendStdAttendList.do':
+            return _jsonResponse([
+              {
+                'weekNo': '3',
+                'attendOpenYn': 'Y',
+              },
+            ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
+          case '/std/lis/evltn/CertiPushSucStd.do':
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
+          case '/mst/ads/admst/KwAttendQRCodeInsert.do':
+            return _jsonResponse({
+              'fieldErrors': [
+                {'message': '출석 가능한 시간이 아닙니다.'},
+                {'message': '이미 처리되었습니다.'},
+              ],
+            });
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
 
-        final client = KlasClient(
-          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-          httpClient: mock,
-        );
-        addTearDown(client.close);
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
 
-        final user = await client.login('test-user', 'test-password');
-        final subject = (await user.attendance.listSubjectItems()).first;
-        final result = await user.attendance.qrCheckIn(
-          subject: subject,
-          qrCode: 'qr-token',
-        );
+      final user = await client.login('test-user', 'test-password');
+      final subject = (await user.attendance.listSubjectItems()).first;
+      final result = await user.attendance.qrCheckIn(
+        subject: subject,
+        qrCode: 'qr-token',
+      );
 
-        expect(result.accepted, isFalse);
-        expect(result.messages, contains('출석 가능한 시간이 아닙니다.'));
-        expect(result.message, contains('이미 처리되었습니다.'));
-      },
-    );
+      expect(result.accepted, isFalse);
+      expect(result.messages, contains('출석 가능한 시간이 아닙니다.'));
+      expect(result.message, contains('이미 처리되었습니다.'));
+    });
 
-    test(
-      'attendance QR check-in maps explicit failure token to rejected result',
-      () async {
-        final mock = MockClient((request) async {
-          switch (request.url.path) {
-            case '/usr/cmn/login/LoginSecurity.do':
-              return _jsonResponse({
-                'data': {
-                  'publicKeyModulus': _modulus,
-                  'publicKeyExponent': '10001',
-                  'loginToken': 'nonce-1',
-                },
-              });
-            case '/usr/cmn/login/LoginCaptcha.do':
-              return http.Response('OK', 200);
-            case '/usr/cmn/login/LoginConfirm.do':
-              return _jsonResponse({'success': true});
-            case '/std/cmn/frame/KlasStop.do':
-              return _utf8TextResponse(
-                '<html><head><title>KLAS</title></head></html>',
-                200,
-                headers: {'content-type': 'text/html; charset=utf-8'},
-              );
-            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-              return _jsonResponse({
-                'data': [
-                  {
-                    'selectYearhakgi': '20261',
-                    'selectSubj': 'CSE101',
-                    'selectChangeYn': 'Y',
-                    'isDefault': true,
-                    'subjectName': '자료구조 - 김교수',
-                  },
-                ],
-              });
-            case '/api/v1/session/info':
-              return _jsonResponse({'authenticated': true});
-            case '/std/ads/admst/KwAttendStdGwakmokList.do':
-              return _jsonResponse([
+    test('attendance QR check-in maps explicit failure token to rejected result', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
                 {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '01',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '김교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
                 },
-              ]);
-            case '/mst/ads/admst/KwAttendStdAttendList.do':
-              return _jsonResponse([
-                {'weekNo': '3', 'attendOpenYn': 'Y'},
-              ]);
-            case '/std/lis/evltn/CertiPushSucStd.do':
-              return _jsonResponse({'randomKey': 'rk-1'});
-            case '/mst/ads/admst/KwAttendQRCodeInsert.do':
-              return _jsonResponse({
-                'success': false,
-                'message': '세션이 만료되었습니다.',
-              });
-            default:
-              return http.Response('Not Found', 404);
-          }
-        });
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/ads/admst/KwAttendStdGwakmokList.do':
+            return _jsonResponse([
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '01',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '김교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+              },
+            ]);
+          case '/mst/ads/admst/KwAttendStdAttendList.do':
+            return _jsonResponse([
+              {
+                'weekNo': '3',
+                'attendOpenYn': 'Y',
+              },
+            ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
+          case '/std/lis/evltn/CertiPushSucStd.do':
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
+          case '/mst/ads/admst/KwAttendQRCodeInsert.do':
+            return _jsonResponse({
+              'success': false,
+              'message': '세션이 만료되었습니다.',
+            });
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
 
-        final client = KlasClient(
-          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-          httpClient: mock,
-        );
-        addTearDown(client.close);
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
 
-        final user = await client.login('test-user', 'test-password');
-        final subject = (await user.attendance.listSubjectItems()).first;
-        final result = await user.attendance.qrCheckIn(
-          subject: subject,
-          qrCode: 'qr-token',
-        );
+      final user = await client.login('test-user', 'test-password');
+      final subject = (await user.attendance.listSubjectItems()).first;
+      final result = await user.attendance.qrCheckIn(
+        subject: subject,
+        qrCode: 'qr-token',
+      );
 
-        expect(result.accepted, isFalse);
-        expect(result.message, equals('세션이 만료되었습니다.'));
-      },
-    );
+      expect(result.accepted, isFalse);
+      expect(result.message, equals('세션이 만료되었습니다.'));
+    });
 
     test('attendance QR check-in throws on empty object response', () async {
       final mock = MockClient((request) async {
@@ -1245,10 +1308,17 @@ void main() {
             ]);
           case '/mst/ads/admst/KwAttendStdAttendList.do':
             return _jsonResponse([
-              {'weekNo': '3', 'attendOpenYn': 'Y'},
+              {
+                'weekNo': '3',
+                'attendOpenYn': 'Y',
+              },
             ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
           case '/std/lis/evltn/CertiPushSucStd.do':
-            return _jsonResponse({'randomKey': 'rk-1'});
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
           case '/mst/ads/admst/KwAttendQRCodeInsert.do':
             return _jsonResponse({});
           default:
@@ -1336,210 +1406,211 @@ void main() {
       expect(missing, isNull);
     });
 
-    test(
-      'course.qrCheckIn delegates through attendance subject lookup',
-      () async {
-        final mock = MockClient((request) async {
-          switch (request.url.path) {
-            case '/usr/cmn/login/LoginSecurity.do':
-              return _jsonResponse({
-                'data': {
-                  'publicKeyModulus': _modulus,
-                  'publicKeyExponent': '10001',
-                  'loginToken': 'nonce-1',
-                },
-              });
-            case '/usr/cmn/login/LoginCaptcha.do':
-              return http.Response('OK', 200);
-            case '/usr/cmn/login/LoginConfirm.do':
-              return _jsonResponse({'success': true});
-            case '/std/cmn/frame/KlasStop.do':
-              return _utf8TextResponse(
-                '<html><head><title>KLAS</title></head></html>',
-                200,
-                headers: {'content-type': 'text/html; charset=utf-8'},
-              );
-            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-              return _jsonResponse({
-                'data': [
-                  {
-                    'selectYearhakgi': '20261',
-                    'selectSubj': 'CSE101',
-                    'selectChangeYn': 'Y',
-                    'isDefault': true,
-                    'subjectName': '자료구조 - 김교수',
-                  },
-                ],
-              });
-            case '/api/v1/session/info':
-              return _jsonResponse({'authenticated': true});
-            case '/std/ads/admst/KwAttendStdGwakmokList.do':
-              return _jsonResponse([
+    test('course.qrCheckIn delegates through attendance subject lookup', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
                 {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '01',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '김교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
-                  'subjNm': '자료구조',
-                  'yearhakgi': '20261',
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조 - 김교수',
                 },
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/ads/admst/KwAttendStdGwakmokList.do':
+            return _jsonResponse([
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '01',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '김교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+                'subjNm': '자료구조',
+                'yearhakgi': '20261',
+              },
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '02',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '박교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+                'subjNm': '자료구조',
+                'yearhakgi': '20261',
+              },
+            ]);
+          case '/mst/ads/admst/KwAttendStdAttendList.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            expect(body['subj'], equals('CSE101'));
+            expect(body['bunbanNo'], equals('01'));
+            return _jsonResponse([
+              {
+                'weekNo': '3',
+                'attendOpenYn': 'Y',
+              },
+            ]);
+          case '/mst/ads/admst/KWAtendSubjseqFinishOpt.do':
+            return _jsonResponse('N');
+          case '/std/lis/evltn/CertiLctreStdCheck.do':
+            return _jsonResponse({'status': true});
+          case '/std/lis/evltn/CertiPushSucStd.do':
+            return _jsonResponse({'status': true, 'randomKey': 'rk-1'});
+          case '/mst/ads/admst/KwAttendQRCodeInsert.do':
+            final body = jsonDecode(request.body) as Map<String, dynamic>;
+            expect(body['encrypt'], equals('qr-token'));
+            return _jsonResponse({'status': 'ok'});
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
+
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
+
+      final user = await client.login('test-user', 'test-password');
+      final course = (await user.defaultCourse())!;
+      final result = await course.qrCheckIn('qr-token');
+
+      expect(result.accepted, isTrue);
+    });
+
+    test('course.qrCheckIn throws when attendance subject match is ambiguous', () async {
+      final mock = MockClient((request) async {
+        switch (request.url.path) {
+          case '/usr/cmn/login/LoginSecurity.do':
+            return _jsonResponse({
+              'data': {
+                'publicKeyModulus': _modulus,
+                'publicKeyExponent': '10001',
+                'loginToken': 'nonce-1',
+              },
+            });
+          case '/usr/cmn/login/LoginCaptcha.do':
+            return http.Response('OK', 200);
+          case '/usr/cmn/login/LoginConfirm.do':
+            return _jsonResponse({'success': true});
+          case '/std/cmn/frame/KlasStop.do':
+            return _utf8TextResponse(
+              '<html><head><title>KLAS</title></head></html>',
+              200,
+              headers: {'content-type': 'text/html; charset=utf-8'},
+            );
+          case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
+            return _jsonResponse({
+              'data': [
                 {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '02',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '박교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
-                  'subjNm': '자료구조',
-                  'yearhakgi': '20261',
+                  'selectYearhakgi': '20261',
+                  'selectSubj': 'CSE101',
+                  'selectChangeYn': 'Y',
+                  'isDefault': true,
+                  'subjectName': '자료구조',
                 },
-              ]);
-            case '/mst/ads/admst/KwAttendStdAttendList.do':
-              final body = jsonDecode(request.body) as Map<String, dynamic>;
-              expect(body['subj'], equals('CSE101'));
-              expect(body['bunbanNo'], equals('01'));
-              return _jsonResponse([
-                {'weekNo': '3', 'attendOpenYn': 'Y'},
-              ]);
-            case '/std/lis/evltn/CertiPushSucStd.do':
-              return _jsonResponse({'randomKey': 'rk-1'});
-            case '/mst/ads/admst/KwAttendQRCodeInsert.do':
-              final body = jsonDecode(request.body) as Map<String, dynamic>;
-              expect(body['encrypt'], equals('qr-token'));
-              return _jsonResponse({'status': 'ok'});
-            default:
-              return http.Response('Not Found', 404);
-          }
-        });
+              ],
+            });
+          case '/api/v1/session/info':
+            return _jsonResponse({'authenticated': true});
+          case '/std/ads/admst/KwAttendStdGwakmokList.do':
+            return _jsonResponse([
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '01',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '김교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+                'subjNm': '자료구조',
+                'yearhakgi': '20261',
+              },
+              {
+                'thisYear': '2026',
+                'hakgi': '1',
+                'openMajorCode': 'CSE',
+                'openGrade': '3',
+                'openGwamokNo': '101',
+                'bunbanNo': '02',
+                'gwamokKname': '자료구조',
+                'codeName1': '전공필수',
+                'hakjumNum': '3',
+                'sisuNum': '3',
+                'memberName': '박교수',
+                'currentNum': '45',
+                'yoil': '월',
+                'subj': 'CSE101',
+                'subjNm': '자료구조',
+                'yearhakgi': '20261',
+              },
+            ]);
+          default:
+            return http.Response('Not Found', 404);
+        }
+      });
 
-        final client = KlasClient(
-          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-          httpClient: mock,
-        );
-        addTearDown(client.close);
+      final client = KlasClient(
+        config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
+        httpClient: mock,
+      );
+      addTearDown(client.close);
 
-        final user = await client.login('test-user', 'test-password');
-        final course = (await user.defaultCourse())!;
-        final result = await course.qrCheckIn('qr-token');
+      final user = await client.login('test-user', 'test-password');
+      final course = (await user.defaultCourse())!;
 
-        expect(result.accepted, isTrue);
-      },
-    );
-
-    test(
-      'course.qrCheckIn throws when attendance subject match is ambiguous',
-      () async {
-        final mock = MockClient((request) async {
-          switch (request.url.path) {
-            case '/usr/cmn/login/LoginSecurity.do':
-              return _jsonResponse({
-                'data': {
-                  'publicKeyModulus': _modulus,
-                  'publicKeyExponent': '10001',
-                  'loginToken': 'nonce-1',
-                },
-              });
-            case '/usr/cmn/login/LoginCaptcha.do':
-              return http.Response('OK', 200);
-            case '/usr/cmn/login/LoginConfirm.do':
-              return _jsonResponse({'success': true});
-            case '/std/cmn/frame/KlasStop.do':
-              return _utf8TextResponse(
-                '<html><head><title>KLAS</title></head></html>',
-                200,
-                headers: {'content-type': 'text/html; charset=utf-8'},
-              );
-            case '/std/cmn/frame/YearhakgiAtnlcSbjectList.do':
-              return _jsonResponse({
-                'data': [
-                  {
-                    'selectYearhakgi': '20261',
-                    'selectSubj': 'CSE101',
-                    'selectChangeYn': 'Y',
-                    'isDefault': true,
-                    'subjectName': '자료구조',
-                  },
-                ],
-              });
-            case '/api/v1/session/info':
-              return _jsonResponse({'authenticated': true});
-            case '/std/ads/admst/KwAttendStdGwakmokList.do':
-              return _jsonResponse([
-                {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '01',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '김교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
-                  'subjNm': '자료구조',
-                  'yearhakgi': '20261',
-                },
-                {
-                  'thisYear': '2026',
-                  'hakgi': '1',
-                  'openMajorCode': 'CSE',
-                  'openGrade': '3',
-                  'openGwamokNo': '101',
-                  'bunbanNo': '02',
-                  'gwamokKname': '자료구조',
-                  'codeName1': '전공필수',
-                  'hakjumNum': '3',
-                  'sisuNum': '3',
-                  'memberName': '박교수',
-                  'currentNum': '45',
-                  'yoil': '월',
-                  'subj': 'CSE101',
-                  'subjNm': '자료구조',
-                  'yearhakgi': '20261',
-                },
-              ]);
-            default:
-              return http.Response('Not Found', 404);
-          }
-        });
-
-        final client = KlasClient(
-          config: KlasClientConfig(baseUri: Uri.parse('https://example.com')),
-          httpClient: mock,
-        );
-        addTearDown(client.close);
-
-        final user = await client.login('test-user', 'test-password');
-        final course = (await user.defaultCourse())!;
-
-        await expectLater(
-          () => course.qrCheckIn('qr-token'),
-          throwsA(isA<QrAttendanceUnavailableException>()),
-        );
-      },
-    );
+      await expectLater(
+        () => course.qrCheckIn('qr-token'),
+        throwsA(isA<QrAttendanceUnavailableException>()),
+      );
+    });
 
     test('attendance month list is mapped to typed model', () async {
       final mock = MockClient((request) async {

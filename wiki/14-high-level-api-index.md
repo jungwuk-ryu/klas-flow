@@ -12,6 +12,9 @@
 
 ## KlasClient
 
+모바일 KW출첵도 일반 `KlasClient()`로 사용합니다. SDK가 출석 요청에 필요한
+모바일 앱 식별을 자동으로 처리합니다. [QR 출석 절차](11-attendance-features.md)에서 인증 입력과 QR 문자열 전달 예시를 확인하세요.
+
 | API | 설명 | 권장 시나리오 |
 |---|---|---|
 | `currentUser` | 현재 로그인 사용자 참조 | [02](02-login-and-session.md) |
@@ -61,7 +64,8 @@
 | `overview()` | 과목 홈 개요 조회 | [04](04-course-overview-and-tasks.md) |
 | `scheduleText()` | 과목 시간표 텍스트 조회 | [04](04-course-overview-and-tasks.md) |
 | `listTasks(page: ...)` | 과제 목록 조회 (`List<KlasTask>`) | [04](04-course-overview-and-tasks.md) |
-| `qrCheckIn(qrCode)` | 현재 과목에 대해 QR 출석 처리 (상태 변경) | [11](11-attendance-features.md) |
+| `qrCheckIn(qrCode, onVerification: ...)` | 현재 과목의 추가 인증 및 QR 출석 처리 (상태 변경) | [11](11-attendance-features.md) |
+| `prepareQrCheckIn(onVerification: ...)` | 과목 선택과 인증 후 `KlasQrCheckInSession` 반환 | [11](11-attendance-features.md) |
 | `learning` | 학습 기능 진입점 | [07](07-learning-features.md) |
 | `noticeBoard` | 공지사항 보드 기능 | [05](05-board-list-and-detail.md) |
 | `materialBoard` | 강의자료실 보드 기능 | [05](05-board-list-and-detail.md) |
@@ -178,11 +182,27 @@
 | `findSubjectItemById(...)` | 과목 ID로 출석 과목 찾기 | `KlasAttendanceSubject?` |
 | `findSubjectItemByTitle(...)` | 표시 과목명으로 출석 과목 찾기 | `KlasAttendanceSubject?` |
 | `qrCheckIn(...)` | QR 출석 처리(typed, 상태 변경) | `KlasQrAttendanceResult` |
+| `prepareQrCheckIn(subject: ..., onVerification: ...)` | 과목 선택과 추가 인증 완료, QR 제출 대기 | `KlasQrCheckInSession` |
 | `qrCheckInRaw(...)` | QR 출석 처리(원형, 상태 변경) | `KlasRecord` |
 | `monthList(...)` | 월간 일정 목록(원형) | `List<KlasRecord>` |
 | `listMonthlySchedules(...)` | 월간 일정 목록(typed) | `List<KlasMonthlyScheduleItem>` |
 | `monthTable(...)` | 월간 일정 테이블(원형) | `List<KlasRecord>` |
 | `listMonthlyScheduleTableItems(...)` | 월간 일정 테이블(typed) | `List<KlasMonthlyScheduleTableItem>` |
+
+QR 인증 callback은 `KlasQrVerificationChallenge`를 받고 `KlasQrVerificationAnswer` 또는 취소를 뜻하는 `null`을 반환합니다.
+`KlasQrVerificationMethod.email`과 이미 등록된 `otp`를 지원합니다.
+
+`KlasQrCheckInSession`은 QR 입력 수단에 의존하지 않습니다. CLI나 앱에서 얻은
+디코딩된 문자열을 전달하며, 인증 키는 SDK 내부에서 관리합니다.
+
+| API | 설명 | 반환 |
+|---|---|---|
+| `isPending` | 아직 제출/취소하지 않았고 준비한 로그인 세션이 유지되는지 확인 | `bool` |
+| `submit(qrCode)` | QR 문자열 그대로 한 번 제출 (상태 변경) | `Future<KlasQrAttendanceResult>` |
+| `cancel()` | 제출 전 준비를 로컬에서 해제 | `void` |
+
+제출을 시작한 준비는 결과에 관계없이 재사용할 수 없습니다. 재로그인, 자동 세션
+갱신, 로컬 초기화 후에는 다시 인증을 준비해야 합니다.
 
 시나리오: [11](11-attendance-features.md)
 

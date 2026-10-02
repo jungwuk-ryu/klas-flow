@@ -78,6 +78,8 @@ Future<void> main() async {
 
 ## 사용 예제
 
+KW출첵 QR 출석은 개발 버전 `1.3.0`에서 일반 `KlasClient()`로 로그인한 뒤 `course.qrCheckIn(qrText, onVerification: ...)`로 처리합니다. 인증을 먼저 마치려면 `course.prepareQrCheckIn(...)` 후 `prepared.submit(qrText)`를 호출하세요. SDK가 출석 요청의 모바일 앱 식별을 자동으로 적용합니다. CLI나 앱이 QR 문자열과 이메일·기존 OTP 입력을 제공하며, 자세한 절차는 [출석 기능 가이드](wiki/11-attendance-features.md)를 참고하세요.
+
 숫자 캡차가 필요한 로그인은 개발 버전 `1.3.0`의 `login(..., onCaptcha: ...)`로 이어갈 수 있습니다. 콜백에서 `KlasCaptchaChallenge.image.bytes`를 표시하고 사용자가 입력한 숫자 문자열을 반환하세요. 입력 취소는 `null`입니다. 자세한 예시는 [로그인과 세션 관리](wiki/02-login-and-session.md)를 참고하세요. 배포 전에는 로컬 SDK 의존성을 사용합니다.
 
 ### 1) 기본 과목에서 과제 조회
