@@ -1155,8 +1155,8 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
 
   /// 월간 일정 원본 목록을 조회합니다.
   ///
-  /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
-  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  /// 지정한 월의 시작일과 다음 월의 시작일을 조회 범위로 사용합니다.
+  /// 연/월을 생략하면 현재 월을 조회합니다.
   Future<List<KlasRecord>> monthList({
     int? year,
     int? month,
@@ -1168,6 +1168,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
         year: year,
         month: month,
         query: query,
+        includeDateRange: true,
       ),
     );
   }
@@ -1182,6 +1183,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
       year: year,
       month: month,
       query: query,
+      includeDateRange: true,
     );
     late final List<KlasRecord> rows;
     try {
@@ -1212,8 +1214,8 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
 
   /// 월간 일정 테이블 원본 목록을 조회합니다.
   ///
-  /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
-  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  /// 지정한 월과 겹치는 일정의 전체 기간을 조회합니다.
+  /// 연/월을 생략하면 현재 월을 조회합니다.
   Future<List<KlasRecord>> monthTable({
     int? year,
     int? month,
@@ -1225,6 +1227,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
         year: year,
         month: month,
         query: query,
+        includeDateRange: true,
       ),
     );
   }
@@ -1799,6 +1802,7 @@ Map<String, dynamic> _resolveMonthlyScheduleQuery({
   required int? year,
   required int? month,
   required Map<String, dynamic>? query,
+  bool includeDateRange = false,
 }) {
   final payload = <String, dynamic>{if (query != null) ...query};
   if (year != null) {
@@ -1811,6 +1815,28 @@ Map<String, dynamic> _resolveMonthlyScheduleQuery({
   final now = DateTime.now();
   payload.putIfAbsent('schdulYear', () => now.year);
   payload.putIfAbsent('schdulMonth', () => now.month);
+  if (includeDateRange) {
+    final resolvedYear = int.tryParse('${payload['schdulYear']}');
+    final resolvedMonth = int.tryParse('${payload['schdulMonth']}');
+    if (resolvedYear == null || resolvedYear < 1 || resolvedYear > 9999) {
+      throw ArgumentError.value(payload['schdulYear'], 'year');
+    }
+    if (resolvedMonth == null || resolvedMonth < 1 || resolvedMonth > 12) {
+      throw ArgumentError.value(payload['schdulMonth'], 'month');
+    }
+    String dateString(DateTime date) =>
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+    payload.putIfAbsent(
+      'start',
+      () => dateString(DateTime(resolvedYear, resolvedMonth)),
+    );
+    payload.putIfAbsent(
+      'end',
+      () => dateString(DateTime(resolvedYear, resolvedMonth + 1)),
+    );
+  }
   return payload;
 }
 

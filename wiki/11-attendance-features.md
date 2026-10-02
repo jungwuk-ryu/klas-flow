@@ -122,9 +122,15 @@ final table = await user.attendance.listMonthlyScheduleTableItems(
   month: now.month,
 );
 for (final row in table) {
-  print('${row.weekday ?? '-'} ${row.dayOfMonth ?? '-'} / ${row.displayTitle}');
+  print('${row.startsAt ?? '-'} ~ ${row.endsAt ?? '-'} / ${row.displayTitle}');
 }
 ```
+
+요청한 월과 겹치는 일정의 전체 기간을 반환합니다. 전월에 시작한 과제나
+다음 월에 끝나는 학사일정도 원래 시작일과 종료일을 유지합니다. `startsAt`과
+`endsAt`은 ISO 8601 문자열이며, 날짜만 있는 일정은 자정으로 표시합니다.
+일시가 없거나 유효하지 않으면 해당 필드는 null입니다. `dayOfMonth`와
+`weekday`도 계속 사용할 수 있습니다. 연/월을 생략하면 현재 월을 조회합니다.
 
 ## 5) attendance feature 전체 API
 

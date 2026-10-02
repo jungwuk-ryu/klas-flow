@@ -1651,6 +1651,18 @@ void main() {
             final body = jsonDecode(request.body) as Map<String, dynamic>;
             expect(body.containsKey('schdulYear'), isTrue);
             expect(body.containsKey('schdulMonth'), isTrue);
+            final first = DateTime(
+              body['schdulYear'] as int,
+              body['schdulMonth'] as int,
+            );
+            expect(body['start'], first.toIso8601String().substring(0, 10));
+            expect(
+              body['end'],
+              DateTime(
+                first.year,
+                first.month + 1,
+              ).toIso8601String().substring(0, 10),
+            );
             return _jsonResponse([
               {
                 'schdulId': 'M1',
@@ -1824,6 +1836,7 @@ void main() {
     );
 
     test('attendance month table is mapped to typed model', () async {
+      final monthQueries = <Map<String, dynamic>>[];
       final mock = MockClient((request) async {
         switch (request.url.path) {
           case '/usr/cmn/login/LoginSecurity.do':
@@ -1860,13 +1873,18 @@ void main() {
             return _jsonResponse({'authenticated': true});
           case '/std/ads/admst/MySchdulMonthTableList.do':
             final body = jsonDecode(request.body) as Map<String, dynamic>;
-            expect(body.containsKey('schdulYear'), isTrue);
-            expect(body.containsKey('schdulMonth'), isTrue);
+            monthQueries.add(body);
             return _jsonResponse([
               {
-                'started': '2026-04-20',
-                'dayname': '1',
-                'schdulTitle': '중간고사',
+                'started': '202609252000',
+                'ended': '202610061459',
+                'title': '[과제] 연습 과제',
+                'typeNm': '과제',
+              },
+              {
+                'started': '202610200000',
+                'ended': '202611020000',
+                'title': '[학사일정] 상담 기간',
                 'typeNm': '학사일정',
               },
             ]);
@@ -1882,13 +1900,40 @@ void main() {
       addTearDown(client.close);
 
       final user = await client.login('test-user', 'test-password');
-      final rows = await user.attendance.listMonthlyScheduleTableItems();
+      final rows = await user.attendance.listMonthlyScheduleTableItems(
+        year: 2026,
+        month: 10,
+      );
 
-      expect(rows, hasLength(1));
-      expect(rows.first.dayOfMonth, equals('20'));
-      expect(rows.first.weekday, equals('월'));
-      expect(rows.first.displayTitle, equals('중간고사'));
-      expect(rows.first.status, equals('학사일정'));
+      expect(rows, hasLength(2));
+      expect(rows.first.dayOfMonth, equals('25'));
+      expect(rows.first.weekday, equals('금'));
+      expect(rows.first.displayTitle, equals('[과제] 연습 과제'));
+      expect(rows.first.status, equals('과제'));
+      expect(rows.first.startsAt, '2026-09-25T20:00:00.000');
+      expect(rows.first.endsAt, '2026-10-06T14:59:00.000');
+      expect(rows.last.endsAt, '2026-11-02T00:00:00.000');
+      expect(monthQueries.single, {
+        'schdulYear': 2026,
+        'schdulMonth': 10,
+        'start': '2026-10-01',
+        'end': '2026-11-01',
+      });
+
+      await user.attendance.monthTable(year: 2028, month: 2);
+      expect(monthQueries.last['start'], '2028-02-01');
+      expect(monthQueries.last['end'], '2028-03-01');
+      await user.attendance.monthTable(year: 2026, month: 12);
+      expect(monthQueries.last['end'], '2027-01-01');
+      final range = {'start': '2026-09-27', 'end': '2026-11-08'};
+      await user.attendance.monthTable(year: 2026, month: 10, query: range);
+      expect(monthQueries.last['start'], range['start']);
+      expect(monthQueries.last['end'], range['end']);
+      expect(range, {'start': '2026-09-27', 'end': '2026-11-08'});
+      await expectLater(
+        user.attendance.listMonthlyScheduleTableItems(month: 13),
+        throwsArgumentError,
+      );
     });
 
     test(
