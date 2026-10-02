@@ -6,7 +6,36 @@ import 'package:klasflow/klasflow.dart';
 import 'package:klasflow/src/api/readonly_api.dart';
 import 'package:test/test.dart';
 
+import 'support/captcha_login_mock.dart';
+
 void main() {
+  test(
+    'public login captcha callback reaches image and confirmation features',
+    () async {
+      var imageSeen = false;
+      var answerSeen = false;
+      final client = captchaTestClient(
+        respond: (request) async {
+          if (request.url.path.endsWith('/LoginCaptcha.do')) {
+            return captchaJson(3);
+          }
+          if (request.url.path.endsWith('/captchaImg.do')) imageSeen = true;
+          if (request.url.path.endsWith('/LoginConfirm.do')) {
+            answerSeen = captchaLoginFields(request)['captcha'] == '001234';
+          }
+          return null;
+        },
+      );
+      addTearDown(client.close);
+      await client.login(
+        'test-user',
+        'test-password',
+        onCaptcha: (_) => '001234',
+      );
+      expect(imageSeen, isTrue);
+      expect(answerSeen, isTrue);
+    },
+  );
   group('High-level feature coverage', () {
     test(
       'all catalog endpoints are reachable through high-level API',

@@ -72,7 +72,8 @@ final class LoginParser {
         ]);
 
     final errorCount = _intFromAny(
-      _firstValue(json, const ['errorCount', 'errorCnt', 'error']),
+      _firstValue(json, const ['errorCount', 'errorCnt', 'error']) ??
+          _firstValue(merged, const ['errorCount', 'errorCnt', 'error']),
     );
 
     final successToken =
@@ -113,8 +114,7 @@ final class LoginParser {
           trueTokens: const {'y', 'true', '1'},
           falseTokens: const {'n', 'false', '0'},
         ) ||
-        ((message?.contains('캡차') ?? false) ||
-            (message?.toLowerCase().contains('captcha') ?? false));
+        (!success && _isCaptchaMessage(message));
 
     return LoginResult(
       success: success,
@@ -123,6 +123,18 @@ final class LoginParser {
       message: message,
       raw: json,
     );
+  }
+
+  bool _isCaptchaMessage(String? message) {
+    if (message == null) return false;
+    final normalized = message.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    return const [
+      'captcha',
+      '캡차',
+      '캡챠',
+      '자동입력방지',
+      '보안문자',
+    ].any(normalized.contains);
   }
 
   Map<String, dynamic> _normalize(Map<String, dynamic> json) {

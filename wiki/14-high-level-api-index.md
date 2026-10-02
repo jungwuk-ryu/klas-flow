@@ -16,7 +16,8 @@
 |---|---|---|
 | `currentUser` | 현재 로그인 사용자 참조 | [02](02-login-and-session.md) |
 | `isSessionHeartbeatRunning` | 하트비트 동작 여부 | [02](02-login-and-session.md) |
-| `login(id, password)` | 로그인 후 `KlasUser` 반환 | [02](02-login-and-session.md) |
+| `login(id, password, onCaptcha: ..., maxCaptchaAttempts: 3)` | 로그인 후 `KlasUser` 반환, 필요 시 사용자 캡차 입력 | [02](02-login-and-session.md) |
+| `KlasCaptchaHandler`, `KlasCaptchaChallenge` | 현재 캡차 이미지와 입력 횟수를 받아 숫자 문자열 또는 취소 시 null 반환 | [02](02-login-and-session.md) |
 | `requestCaptchaImage()` | 캡차 이미지 조회 | [12](12-student-record-frame-healthcheck.md) |
 | `startSessionHeartbeat(...)` | 세션 자동 연장 시작 | [02](02-login-and-session.md) |
 | `stopSessionHeartbeat()` | 세션 자동 연장 중지 | [02](02-login-and-session.md) |

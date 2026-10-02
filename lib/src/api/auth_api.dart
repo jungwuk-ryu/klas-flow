@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../parsers/login_parser.dart';
 import '../transport/transport.dart';
 import '../models/login_result.dart';
+import '../models/file_payload.dart';
 import '../models/login_security.dart';
 import 'api_paths.dart';
 
@@ -20,13 +21,24 @@ final class AuthApi {
     return _loginParser.parseSecurity(response.body);
   }
 
+  Future<FilePayload> fetchCaptchaImage() async {
+    final response = await _transport.download(
+      _paths.captchaImage,
+      query: {'ran': DateTime.now().microsecondsSinceEpoch.toString()},
+    );
+    return response.body;
+  }
+
   /// 캡차 단계 초기화를 요청합니다.
   Future<int?> invokeLoginCaptcha({
     String? encryptedLoginToken,
     String captcha = '',
   }) async {
     if (encryptedLoginToken == null) {
-      final response = await _transport.postFormText(_paths.loginCaptcha);
+      final response = await _transport.postFormText(
+        _paths.loginCaptcha,
+        form: captcha.isEmpty ? null : {'captcha': captcha},
+      );
       return _parseCaptchaCount(response.body);
     }
 
@@ -78,7 +90,11 @@ final class AuthApi {
 
     final response = await _transport.postFormText(
       _paths.loginConfirm,
-      form: {'id': id, 'loginToken': encryptedLoginToken},
+      form: {
+        'id': id,
+        'loginToken': encryptedLoginToken,
+        if (captcha.isNotEmpty) 'captcha': captcha,
+      },
     );
 
     final maybeJson = _tryDecodeJson(response.body);
@@ -90,7 +106,10 @@ final class AuthApi {
     if (html.contains('otp')) {
       return const LoginResult(success: false, otpRequired: true);
     }
-    if (html.contains('captcha') || html.contains('캡차')) {
+    if (html.contains('captcha') ||
+        html.contains('캡차') ||
+        html.contains('캡챠') ||
+        html.replaceAll(RegExp(r'\s+'), '').contains('자동입력방지')) {
       return const LoginResult(success: false, captchaRequired: true);
     }
     if (html.contains('login') && html.contains('fail')) {

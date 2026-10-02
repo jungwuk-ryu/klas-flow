@@ -6,6 +6,9 @@ final class ApiPaths {
   /// 캡차 초기화 경로입니다.
   final String loginCaptcha;
 
+  /// 로그인 캡차 이미지 경로입니다.
+  final String captchaImage;
+
   /// 로그인 확인 경로입니다.
   final String loginConfirm;
 
@@ -21,6 +24,7 @@ final class ApiPaths {
   const ApiPaths({
     this.loginSecurity = '/usr/cmn/login/LoginSecurity.do',
     this.loginCaptcha = '/usr/cmn/login/LoginCaptcha.do',
+    this.captchaImage = '/usr/cmn/login/captchaImg.do',
     this.loginConfirm = '/usr/cmn/login/LoginConfirm.do',
     this.frameInitialize = '/std/cmn/frame/KlasStop.do',
     this.sessionInfo = '/api/v1/session/info',

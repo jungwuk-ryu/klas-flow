@@ -12,6 +12,33 @@ final user = await client.login(id, password);
 - 반환 타입: `KlasUser`
 - 로그인 성공 직후부터 `user`를 통해 대부분의 기능에 접근합니다.
 
+### 숫자 캡차가 필요한 로그인
+
+`1.3.0`부터 `onCaptcha`로 이미지 표시와 사용자 입력을 연결할 수 있습니다. 다음 예시의 `showCaptchaDialog`는 앱에서 구현할 이미지/입력 UI입니다.
+
+```dart
+final user = await client.login(
+  id,
+  password,
+  onCaptcha: (challenge) async {
+    return showCaptchaDialog(
+      imageBytes: challenge.image.bytes,
+      attempt: challenge.attempt,
+      maxAttempts: challenge.maxAttempts,
+    ); // Future<String?>: 사용자가 읽은 숫자 또는 취소 시 null
+  },
+  maxCaptchaAttempts: 3,
+);
+```
+
+- `KlasCaptchaChallenge.image`는 현재 로그인과 같은 세션에서 받은 `FilePayload`입니다. 콜백 안에서는 이 바이트를 표시하세요. 별도로 `requestCaptchaImage()`를 호출하면 화면에 표시된 문제가 바뀔 수 있습니다.
+- 숫자는 문자열로 반환합니다. 예를 들어 `"0037"`의 앞자리 0을 유지해야 합니다. 공백은 제거되며 숫자 이외의 문자는 `FormatException`을 발생시킵니다.
+- 잘못된 캡차를 서버가 거절하면 새 이미지로 다시 입력을 요청합니다. 기본 한도는 로그인당 3회이며 `maxCaptchaAttempts`는 1 이상이어야 합니다.
+- 콜백을 생략하거나, 입력을 취소하거나, 한도를 초과하면 `CaptchaRequiredException`을 발생시킵니다. 잘못된 비밀번호는 기존 `InvalidCredentialsException`으로 구분됩니다.
+- 자동 재로그인을 위한 자격증명 캐시가 활성화되어 있으면 세션 갱신 중에도 같은 콜백을 호출할 수 있습니다. 앱이 입력 UI를 보여줄 수 없을 때는 `null`을 반환하고 나중에 다시 로그인하세요. 이미지와 답은 캐시하지 않습니다.
+
+SDK는 사용자가 입력한 답을 전달합니다. 숫자를 자동으로 판독하지 않습니다. 현재 개발 버전의 기능이며, 배포 전에는 로컬 SDK 의존성을 사용하세요.
+
 ## 2) 현재 사용자 참조: `currentUser`
 
 ```dart

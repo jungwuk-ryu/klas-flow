@@ -3,6 +3,7 @@ import '../auth/auth_flow.dart';
 import '../context/context_manager.dart';
 import '../exceptions/klas_exceptions.dart';
 import '../models/course_context.dart';
+import '../models/captcha_challenge.dart';
 
 /// 로그인, 컨텍스트 초기화, 세션 자동 연장 정책을 관리합니다.
 final class SessionCoordinator {
@@ -15,6 +16,8 @@ final class SessionCoordinator {
   Future<void>? _renewalInProgress;
   String? _cachedId;
   String? _cachedPassword;
+  KlasCaptchaHandler? _cachedCaptchaHandler;
+  int _cachedMaxCaptchaAttempts = 3;
 
   SessionCoordinator({
     required AuthFlow authFlow,
@@ -29,14 +32,27 @@ final class SessionCoordinator {
        _cacheCredentialsForAutoRenewal = cacheCredentialsForAutoRenewal;
 
   /// 로그인 후 컨텍스트까지 초기화합니다.
-  Future<void> login(String id, String password) async {
-    await _loginAndInitialize(id: id, password: password);
+  Future<void> login(
+    String id,
+    String password, {
+    KlasCaptchaHandler? onCaptcha,
+    int maxCaptchaAttempts = 3,
+  }) async {
+    await _loginAndInitialize(
+      id: id,
+      password: password,
+      onCaptcha: onCaptcha,
+      maxCaptchaAttempts: maxCaptchaAttempts,
+    );
     if (_cacheCredentialsForAutoRenewal) {
       _cachedId = id;
       _cachedPassword = password;
+      _cachedCaptchaHandler = onCaptcha;
+      _cachedMaxCaptchaAttempts = maxCaptchaAttempts;
     } else {
       _cachedId = null;
       _cachedPassword = null;
+      _cachedCaptchaHandler = null;
     }
   }
 
@@ -69,6 +85,7 @@ final class SessionCoordinator {
   void clearCachedCredentials() {
     _cachedId = null;
     _cachedPassword = null;
+    _cachedCaptchaHandler = null;
   }
 
   Future<void> _renewSessionIfPossible() async {
@@ -106,6 +123,8 @@ final class SessionCoordinator {
       id: id,
       password: password,
       preferredContext: preferredContext,
+      onCaptcha: _cachedCaptchaHandler,
+      maxCaptchaAttempts: _cachedMaxCaptchaAttempts,
     );
   }
 
@@ -113,8 +132,15 @@ final class SessionCoordinator {
     required String id,
     required String password,
     CourseContext? preferredContext,
+    KlasCaptchaHandler? onCaptcha,
+    int maxCaptchaAttempts = 3,
   }) async {
-    await _authFlow.login(id: id, password: password);
+    await _authFlow.login(
+      id: id,
+      password: password,
+      onCaptcha: onCaptcha,
+      maxCaptchaAttempts: maxCaptchaAttempts,
+    );
 
     final contexts = await _contextApi.fetchCourseContexts();
     _contextManager.setAvailableContexts(contexts);
