@@ -15,33 +15,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate commit message convention
-        shell: bash
-        run: |
-          set -euo pipefail
-          pattern='^(feat|fix|refactor|docs|test|chore|ci|build|perf|revert)(\([a-z0-9._/-]+\))?!?: .+'
-
-          invalid=0
-          while IFS= read -r subject; do
-            if [[ -z "$subject" ]]; then
-              continue
-            fi
-            if [[ "$subject" =~ ^(Merge\ |Revert\ \"|fixup!|squash!) ]]; then
-              continue
-            fi
-            if [[ ! "$subject" =~ $pattern ]]; then
-              echo "Invalid commit message: $subject"
-              invalid=1
-            fi
-          done < <(git log --format=%s)
-
-          if [[ "$invalid" -ne 0 ]]; then
-            echo "Commit message convention check failed."
-            exit 1
-          fi
-
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
+
+      - name: Validate commit message convention
+        env:
+          CI_COMMIT_BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          CI_COMMIT_HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: dart run tool/check_commit_messages.dart
 
       - name: Run all checks
         run: dart run tool/check_all.dart
