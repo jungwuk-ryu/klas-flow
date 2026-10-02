@@ -78,6 +78,8 @@ Future<void> main() async {
 
 ## 사용 예제
 
+숫자 캡차가 필요한 로그인은 개발 버전 `1.3.0`의 `login(..., onCaptcha: ...)`로 이어갈 수 있습니다. 콜백에서 `KlasCaptchaChallenge.image.bytes`를 표시하고 사용자가 입력한 숫자 문자열을 반환하세요. 입력 취소는 `null`입니다. 자세한 예시는 [로그인과 세션 관리](wiki/02-login-and-session.md)를 참고하세요. 배포 전에는 로컬 SDK 의존성을 사용합니다.
+
 ### 1) 기본 과목에서 과제 조회
 
 ```dart

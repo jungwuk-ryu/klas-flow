@@ -2,7 +2,7 @@
 
 `klasflow`의 공개 고수준 API를 기능 단위로 정리한 실 테스트 커버리지 문서입니다.
 
-- 기준일: 2026-03-09
+- 기준일: 2026-10-02
 - `자동 테스트`는 mock HTTP 기반 단위 테스트 존재 여부를 뜻합니다.
 - `실계정 수동 테스트 허용`은 저장소 정책상 사람 손으로 실계정에 대해 테스트해도 되는지 여부를 뜻합니다.
 - `수동 테스트 완료`는 사람이 직접 실제 환경에서 확인한 기록이 문서화되어 있는지 여부를 뜻합니다.
@@ -10,6 +10,7 @@
 | 영역 | 대표 공개 API | 대표 시나리오 | 성격 | 자동 테스트 | 실계정 수동 테스트 허용 | 수동 테스트 완료 | 정책 / 제약 |
 |---|---|---|---|---|---|---|---|
 | 로그인 / 세션 | `KlasClient.login`, `requestCaptchaImage`, `startSessionHeartbeat`, `runHealthCheck` | [02. 로그인과 세션 관리](../wiki/02-login-and-session.md) | 읽기 전용 | Yes | Yes | Yes | 캡차/세션 만료/헬스체크는 mock 테스트 존재 |
+| 캡차 입력 후 로그인 계속 | `KlasClient.login(onCaptcha: ..., maxCaptchaAttempts: ...)`, `KlasCaptchaChallenge` | [02. 로그인과 세션 관리](../wiki/02-login-and-session.md) | 인증 | Yes | Yes | No | 공개 로그인 페이지의 동작 확인. PEM/legacy, 쿠키 유지, 재입력/취소/한도, 자동 갱신은 mock 검증. 실계정에 캡차를 강제로 유발하지 않음 |
 | 사용자 프로필 | `KlasUser.profile`, `sessionStatus`, `personalInfo`, `keepAlive` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 기본 사용자 식별/세션 조회 |
 | 수강 과목 컨텍스트 | `KlasUser.courses`, `defaultCourse`, `findCourseById`, `findCourseByTitle` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 과목 컨텍스트 바인딩 및 course lookup helper 포함 |
 | 과제 / 강의 개요 | `KlasCourse.overview`, `scheduleText`, `listTasks`, `learning.getTaskDetail` | [04. 과목 개요와 과제 조회](../wiki/04-course-overview-and-tasks.md) | 읽기 전용 | Yes | Yes | Yes | course context 주입 테스트 존재 |
@@ -47,3 +48,5 @@
 | QR attendance targeted tests | `dart test test/high_level_api_test.dart -n 'attendance QR check-in|course.qrCheckIn'` | Passed | 2026-03-07 |
 | High-level coverage | `dart test test/high_level_feature_coverage_test.dart` | Passed | 2026-03-07 |
 | Integrated check | `dart run tool/check_all.dart` | Passed | 2026-03-07 |
+
+Captcha continuation was validated with mock HTTP on 2026-10-02, including 21 captcha/login-parser tests and canonical high-level login coverage. No real account captcha was deliberately triggered.

@@ -4,6 +4,22 @@ import 'package:test/test.dart';
 
 void main() {
   final parser = LoginParser();
+  test('Korean captcha messages and wrapped counts identify challenges', () {
+    for (final message in ['캡챠 오류', '자동 입력 방지 숫자를 확인하세요.', '보안 문자를 입력하세요.']) {
+      final result = parser.parseLoginResult({
+        'data': {'errorCount': 1, 'message': message},
+      });
+      expect(result.success, isFalse);
+      expect(result.captchaRequired, isTrue);
+    }
+    expect(
+      parser.parseLoginResult({
+        'errorCount': 0,
+        'message': 'captcha verified',
+      }).captchaRequired,
+      isFalse,
+    );
+  });
 
   group('LoginParser', () {
     test('publicKey 단일 필드 응답을 파싱한다', () {

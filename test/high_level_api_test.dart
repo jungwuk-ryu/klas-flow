@@ -5,7 +5,28 @@ import 'package:http/testing.dart';
 import 'package:klasflow/klasflow.dart';
 import 'package:test/test.dart';
 
+import 'support/captcha_login_mock.dart';
+
 void main() {
+  test(
+    'public login accepts a captcha callback and returns the high-level user',
+    () async {
+      final client = captchaTestClient(
+        respond: (request) async =>
+            request.url.path.endsWith('/LoginCaptcha.do')
+            ? captchaJson(3)
+            : null,
+      );
+      addTearDown(client.close);
+      final user = await client.login(
+        'test-user',
+        'test-password',
+        onCaptcha: (_) async => '012345',
+      );
+      expect(user.id, 'test-user');
+      expect((await user.courses()).first.courseId, 'CSE101');
+    },
+  );
   group('High-level domain API', () {
     test(
       'login returns user and course.listTasks injects bound context',

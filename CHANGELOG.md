@@ -1,4 +1,8 @@
-## Unreleased
+## 1.3.0 (Unreleased)
+
+- Added numeric captcha continuation through `KlasClient.login(onCaptcha: ..., maxCaptchaAttempts: ...)` and exported `KlasCaptchaChallenge` / `KlasCaptchaHandler`.
+- Preserve the login session when displaying a challenge, refresh rejected challenges within a bounded retry loop, and reuse the handler during automatic session renewal.
+- Keep cancellation and missing handlers as captcha errors, distinct from invalid credentials; preserve leading zeros and avoid storing captcha answers or images.
 
 - Added an explicit engineering quality baseline document covering CI gates, test policy, and release criteria.
 - Added an operations readiness guide covering release dashboards, telemetry signals, and incident response.

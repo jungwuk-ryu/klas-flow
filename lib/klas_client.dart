@@ -16,6 +16,7 @@ import 'src/context/context_manager.dart';
 import 'src/domain/domain_executor.dart';
 import 'src/domain/klas_user.dart';
 import 'src/models/file_payload.dart';
+import 'src/models/captcha_challenge.dart';
 import 'src/models/high_level_models.dart';
 import 'src/models/klas_client_config.dart';
 import 'src/models/klas_health_report.dart';
@@ -108,8 +109,24 @@ final class KlasClient {
   bool get isSessionHeartbeatRunning => _sessionHeartbeatTimer != null;
 
   /// 로그인 오케스트레이션을 실행하고 사용자 객체를 반환합니다.
-  Future<KlasUser> login(String id, String password) async {
-    await _sessionCoordinator.login(id, password);
+  ///
+  /// 캡차가 필요하면 [onCaptcha]에 현재 이미지와 입력 횟수를 전달합니다.
+  /// 콜백은 숫자 문자열을 반환하며, null이나 빈 문자열은 입력 취소입니다.
+  /// [maxCaptchaAttempts]는 캡차 입력 요청 한도이며 1 이상이어야 합니다.
+  /// 콜백이 없거나 입력을 취소하거나 한도를 소진하면 CaptchaRequiredException이 발생합니다.
+  /// 자격증명 자동 갱신이 켜져 있으면 세션 재로그인에도 같은 콜백을 사용합니다.
+  Future<KlasUser> login(
+    String id,
+    String password, {
+    KlasCaptchaHandler? onCaptcha,
+    int maxCaptchaAttempts = 3,
+  }) async {
+    await _sessionCoordinator.login(
+      id,
+      password,
+      onCaptcha: onCaptcha,
+      maxCaptchaAttempts: maxCaptchaAttempts,
+    );
     final profile = await _domainExecutor.fetchUserProfile();
     final user = KlasUser(executor: _domainExecutor, profile: profile);
     _currentUser = user;
