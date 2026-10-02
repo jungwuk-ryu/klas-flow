@@ -1,5 +1,8 @@
 ## 1.3.0 (Unreleased)
 
+- Added `course.syllabus()` with typed undergraduate syllabus contents, instructor contacts, class times, assessments, textbooks, weekly plans and learning outcomes.
+- Resolve shared syllabus descriptions and grading alongside section-specific textbooks and weeks; distinguish missing or closed-course plans from access restrictions and response failures.
+
 - Added typed online video lecture listing, playable MP4/HLS media, and player event integration through `learning.listVideoLectures()`, `learning.openVideo()`, and `KlasVideoPlaybackSession`.
 - Persist server-reported progress during observed playback, exclude paused and unobserved gaps, handle email or registered OTP verification, and invalidate replaced sessions without replaying uncertain writes.
 - Added E-class recording review through `eclass.listRecordings()` and `eclass.openVideo()`, using its separate playback flow without online learning progress writes.

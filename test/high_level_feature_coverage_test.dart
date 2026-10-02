@@ -8,8 +8,36 @@ import 'package:test/test.dart';
 import 'support/captcha_login_mock.dart';
 import 'support/mobile_qr_fixture.dart';
 import 'support/video_fixture.dart';
+import 'support/syllabus_fixture.dart';
 
 void main() {
+  test(
+    'public syllabus reads reach ordinary and shared plan features',
+    () async {
+      for (final shared in [false, true]) {
+        final fixture = SyllabusFixture(shared: shared);
+        addTearDown(fixture.close);
+        final course = await fixture.course();
+        await course.syllabus();
+        for (final path in syllabusReadPaths.where(
+          (p) => !shared || p != 'LectreTeam.do',
+        )) {
+          expect(fixture.calls(path), hasLength(1), reason: path);
+        }
+        expect(
+          fixture.calls('LectrePlanInputTabOneFixedInfo.do'),
+          shared ? hasLength(1) : isEmpty,
+        );
+        expect(
+          fixture.requests
+              .where((r) => r.url.path.startsWith(syllabusRoot))
+              .every((r) => r.method == 'POST'),
+          isTrue,
+        );
+      }
+    },
+  );
+
   test(
     'public video preparation, authentication, player events and E-class review are reachable',
     () async {

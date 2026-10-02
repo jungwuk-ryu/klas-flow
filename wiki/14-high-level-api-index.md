@@ -62,6 +62,7 @@
 | `rawContext` | 원본 과목 컨텍스트 | [03](03-user-profile-and-courses.md) |
 | `owner` | 소유 사용자 객체 | [03](03-user-profile-and-courses.md) |
 | `overview()` | 과목 홈 개요 조회 | [04](04-course-overview-and-tasks.md) |
+| `syllabus()` | 과목의 개요·학습목표·평가·교재·주차별 강의계획서 (`KlasSyllabus?`) | [15](15-course-syllabus.md) |
 | `scheduleText()` | 과목 시간표 텍스트 조회 | [04](04-course-overview-and-tasks.md) |
 | `listTasks(page: ...)` | 과제 목록 조회 (`List<KlasTask>`) | [04](04-course-overview-and-tasks.md) |
 | `qrCheckIn(qrCode, onVerification: ...)` | 현재 과목의 추가 인증 및 QR 출석 처리 (상태 변경) | [11](11-attendance-features.md) |
@@ -71,6 +72,11 @@
 | `materialBoard` | 강의자료실 보드 기능 | [05](05-board-list-and-detail.md) |
 | `surveys` | 설문 기능 | [08](08-survey-and-eclass.md) |
 | `eclass` | e-Class 기능 | [08](08-survey-and-eclass.md) |
+
+`KlasSyllabus`는 담당 교수, 시간표, 평가 항목, 교재, 주차와 학습성과를 각각
+typed 모델로 제공합니다. 공통형 계획서의 본문과 분반별 내용을 자동으로
+결합하며, 미등록·폐강은 `null`, 일시 조회 제한은 예외로 구분합니다.
+사용 범위와 모델 필드는 [15. 강의계획서 조회](15-course-syllabus.md)를 참고하세요.
 
 ---
 

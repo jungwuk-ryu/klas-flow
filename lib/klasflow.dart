@@ -13,3 +13,4 @@ export 'src/models/qr_attendance_verification.dart';
 export 'src/models/qr_check_in_session.dart';
 export 'src/models/video_lecture.dart';
 export 'src/models/eclass_recording.dart';
+export 'src/models/syllabus.dart';
