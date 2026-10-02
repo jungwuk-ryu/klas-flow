@@ -35,6 +35,10 @@ final discussions = await course.learning.listDiscussionItems(page: 0);
 이 메서드들은 공통적으로 `KlasRecord` 또는 `List<KlasRecord>`를 반환합니다.  
 즉, 화면 요구에 맞는 필드만 안전하게 선택해서 쓰는 방식입니다.
 
+`learning.teamProjects()`는 팀 프로젝트의 학습 현황을 조회합니다. 프로젝트
+목록·본문·제출 결과·팀원과 첨부파일은
+[`course.teamProjects`](16-team-projects.md)에서 typed 모델로 조회합니다.
+
 ## 3) raw 스타일 메서드를 함께 써야 하는 경우
 
 아직 typed 모델이 없는 영역은 아래 메서드로 접근합니다.

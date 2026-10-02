@@ -68,6 +68,7 @@
 | `qrCheckIn(qrCode, onVerification: ...)` | 현재 과목의 추가 인증 및 QR 출석 처리 (상태 변경) | [11](11-attendance-features.md) |
 | `prepareQrCheckIn(onVerification: ...)` | 과목 선택과 인증 후 `KlasQrCheckInSession` 반환 | [11](11-attendance-features.md) |
 | `learning` | 학습 기능 진입점 | [07](07-learning-features.md) |
+| `teamProjects` | 팀 프로젝트 목록·본문·제출 결과·팀원·첨부파일 조회 | [16](16-team-projects.md) |
 | `noticeBoard` | 공지사항 보드 기능 | [05](05-board-list-and-detail.md) |
 | `materialBoard` | 강의자료실 보드 기능 | [05](05-board-list-and-detail.md) |
 | `surveys` | 설문 기능 | [08](08-survey-and-eclass.md) |
@@ -77,6 +78,22 @@
 typed 모델로 제공합니다. 공통형 계획서의 본문과 분반별 내용을 자동으로
 결합하며, 미등록·폐강은 `null`, 일시 조회 제한은 예외로 구분합니다.
 사용 범위와 모델 필드는 [15. 강의계획서 조회](15-course-syllabus.md)를 참고하세요.
+
+---
+
+## KlasTeamProjectFeature
+
+| API | 설명 | 반환 |
+|---|---|---|
+| `listProjects()` | 현재 과목의 프로젝트와 제출 기간·상태 | `List<KlasTeamProject>` |
+| `getDetail(project, includeFiles: true)` | 출제 본문·현재 팀의 제출 결과·첨부파일 | `KlasTeamProjectDetail` |
+| `listMembers(project)` | 프로젝트에 배정된 현재 팀의 구성원 | `List<KlasTeamProjectMember>` |
+
+`KlasTeamProjectDetail.submission`은 제출 결과가 없으면 `null`입니다.
+`detail.files`, `submission.files`, `submission.feedbackFiles`의 각
+`KlasAttachedFile`은 `download()`를 지원합니다. 알려지지 않은 날짜·점수·상태는
+`null`이며, 프로젝트가 없는 과목이나 미배정 팀의 목록은 비어 있습니다.
+공개 모델 필드와 오류 처리는 [16. 팀 프로젝트 조회](16-team-projects.md)를 참고하세요.
 
 ---
 
@@ -95,7 +112,7 @@ typed 모델로 제공합니다. 공통형 계획서의 본문과 분반별 내�
 | `summary(...)` | 학습 요약 | `KlasRecord` |
 | `realtimeProgress(...)` | 실시간 진도 | `List<KlasRecord>` |
 | `taskStatus(...)` | 과제 상태 | `List<KlasRecord>` |
-| `teamProjects(...)` | 팀프로젝트 상태 | `List<KlasRecord>` |
+| `teamProjects(...)` | 팀 프로젝트 학습 현황 (본문은 `course.teamProjects` 사용) | `List<KlasRecord>` |
 | `testAndQuizStatus(...)` | 시험/퀴즈 상태 | `List<KlasRecord>` |
 | `onlineTests(...)` | 온라인 시험 목록(원형) | `List<KlasRecord>` |
 | `listOnlineTestItems(...)` | 온라인 시험 목록(typed) | `List<KlasOnlineTest>` |

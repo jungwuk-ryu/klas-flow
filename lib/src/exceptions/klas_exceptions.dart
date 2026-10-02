@@ -105,3 +105,8 @@ final class VideoVerificationException extends KlasException {
 final class VideoPlaybackInterruptedException extends KlasException {
   const VideoPlaybackInterruptedException(super.message);
 }
+
+/// 팀 프로젝트가 삭제됐거나 상세 조회가 허용되지 않을 때 발생합니다.
+final class TeamProjectUnavailableException extends KlasException {
+  const TeamProjectUnavailableException(super.message);
+}

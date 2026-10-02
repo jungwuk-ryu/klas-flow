@@ -92,6 +92,12 @@ E-class 녹화 강의의 복습 재생도 제공합니다. 앱이나 CLI가 원�
 공통형 계획서도 자동으로 결합합니다. [강의계획서 가이드](wiki/15-course-syllabus.md)를
 참고하세요. 미등록·폐강 과목은 `null`, 일시 조회 제한은 예외로 구분합니다.
 
+팀 프로젝트는 개발 버전 `1.3.0`의 `course.teamProjects.listProjects()`로
+조회합니다. `getDetail(project)`는 출제 본문과 현재 팀의 제출 결과·점수·첨삭,
+다운로드 가능한 첨부파일을 반환하고, `listMembers(project)`는 팀원을
+반환합니다. 프로젝트가 없는 과목은 빈 목록입니다.
+[팀 프로젝트 가이드](wiki/16-team-projects.md)에 사용 예시가 있습니다.
+
 ### 1) 기본 과목에서 과제 조회
 
 ```dart

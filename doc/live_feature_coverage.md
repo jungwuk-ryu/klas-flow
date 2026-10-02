@@ -14,6 +14,7 @@
 | 사용자 프로필 | `KlasUser.profile`, `sessionStatus`, `personalInfo`, `keepAlive` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 기본 사용자 식별/세션 조회 |
 | 수강 과목 컨텍스트 | `KlasUser.courses`, `defaultCourse`, `findCourseById`, `findCourseByTitle` | [03. 사용자 정보와 수강 과목 컨텍스트](../wiki/03-user-profile-and-courses.md) | 읽기 전용 | Yes | Yes | Yes | 과목 컨텍스트 바인딩 및 course lookup helper 포함 |
 | 과제 / 강의 개요 | `KlasCourse.overview`, `scheduleText`, `listTasks`, `learning.getTaskDetail` | [04. 과목 개요와 과제 조회](../wiki/04-course-overview-and-tasks.md) | 읽기 전용 | Yes | Yes | Yes | course context 주입 테스트 존재 |
+| 팀 프로젝트 | `teamProjects.listProjects`, `getDetail`, `listMembers` | [16. 팀 프로젝트 조회](../wiki/16-team-projects.md) | 읽기 전용 | Yes | Yes | No | 현재 계정은 프로젝트가 없어 빈 목록 조회 검증. 본문·제출 결과·점수·팀원·세 종류의 첨부파일 다운로드, 과목·팀 격리와 응답 오류는 합성 HTTP 테스트 |
 | 강의계획서 | `KlasCourse.syllabus`, `KlasSyllabus` | [15. 강의계획서 조회](../wiki/15-course-syllabus.md) | 읽기 전용 | Yes | Yes | No | 학부 수강 과목의 본문·평가·교재·주차·연락처·시간표 조회. 일반형과 공통형, 미등록·폐강·조회 제한·응답 오류는 mock 검증. 대학원 및 별도 실험·설계 상세표는 범위 밖 |
 | 공지 / 자료실 | `noticeBoard.*`, `materialBoard.*`, `KlasBoardPostSummary.getPost` | [05. 공지사항/자료실 조회](../wiki/05-board-list-and-detail.md) | 읽기 전용 | Yes | Yes | Yes | 목록/상세/원문 페이지 |
 | 첨부파일 | `files.listByAttachId`, `KlasAttachedFile.download`, `files.download` | [06. 첨부파일 다운로드](../wiki/06-attachments-download.md) | 읽기 전용 | Yes | Yes | Yes | 다운로드는 mock binary 테스트 존재 |
@@ -44,6 +45,20 @@
 - 증빙 문서가 필요하면 `doc/live_test_evidence_template.md`를 시작점으로 사용합니다.
 
 ## Latest Validation Snapshot
+
+2026-10-03 팀 프로젝트 작업에서는 공식 화면의 목록·상세·팀원 조회 동작을
+확인한 뒤 `course.teamProjects`를 추가했습니다. 합성 HTTP 응답으로 목록,
+출제 본문, 현재 팀의 제출 결과·점수·첨삭, 팀원과 세 종류의 첨부파일 다운로드를
+검증했습니다. 과목·팀 격리, 삭제된 프로젝트, 미배정 팀, 잘못된 날짜와 응답도
+테스트했습니다. 팀 프로젝트 관련 사례 39개를 포함한 전체 227개 테스트와
+`dart run tool/check_all.dart`가 통과했습니다.
+
+저장된 CLI 인증을 메모리에서 사용한 읽기 전용 SDK 검사에서는 현재 학기
+6과목 모두 프로젝트가 없었으며, 목록 요청 6건이 HTTP 200과 빈 목록을
+반환했습니다. 검증 클라이언트는 총 14건을 요청했고 차단 대상 요청은 0건입니다.
+프로젝트가 등록된 경우의 상세·팀원·첨부파일은 실계정으로 확인하지 않았습니다.
+응답 원본과 계정·팀원 식별자를 저장소에 남기지 않았습니다. 이 검사는 아래
+표의 사람 수동 테스트 완료 상태와 구분합니다.
 
 2026-10-03에는 요청된 6개 브랜치를 `develop` 기준 통합 브랜치에 병합한 뒤
 SDK 전체 검사와 188개 테스트를 통과했습니다. CLI의 임시 복사본에 통합 SDK를
@@ -99,12 +114,14 @@ QR 출석 버튼이 표시되는 것까지 읽기 전용으로 확인했습니�
 | 항목 | 명령 | 결과 | 실행일 |
 |---|---|---|---|
 | Scoped analyze | `dart analyze lib test tool` | Passed | 2026-10-03 |
-| Full unit test suite | `dart test` | Passed (188 tests, 강의계획서·동영상·QR·로그인 및 고수준 API 회귀 포함) | 2026-10-03 |
+| Full unit test suite | `dart test` | Passed (227 tests, 팀 프로젝트·강의계획서·동영상·QR·로그인 및 고수준 API 회귀 포함) | 2026-10-03 |
+| Team project reads | `dart test test/team_project_test.dart` (full suite에 포함) | Passed (37 tests, 목록·본문·제출 결과·팀원·다운로드·과목/팀 격리·응답 오류) | 2026-10-03 |
+| Live empty team project lists | 저장된 CLI 인증을 사용한 읽기 전용 SDK 검사 | Passed (현재 학기 6과목, HTTP 200 빈 목록 6건) | 2026-10-03 |
 | Course syllabus | `dart test test/syllabus_test.dart` (full suite에 포함) | Passed (26 tests, 일반형·공통형·과목 격리·미등록·제한·응답 오류) | 2026-10-03 |
 | Video playback / E-class review | `dart test test/video_playback_test.dart` (full suite에 포함) | Passed (30 tests) | 2026-10-03 |
 | Mobile QR attendance | `dart test test/mobile_qr_attendance_test.dart` (full suite에 포함) | Passed (34 tests) | 2026-10-02 |
 | High-level coverage | `dart test test/high_level_feature_coverage_test.dart` (full suite에 포함) | Passed | 2026-10-03 |
 | Captcha login and parser | `dart test test/captcha_login_test.dart test/login_parser_test.dart` | Passed (21 tests) | 2026-10-02 |
-| Integrated check | `dart run tool/check_all.dart` | Passed (develop 통합 코드) | 2026-10-03 |
+| Integrated check | `dart run tool/check_all.dart` | Passed (develop 통합 코드 및 팀 프로젝트 추가) | 2026-10-03 |
 | CLI compatibility | 통합 SDK를 연결한 CLI 임시 복사본의 `dart run tool/check_all.dart`, `dart compile exe bin/klas.dart -o build/klas.exe` | Passed (전체 CLI 검사), executable built | 2026-10-03 |
 | Compiled CLI monthly calendar | `klas --format json calendar month --year 2026 --month 10` | Passed (10건, 전체 기간 10건, 월 경계 일정 5건) | 2026-10-03 |

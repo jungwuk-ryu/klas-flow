@@ -5,6 +5,7 @@ import '../api/qr_attendance_api.dart';
 import '../api/video_lecture_api.dart';
 import '../api/eclass_video_api.dart';
 import '../api/syllabus_api.dart';
+import '../api/team_project_api.dart';
 import '../api/session_api.dart';
 import '../auth/session_coordinator.dart';
 import '../context/context_manager.dart';
@@ -27,6 +28,7 @@ final class KlasDomainExecutor {
   late final VideoLectureApi videos = VideoLectureApi(_requestExecutor);
   late final EClassVideoApi eclassVideos = EClassVideoApi(_requestExecutor, videos);
   late final SyllabusApi syllabi = SyllabusApi(_requestExecutor);
+  late final TeamProjectApi projects = TeamProjectApi(_requestExecutor);
 
   KlasDomainExecutor({
     required KlasReadOnlyApi api,

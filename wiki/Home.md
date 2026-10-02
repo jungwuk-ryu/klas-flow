@@ -26,6 +26,7 @@
 13. [13. 오류 처리와 운영 패턴](13-error-handling-patterns.md)
 14. [14. 고수준 API 전체 인덱스](14-high-level-api-index.md)
 15. [15. 강의계획서 조회](15-course-syllabus.md)
+16. [16. 팀 프로젝트 조회](16-team-projects.md)
 
 ## 이 위키가 다루는 범위
 
