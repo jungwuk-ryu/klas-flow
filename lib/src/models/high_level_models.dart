@@ -896,6 +896,12 @@ final class KlasMonthlyScheduleTableItem {
   final String? weekday;
   final String? title;
   final String? status;
+
+  /// 일정의 실제 시작 일시입니다. 알 수 없으면 null입니다.
+  final String? startsAt;
+
+  /// 일정의 실제 종료 일시입니다. 알 수 없으면 null입니다.
+  final String? endsAt;
   final Map<String, dynamic> raw;
 
   const KlasMonthlyScheduleTableItem({
@@ -904,17 +910,35 @@ final class KlasMonthlyScheduleTableItem {
     this.weekday,
     this.title,
     this.status,
+    this.startsAt,
+    this.endsAt,
   });
 
   factory KlasMonthlyScheduleTableItem.fromJson(Map<String, dynamic> json) {
+    final startsAt = _normalizeScheduleDateTime(
+      _readNormalizedString(json, const <String>[
+        'started',
+        'startsAt',
+        'startDate',
+        'start',
+        'schdulDt',
+        'chkdate',
+      ]),
+    );
+    final endsAt = _normalizeScheduleDateTime(
+      _readNormalizedString(json, const <String>[
+        'ended',
+        'endsAt',
+        'endDate',
+        'end',
+      ]),
+    );
+    final startDate = startsAt == null ? null : DateTime.tryParse(startsAt);
     final dayRaw = _readNormalizedString(json, const <String>[
       'day',
       'dayNo',
       'dayOfMonth',
       'daynum',
-      'schdulDt',
-      'chkdate',
-      'started',
     ]);
     final weekdayRaw = _readNormalizedString(json, const <String>[
       'weekday',
@@ -926,8 +950,12 @@ final class KlasMonthlyScheduleTableItem {
 
     return KlasMonthlyScheduleTableItem(
       raw: json,
-      dayOfMonth: _normalizeDayOfMonth(dayRaw),
-      weekday: _toWeekdayLabel(weekdayRaw),
+      dayOfMonth:
+          startDate?.day.toString().padLeft(2, '0') ??
+          _normalizeDayOfMonth(dayRaw),
+      weekday: _toWeekdayLabel(weekdayRaw ?? startDate?.weekday.toString()),
+      startsAt: startsAt,
+      endsAt: endsAt,
       title: _readNormalizedString(json, const <String>[
         'title',
         'schdulTitle',
@@ -1676,6 +1704,40 @@ String? _joinScheduleRange(String? startTime, String? endTime) {
     return null;
   }
   return '$start-$end';
+}
+
+String? _normalizeScheduleDateTime(String? value) {
+  if (value == null) return null;
+  final compact = RegExp(
+    r'^(\d{4})(\d{2})(\d{2})(?:(\d{2})(\d{2})(\d{2})?)?$',
+  ).firstMatch(value);
+  final normalized = compact == null
+      ? value
+      : '${compact[1]}-${compact[2]}-${compact[3]}T'
+            '${compact[4] ?? '00'}:${compact[5] ?? '00'}:${compact[6] ?? '00'}';
+  final parts = RegExp(
+    r'^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:[zZ]|[+-]\d{2}(?::?\d{2})?)?)?$',
+  ).firstMatch(normalized);
+  if (parts == null) return null;
+
+  int part(int index, [int fallback = 0]) =>
+      int.tryParse(parts[index] ?? '') ?? fallback;
+  final year = part(1);
+  final month = part(2);
+  final day = part(3);
+  final hour = part(4);
+  final minute = part(5);
+  final second = part(6);
+  final local = DateTime(year, month, day, hour, minute, second);
+  if (local.year != year ||
+      local.month != month ||
+      local.day != day ||
+      local.hour != hour ||
+      local.minute != minute ||
+      local.second != second) {
+    return null;
+  }
+  return DateTime.tryParse(normalized)?.toIso8601String();
 }
 
 String? _normalizeDayOfMonth(String? value) {

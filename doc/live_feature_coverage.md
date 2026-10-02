@@ -19,7 +19,7 @@
 | 온라인 학습 | `learning.listOnlineContentItems`, `listOnlineTestItems`, `listAnytimeQuizItems`, `listDiscussionItems` | [07. 온라인 학습 기능](../wiki/07-learning-features.md) | 읽기 전용 | Yes | Yes | No | typed 모델 매핑 테스트 존재 |
 | 설문 / e-Class | `surveys.listSurveyItems`, `surveys.openPage`, `eclass.listEClassItems` | [08. 설문과 e-Class](../wiki/08-survey-and-eclass.md) | 읽기 전용 | Yes | Yes | No | 조회 중심 |
 | 시간표 / 수강 | `enrollment.listTimetableEntries`, `enrollment.timetable`, `user.timetable` | [09. 학기 시간표](../wiki/09-timetable.md) | 읽기 전용 | Yes | Yes | No | typed timetable 테스트 존재 |
-| 출석 / 월간 일정 | `attendance.listSubjectItems`, `findSubjectItemById`, `findSubjectItemByTitle`, `listMonthlySchedules`, `listMonthlyScheduleTableItems` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 읽기 전용 | Yes | Yes | No | 출석 과목 조회, lookup helper, 일정 조회 |
+| 출석 / 월간 일정 | `attendance.listSubjectItems`, `findSubjectItemById`, `findSubjectItemByTitle`, `listMonthlySchedules`, `listMonthlyScheduleTableItems` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 읽기 전용 | Yes | Yes | No | 출석 과목 조회, lookup helper, 월 조회 범위와 전체 시작·종료 일시, 월 경계/윤년/잘못된 날짜 mock 검증 |
 | QR 출석 | `attendance.qrCheckIn`, `qrCheckInRaw`, `prepareQrCheckIn`, `course.qrCheckIn`, `course.prepareQrCheckIn`, `KlasQrCheckInSession.submit` | [11. 출석/월간 일정 기능](../wiki/11-attendance-features.md) | 상태 변경 | Yes | No | No | 기본 클라이언트의 모바일 식별 자동 처리와 요청 격리, 과목 마감, 이메일/기존 OTP, 외부 QR 문자열 입력, 준비/취소/일회 제출, 세션 변경 시 무효화, 실패 판정, 자동 재전송 방지를 mock 검증. 실계정 출석 제출 금지 |
 | 학사 / 성적 | `academic.*` | [10. 학사/성적 기능](../wiki/10-academic-features.md) | 읽기 전용 | Yes | Yes | No | 성적/장학/어학/강의평가 조회 |
 | 학적 | `studentRecord.temporaryLeaveHakjuk`, `temporaryLeaveStatus` | [12. 학적/프레임/헬스체크](../wiki/12-student-record-frame-healthcheck.md) | 읽기 전용 | Yes | Yes | No | 현재는 조회만 포함 |
@@ -41,6 +41,13 @@
 
 ## Latest Validation Snapshot
 
+2026-10-02 월별 일정 확인에서는 로그인된 Chrome의 2026년 10월 목록과
+읽기 전용 월 범위 조회의 일정 10건이 일치했습니다. 기존 요청은 500을
+반환했고, 월의 시작일부터 다음 월의 시작일까지 지정한 요청은 200을
+반환했습니다. 계정 식별자와 응답 원본은 저장소에 기록하지 않았습니다.
+이 기록은 자동화된 읽기 검증이며 아래의 사람 수동 테스트 완료 상태와
+구분합니다.
+
 2026-10-02의 모바일 QR 작업에서는 로그인한 Chrome에서 KW출첵 과목 선택과
 QR 출석 버튼이 표시되는 것까지 읽기 전용으로 확인했습니다. 추가 인증 발송,
 기기 등록, QR 스캔/출석 제출은 실행하지 않았습니다. 이 확인은 실제 출석
@@ -49,7 +56,7 @@ QR 출석 버튼이 표시되는 것까지 읽기 전용으로 확인했습니�
 | 항목 | 명령 | 결과 | 실행일 |
 |---|---|---|---|
 | Scoped analyze | `dart analyze lib test tool` | Passed | 2026-10-02 |
-| Full unit test suite | `dart test` | Passed (118 tests, CI 커밋 범위 회귀 3개 포함) | 2026-10-02 |
+| Full unit test suite | `dart test` | Passed (128 tests, 월간 일정 모델 회귀 10개와 CI 커밋 범위 회귀 3개 포함) | 2026-10-02 |
 | Mobile QR attendance | `dart test test/mobile_qr_attendance_test.dart` (full suite에 포함) | Passed (34 tests) | 2026-10-02 |
 | High-level coverage | `dart test test/high_level_feature_coverage_test.dart` (full suite에 포함) | Passed | 2026-10-02 |
 | Captcha login and parser | `dart test test/captcha_login_test.dart test/login_parser_test.dart` | Passed (21 tests) | 2026-10-02 |

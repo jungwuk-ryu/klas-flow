@@ -189,6 +189,11 @@
 | `monthTable(...)` | 월간 일정 테이블(원형) | `List<KlasRecord>` |
 | `listMonthlyScheduleTableItems(...)` | 월간 일정 테이블(typed) | `List<KlasMonthlyScheduleTableItem>` |
 
+`KlasMonthlyScheduleTableItem.startsAt`과 `endsAt`은 일정의 전체 시작·종료
+일시를 ISO 8601 문자열로 제공합니다. 월 경계를 넘는 기간을 유지하며,
+알 수 없거나 유효하지 않은 일시는 null입니다. `dayOfMonth`와 `weekday`는
+일자만 필요한 화면에서 계속 사용할 수 있습니다.
+
 QR 인증 callback은 `KlasQrVerificationChallenge`를 받고 `KlasQrVerificationAnswer` 또는 취소를 뜻하는 `null`을 반환합니다.
 `KlasQrVerificationMethod.email`과 이미 등록된 `otp`를 지원합니다.
 

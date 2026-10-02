@@ -1155,8 +1155,8 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
 
   /// 월간 일정 원본 목록을 조회합니다.
   ///
-  /// 최근 배포에서는 `schdulYear`, `schdulMonth`가 없으면 500을 반환하는 경우가 있어,
-  /// 값이 비어있으면 현재 연/월을 기본으로 채워 요청합니다.
+  /// 지정한 월의 시작일과 다음 월의 시작일을 조회 범위로 사용합니다.
+  /// 연/월을 생략하면 현재 월을 조회합니다.
   Future<List<KlasRecord>> monthList({
     int? year,
     int? month,
@@ -1168,6 +1168,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
         year: year,
         month: month,
         query: query,
+        includeDateRange: true,
       ),
     );
   }
@@ -1182,6 +1183,7 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
       year: year,
       month: month,
       query: query,
+      includeDateRange: true,
     );
     late final List<KlasRecord> rows;
     try {
@@ -1212,8 +1214,8 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
 
   /// 월간 일정 테이블 원본 목록을 조회합니다.
   ///
-  /// 실서버의 테이블 API는 브라우저와 같은 `start`/`end` 날짜 범위를 기대합니다.
-  /// 값이 비어있으면 현재 연/월 기준 6주 달력 범위를 계산해 요청합니다.
+  /// 지정한 월과 겹치는 일정의 전체 기간을 조회합니다.
+  /// 연/월을 생략하면 현재 월을 조회합니다.
   Future<List<KlasRecord>> monthTable({
     int? year,
     int? month,
@@ -1221,10 +1223,11 @@ final class KlasAttendanceFeature extends _UserFeatureBase {
   }) {
     return array(
       'attendance.mySchdulMonthTableList',
-      payload: _resolveMonthlyScheduleTableQuery(
+      payload: _resolveMonthlyScheduleQuery(
         year: year,
         month: month,
         query: query,
+        includeDateRange: true,
       ),
     );
   }
@@ -1813,6 +1816,7 @@ Map<String, dynamic> _resolveMonthlyScheduleQuery({
   required int? year,
   required int? month,
   required Map<String, dynamic>? query,
+  bool includeDateRange = false,
 }) {
   final payload = <String, dynamic>{if (query != null) ...query};
   if (year != null) {
@@ -1825,63 +1829,29 @@ Map<String, dynamic> _resolveMonthlyScheduleQuery({
   final now = DateTime.now();
   payload.putIfAbsent('schdulYear', () => now.year);
   payload.putIfAbsent('schdulMonth', () => now.month);
-  return payload;
-}
-
-Map<String, dynamic> _resolveMonthlyScheduleTableQuery({
-  required int? year,
-  required int? month,
-  required Map<String, dynamic>? query,
-}) {
-  final payload = <String, dynamic>{if (query != null) ...query};
-  final explicitStart = _asTrimmedString(payload['start']);
-  final explicitEnd = _asTrimmedString(payload['end']);
-  if (explicitStart != null && explicitEnd != null) {
-    return payload;
+  if (includeDateRange) {
+    final resolvedYear = int.tryParse('${payload['schdulYear']}');
+    final resolvedMonth = int.tryParse('${payload['schdulMonth']}');
+    if (resolvedYear == null || resolvedYear < 1 || resolvedYear > 9999) {
+      throw ArgumentError.value(payload['schdulYear'], 'year');
+    }
+    if (resolvedMonth == null || resolvedMonth < 1 || resolvedMonth > 12) {
+      throw ArgumentError.value(payload['schdulMonth'], 'month');
+    }
+    String dateString(DateTime date) =>
+        '${date.year.toString().padLeft(4, '0')}-'
+        '${date.month.toString().padLeft(2, '0')}-'
+        '${date.day.toString().padLeft(2, '0')}';
+    payload.putIfAbsent(
+      'start',
+      () => dateString(DateTime(resolvedYear, resolvedMonth)),
+    );
+    payload.putIfAbsent(
+      'end',
+      () => dateString(DateTime(resolvedYear, resolvedMonth + 1)),
+    );
   }
-
-  final resolvedYear =
-      year ?? _readInt(payload['schdulYear']) ?? DateTime.now().year;
-  final resolvedMonth =
-      month ?? _readInt(payload['schdulMonth']) ?? DateTime.now().month;
-  final range = _resolveMonthlyScheduleTableRange(
-    year: resolvedYear,
-    month: resolvedMonth,
-  );
-
-  payload
-    ..remove('schdulYear')
-    ..remove('schdulMonth')
-    ..['start'] = range.$1
-    ..['end'] = range.$2;
   return payload;
-}
-
-(String, String) _resolveMonthlyScheduleTableRange({
-  required int year,
-  required int month,
-}) {
-  final firstDayOfMonth = DateTime(year, month, 1);
-  final start = firstDayOfMonth.subtract(
-    Duration(days: firstDayOfMonth.weekday % DateTime.daysPerWeek),
-  );
-  final end = start.add(const Duration(days: 42));
-  return (_formatIsoDate(start), _formatIsoDate(end));
-}
-
-int? _readInt(Object? value) {
-  final text = _asTrimmedString(value);
-  if (text == null) {
-    return null;
-  }
-  return int.tryParse(text);
-}
-
-String _formatIsoDate(DateTime value) {
-  final year = value.year.toString().padLeft(4, '0');
-  final month = value.month.toString().padLeft(2, '0');
-  final day = value.day.toString().padLeft(2, '0');
-  return '$year-$month-$day';
 }
 
 Map<String, dynamic> _resolveTimetableQuery({

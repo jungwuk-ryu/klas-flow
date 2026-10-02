@@ -331,6 +331,20 @@ void main() {
         expectAutomaticAttendanceHeaders(requests);
         await user.attendance.monthList();
         await user.attendance.monthTable();
+        await user.attendance.listMonthlySchedules(year: 2026, month: 10);
+        await user.attendance.listMonthlyScheduleTableItems(
+          year: 2026,
+          month: 10,
+        );
+        for (final request in requests.where(
+          (r) =>
+              r.url.path.endsWith('/MySchdulMonthList.do') ||
+              r.url.path.endsWith('/MySchdulMonthTableList.do'),
+        )) {
+          final query = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(query['start'], matches(r'^\d{4}-\d{2}-01$'));
+          expect(query['end'], matches(r'^\d{4}-\d{2}-01$'));
+        }
 
         await user.academic.checkTerm();
         await user.academic.hakjukInfo();
