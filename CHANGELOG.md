@@ -1,5 +1,8 @@
 ## 1.3.0 (Unreleased)
 
+- Added `course.teamProjects` with typed project lists, instructions, submission periods and status, current-team submissions, scores, instructor feedback and team members.
+- Bind detail and member reads to the current course and team, distinguish missing projects from response errors, and support downloads for instruction, submitted and feedback attachments.
+
 - Added `course.syllabus()` with typed undergraduate syllabus contents, instructor contacts, class times, assessments, textbooks, weekly plans and learning outcomes.
 - Resolve shared syllabus descriptions and grading alongside section-specific textbooks and weeks; distinguish missing or closed-course plans from access restrictions and response failures.
 

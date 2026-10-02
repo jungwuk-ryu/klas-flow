@@ -9,8 +9,55 @@ import 'support/captcha_login_mock.dart';
 import 'support/mobile_qr_fixture.dart';
 import 'support/video_fixture.dart';
 import 'support/syllabus_fixture.dart';
+import 'support/team_project_fixture.dart';
 
 void main() {
+  test(
+    'public team project reads reach details, members and all file groups',
+    () async {
+      final fixture = TeamProjectFixture();
+      addTearDown(fixture.close);
+      final course = await fixture.course();
+      final project = (await course.teamProjects.listProjects()).single;
+      final detail = await course.teamProjects.getDetail(project);
+      await course.teamProjects.listMembers(project);
+      for (final file in [
+        ...detail.files,
+        ...detail.submission!.files,
+        ...detail.submission!.feedbackFiles,
+      ]) {
+        await file.download();
+      }
+      for (final path in projectReadPaths) {
+        final requests = fixture.calls(path);
+        expect(requests, isNotEmpty, reason: path);
+        for (final request in requests) {
+          final body = jsonDecode(request.body);
+          expect(body['selectSubj'], course.courseId);
+          expect(body['selectYearhakgi'], course.termId);
+          expect(request.method, 'POST');
+        }
+      }
+      expect(fixture.calls(projectFilesPath), hasLength(3));
+      expect(
+        fixture.requests.where(
+          (request) =>
+              request.method == 'GET' &&
+              request.url.path.startsWith('/common/file/DownloadFile/'),
+        ),
+        hasLength(3),
+      );
+      expect(
+        fixture.requests.where(
+          (request) =>
+              request.url.path.startsWith('/std/lis/evltn/') &&
+              !projectReadPaths.contains(request.url.path),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
   test(
     'public syllabus reads reach ordinary and shared plan features',
     () async {

@@ -9,6 +9,7 @@ import 'support/captcha_login_mock.dart';
 import 'support/mobile_qr_fixture.dart';
 import 'support/video_fixture.dart';
 import 'support/syllabus_fixture.dart';
+import 'support/team_project_fixture.dart';
 
 void main() {
   test(
@@ -31,6 +32,28 @@ void main() {
     },
   );
   group('High-level domain API', () {
+    test('a course exposes typed team projects, submissions and members', () async {
+      final fixture = TeamProjectFixture();
+      addTearDown(fixture.close);
+      final course = await fixture.course();
+      final KlasTeamProjectFeature projects = course.teamProjects;
+      final List<KlasTeamProject> list = await projects.listProjects();
+      final KlasTeamProjectDetail detail = await projects.getDetail(list.single);
+      final KlasTeamProjectSubmission submission = detail.submission!;
+      final List<KlasTeamProjectMember> members = await projects.listMembers(
+        list.single,
+      );
+      expect(detail.project.courseId, course.courseId);
+      expect(
+        detail.project.submissionVisibility,
+        KlasTeamProjectSubmissionVisibility.private,
+      );
+      expect(detail.contentHtml, contains('문제 설명'));
+      expect(submission.content, contains('역할 분담'));
+      expect(members.first.isLeader, isTrue);
+      expect((await detail.files.single.download()).bytes, [1, 2, 3]);
+    });
+
     test(
       'a bound course exposes typed syllabus data without browser setup',
       () async {

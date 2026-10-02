@@ -8,6 +8,7 @@ import '../models/qr_check_in_session.dart';
 import '../models/video_lecture.dart';
 import '../models/eclass_recording.dart';
 import '../models/syllabus.dart';
+import '../models/team_project.dart';
 import '../api/eclass_video_api.dart';
 import '../api/video_lecture_api.dart';
 import 'video_playback.dart';
@@ -198,6 +199,11 @@ final class KlasCourse {
   );
   late final KlasSurveyFeature surveys = KlasSurveyFeature(_executor, _context);
   late final KlasEClassFeature eclass = KlasEClassFeature(_executor, _context);
+  late final KlasTeamProjectFeature teamProjects = KlasTeamProjectFeature(
+    _executor,
+    _context,
+    _owner.files,
+  );
 
   KlasCourse({
     required KlasDomainExecutor executor,
@@ -353,6 +359,45 @@ abstract base class _CourseFeatureBase {
   }
 }
 
+/// 과목의 팀 프로젝트 본문, 제출 결과와 팀 구성원을 조회합니다.
+final class KlasTeamProjectFeature extends _CourseFeatureBase {
+  final KlasFileFeature _files;
+
+  KlasTeamProjectFeature(super.executor, super.context, this._files);
+
+  /// 출제된 프로젝트를 조회합니다. 프로젝트가 없으면 빈 목록입니다.
+  Future<List<KlasTeamProject>> listProjects() async => List.unmodifiable(
+    (await executor.projects.list(context)).map((target) => target.project),
+  );
+
+  /// 목록에서 얻은 프로젝트의 본문, 제출 결과와 첨부파일을 조회합니다.
+  ///
+  /// includeFiles가 false이면 파일 목록 요청을 생략합니다.
+  Future<KlasTeamProjectDetail> getDetail(
+    KlasTeamProject project, {
+    bool includeFiles = true,
+  }) async {
+    final target = await executor.projects.resolve(context, project);
+    final data = await executor.projects.detail(target);
+    if (!includeFiles) return data.toPublic();
+    Future<List<KlasAttachedFile>> files(String? id, String storage) => id == null
+        ? Future.value(const <KlasAttachedFile>[])
+        : _files.listByAttachId(attachId: id, query: {'storageId': storage});
+    return data.toPublic(
+      files: await files(data.attachmentId, 'CLS_PROF_TEAM'),
+      submittedFiles: await files(data.submissionAttachmentId, 'CLS_STU_TEAM'),
+      feedbackFiles: await files(data.feedbackAttachmentId, 'CLS_PROF_TEAM_ADD'),
+    );
+  }
+
+  /// 프로젝트에 배정된 현재 팀의 구성원을 조회합니다.
+  /// 팀이 아직 배정되지 않았으면 빈 목록입니다.
+  Future<List<KlasTeamProjectMember>> listMembers(KlasTeamProject project) async {
+    final target = await executor.projects.resolve(context, project);
+    return executor.projects.members(target);
+  }
+}
+
 /// 강의 학습 feature 모음입니다.
 final class KlasLearningFeature extends _CourseFeatureBase {
   KlasLearningFeature(super.executor, super.context);
@@ -449,6 +494,7 @@ final class KlasLearningFeature extends _CourseFeatureBase {
     return KlasTaskDetail.fromJson(raw);
   }
 
+  /// 팀 프로젝트의 학습 현황입니다. 본문은 course.teamProjects로 조회합니다.
   Future<List<KlasRecord>> teamProjects({Map<String, dynamic>? query}) {
     return array('learning.lrnSttusStdTeamPrjctList', payload: query);
   }
