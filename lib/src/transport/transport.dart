@@ -184,6 +184,32 @@ final class KlasTransport {
   /// 세션 쿠키를 제거합니다.
   void clearSession() => _cookieJar.clear();
 
+  /// 외부 미디어 설명 문서를 조회하며 KLAS 쿠키와 자동 리디렉션을 제외합니다.
+  Future<String> getPublicText(Uri uri) async {
+    if (uri.scheme != 'https' ||
+        uri.host != 'kwcommons.kw.ac.kr' ||
+        uri.userInfo.isNotEmpty ||
+        uri.hasFragment ||
+        (uri.hasPort && uri.port != 443)) {
+      throw const VideoLectureUnavailableException(
+        'Unsupported video metadata origin.',
+      );
+    }
+    try {
+      final request = http.Request('GET', uri)..followRedirects = false;
+      final response = await http.Response.fromStream(
+        await _httpClient.send(request).timeout(_timeout),
+      ).timeout(_timeout);
+      _validateStatus(response);
+      return _decodeText(response);
+    } on KlasException {
+      rethrow;
+    } catch (_) {
+      // 미디어 링크나 서명 값을 오류 메시지에 포함하지 않습니다.
+      throw const NetworkException('Video metadata request failed.');
+    }
+  }
+
   /// 내부 HTTP 클라이언트를 정리합니다.
   void close() {
     if (_ownsHttpClient) {

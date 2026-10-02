@@ -2,6 +2,8 @@ import '../api/frame_api.dart';
 import '../api/readonly_api.dart';
 import '../api/request_executor.dart';
 import '../api/qr_attendance_api.dart';
+import '../api/video_lecture_api.dart';
+import '../api/eclass_video_api.dart';
 import '../api/session_api.dart';
 import '../auth/session_coordinator.dart';
 import '../context/context_manager.dart';
@@ -21,6 +23,8 @@ final class KlasDomainExecutor {
   final ContextManager _contextManager;
 
   late final QrAttendanceApi qrAttendance = QrAttendanceApi(_requestExecutor);
+  late final VideoLectureApi videos = VideoLectureApi(_requestExecutor);
+  late final EClassVideoApi eclassVideos = EClassVideoApi(_requestExecutor, videos);
 
   KlasDomainExecutor({
     required KlasReadOnlyApi api,

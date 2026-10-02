@@ -644,6 +644,7 @@ final class KlasEClassItem {
       raw: json,
       itemId: _readNormalizedString(json, const <String>[
         'eclassNo',
+        'contentId',
         'itemId',
         'id',
       ]),

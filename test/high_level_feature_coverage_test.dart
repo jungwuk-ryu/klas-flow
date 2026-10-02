@@ -7,8 +7,65 @@ import 'package:klasflow/src/api/readonly_api.dart';
 import 'package:test/test.dart';
 import 'support/captcha_login_mock.dart';
 import 'support/mobile_qr_fixture.dart';
+import 'support/video_fixture.dart';
 
 void main() {
+  test(
+    'public video preparation, authentication, player events and E-class review are reachable',
+    () async {
+      final fixture = VideoFixture(verificationRequired: true);
+      addTearDown(fixture.close);
+      final course = (await (await fixture.login()).defaultCourse())!;
+      final lecture = (await course.learning.listVideoLectures()).single;
+      final playback = await course.learning.openVideo(
+        lecture,
+        onVerification: (challenge) async {
+          await challenge.requestEmailCode();
+          return const KlasVideoVerificationAnswer(
+            method: KlasVideoVerificationMethod.email,
+            code: '001234',
+          );
+        },
+      );
+      await playback.recordPlayback(
+        position: Duration.zero,
+        state: KlasVideoPlaybackState.playing,
+      );
+      await playback.recordPlayback(
+        position: Duration.zero,
+        state: KlasVideoPlaybackState.paused,
+      );
+      await playback.checkStatus();
+      await playback.close();
+      await course.eclass.openVideo(
+        (await course.eclass.listRecordings()).single,
+      );
+      for (final path in [
+        videoListPath,
+        videoCheckPath,
+        videoEmailPath,
+        videoCodePath,
+        videoViewerPath,
+        videoStatusPath,
+        eclassListPath,
+        eclassViewerPath,
+        '/em/synthetic',
+        '/viewer/ssplayer/uniplayer_support/content.php',
+      ]) {
+        expect(fixture.calls(path), isNotEmpty, reason: path);
+      }
+      expect(fixture.calls(videoSavePath), isEmpty);
+      final legacy = VideoFixture(recording: eclassRow(legacy: true));
+      addTearDown(legacy.close);
+      final legacyCourse = (await (await legacy.login()).defaultCourse())!;
+      await legacyCourse.eclass.openVideo(
+        (await legacyCourse.eclass.listRecordings()).single,
+      );
+      expect(legacy.calls(eclassLegacyViewerPath), hasLength(1));
+      expect(legacy.calls(eclassLegacyInfoPath), hasLength(1));
+    },
+  );
+
   test(
     'public login captcha callback reaches image and confirmation features',
     () async {
